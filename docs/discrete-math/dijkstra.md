@@ -37,29 +37,16 @@ $$dist[v]\leftarrow\min(dist[v],dist[u]+w(u,v)).$$
 ## 算法实现与复杂度
 
 ```python
-from heapq import heappop, heappush
+from projects.algorithm_lab.dijkstra_trace import dijkstra_trace, reconstruct_path
 
-
-def dijkstra(graph, start):
-    distances, parent = {start: 0}, {start: None}
-    heap = [(0, start)]
-    while heap:
-        cost, node = heappop(heap)
-        if cost != distances[node]:  # 跳过过期堆项
-            continue
-        for neighbor, weight in graph.get(node, []):
-            if weight < 0:
-                raise ValueError("Dijkstra requires non-negative weights")
-            candidate = cost + weight
-            if candidate < distances.get(neighbor, float("inf")):
-                distances[neighbor], parent[neighbor] = candidate, node
-                heappush(heap, (candidate, neighbor))
-    return distances, parent
-
-
-distances, _ = dijkstra({"s": [("a", 2), ("b", 5)], "a": [("b", 1)]}, "s")
-assert distances["b"] == 3
+graph = {"s": [("a", 2.0), ("b", 5.0)], "a": [("b", 1.0)], "b": []}
+distances, parents, events = dijkstra_trace(graph, "s")
+assert distances["b"] == 3.0
+assert reconstruct_path(parents, "b") == ["s", "a", "b"]
+assert [event.distance for event in events] == [0.0, 2.0, 3.0]
 ```
+
+运行 `python -m unittest projects.algorithm_lab.test_dijkstra_trace`。实现会在开始前验证整张图的节点和权重，而非只在可达分支中偶然发现负边；它使用序号避免同距离、不可比较节点导致堆比较失败。事件按最终确定顺序记录节点、距离和成功松弛，因此测试能核对距离单调、路径重建和不可达节点。
 
 采用二叉堆时，每次松弛可能入堆，时间复杂度为 $O((V+E)\log V)$，空间为 $O(V+E)$。代码允许过期条目留在堆中，以简化“降低键”操作。
 
