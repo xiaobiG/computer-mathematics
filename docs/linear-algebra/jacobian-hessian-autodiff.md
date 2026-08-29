@@ -52,34 +52,18 @@ $$J_h(x)=J_g(f(x))J_f(x).$$
 $$\frac{\partial L}{\partial x}=2z(y+\cos x),\qquad\frac{\partial L}{\partial y}=2zx.$$
 
 ```python
-from math import cos, sin
+from projects.linear_algebra_lab.gradient_check import (
+    demo_loss,
+    demo_loss_gradient,
+    gradient_check,
+)
 
-def loss(point):
-    x, y = point
-    return (x * y + sin(x)) ** 2
-
-def analytic_gradient(point):
-    x, y = point
-    z = x * y + sin(x)
-    return [2 * z * (y + cos(x)), 2 * z * x]
-
-def central_gradient(f, point, h=1e-6):
-    if h <= 0:
-        raise ValueError("h 必须为正")
-    result = []
-    for index in range(len(point)):
-        left, right = list(point), list(point)
-        left[index] -= h
-        right[index] += h
-        result.append((f(right) - f(left)) / (2 * h))
-    return result
-
-point = [0.4, -1.2]
-for exact, approximate in zip(analytic_gradient(point), central_gradient(loss, point)):
-    assert abs(exact - approximate) < 1e-6
+report = gradient_check(demo_loss, demo_loss_gradient, [0.4, -1.2])
+assert all(item.absolute_error < 1e-6 for item in report)
+assert all(item.relative_error < 1e-6 for item in report)
 ```
 
-中心差分用于**测试**而非训练：计算 $n$ 维梯度需约 $2n$ 次前向调用，步长还会遭受截断/舍入权衡。应只在小网络、小批量和固定随机种子下抽样检查若干参数。
+报告逐坐标记录解析值、数值值、绝对误差和尺度相关相对误差。测试还故意把第一个解析导数取反，确认只有该坐标的检查失败。中心差分用于**测试**而非训练：计算 $n$ 维梯度需约 $2n$ 次前向调用，步长还会遭受截断/舍入权衡。应只在小网络、小批量和固定随机种子下抽样检查若干参数。
 
 ## 算法与复杂度
 
