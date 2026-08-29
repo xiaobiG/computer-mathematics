@@ -70,24 +70,14 @@ $$P(T>s+t\mid T>s)=\frac{e^{-\lambda(s+t)}}{e^{-\lambda s}}=e^{-\lambda t}.$$
 泊松变量的均值与方差应相近；二项变量的方差不超过均值；独立泊松过程的相邻等待时间应近似指数。下面的函数先做廉价诊断，而非宣称“证明了分布”。
 
 ```python
-from statistics import fmean
+from projects.naive_bayes_spam.count_diagnostics import count_diagnostics
 
-def count_diagnostics(counts: list[int]) -> dict[str, float]:
-    if len(counts) < 2 or any(x < 0 or int(x) != x for x in counts):
-        raise ValueError("counts 必须是至少两个非负整数")
-    mean = fmean(counts)
-    variance = sum((x - mean) ** 2 for x in counts) / (len(counts) - 1)
-    return {
-        "mean": mean,
-        "sample_variance": variance,
-        "variance_to_mean": variance / mean if mean else 0.0,
-        "zero_fraction": sum(x == 0 for x in counts) / len(counts),
-    }
-
-print(count_diagnostics([7, 9, 6, 10, 8, 5, 9, 7]))
+report = count_diagnostics([0, 0, 0, 10, 10, 10])
+assert report.variance_to_mean > 1.0
+assert report.zero_fraction > report.poisson_zero_fraction_at_mean
 ```
 
-若输出的方差远大于均值，称为过度离散：可能有高低峰时段混合、事件彼此激发，或不同用户群的速率不同。此时强行拟合单个泊松分布，会系统性低估“异常大流量”的概率。
+报告还给出“以样本均值为 \(\lambda\) 的泊松模型”预期零值比例 \(e^{-\lambda}\)。若方差远大于均值或零值比例远离此基线，称为过度离散的信号：可能有高低峰时段混合、事件彼此激发，或不同用户群的速率不同。它不是泊松模型的正式拒绝检验；此时仍需检查取值、独立性、时间结构和留出预测。强行拟合单个泊松分布，会系统性低估“异常大流量”的概率。
 
 ## 算法视角：模型选择的最小流程
 
