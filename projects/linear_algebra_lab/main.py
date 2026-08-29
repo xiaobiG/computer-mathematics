@@ -280,6 +280,33 @@ def rank_images(query, images):
                   key=lambda item: item[1], reverse=True)
 
 
+def compressed_image_search(query, images, rank, iterations=80, epsilon=EPSILON):
+    """Compress a query/gallery with the same rank, then audit cosine retrieval.
+
+    This small teaching pipeline reports approximation error alongside rankings.
+    It deliberately does not claim that low Frobenius error preserves semantic
+    relevance: the scores only compare flattened grayscale matrices.
+    """
+    if not images:
+        raise ValueError("images must be a non-empty list")
+    query_components, compressed_query, query_error = compress_grayscale(query, rank, iterations, epsilon)
+    compressed_images = []
+    image_errors = []
+    component_counts = []
+    for image in images:
+        components, compressed, error = compress_grayscale(image, rank, iterations, epsilon)
+        compressed_images.append(compressed)
+        image_errors.append(error)
+        component_counts.append(len(components))
+    return {
+        "query_component_count": len(query_components),
+        "query_error": query_error,
+        "image_component_counts": component_counts,
+        "image_errors": image_errors,
+        "ranking": rank_images(compressed_query, compressed_images),
+    }
+
+
 def frobenius_error(matrix, approximation):
     """Return ||matrix - approximation||_F after checking compatible shapes."""
     if (len(matrix) != len(approximation) or not matrix

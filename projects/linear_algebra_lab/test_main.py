@@ -3,7 +3,7 @@ from math import sqrt
 
 from projects.linear_algebra_lab.main import (
     classify_linear_system, compress_grayscale, dominant_right_singular_vector, frobenius_error, image_cosine_similarity,
-    low_rank_parameter_report, matmul, norm, project, least_squares_qr, rank_k_approximation, rank_one_approximation,
+    compressed_image_search, low_rank_parameter_report, matmul, norm, project, least_squares_qr, rank_k_approximation, rank_one_approximation,
     solve, solve_with_pivot_trace, truncated_svd_frobenius_error,
 )
 
@@ -113,6 +113,20 @@ class LinearAlgebraLabTests(unittest.TestCase):
         self.assertEqual(report["saved_parameters"], 30)
         self.assertTrue(report["has_parameter_savings"])
         self.assertFalse(low_rank_parameter_report(2, 2, rank=2)["has_parameter_savings"])
+
+    def test_compressed_image_search_reports_errors_and_ranks_the_exact_match_first(self):
+        query = [[8.0, 0.0], [0.0, 3.0]]
+        report = compressed_image_search(query, [query, [[0.0, 3.0], [8.0, 0.0]]], rank=2, iterations=120)
+        self.assertEqual(report["query_component_count"], 2)
+        self.assertEqual(report["image_component_counts"], [2, 2])
+        self.assertLess(report["query_error"], 1e-9)
+        self.assertTrue(all(error < 1e-9 for error in report["image_errors"]))
+        self.assertEqual(report["ranking"][0][0], 0)
+        self.assertAlmostEqual(report["ranking"][0][1], 1.0)
+
+    def test_compressed_image_search_rejects_empty_gallery(self):
+        with self.assertRaises(ValueError):
+            compressed_image_search([[1.0]], [], rank=1)
 
     def test_flattened_image_cosine_similarity(self):
         self.assertAlmostEqual(image_cosine_similarity([[1.0, 0.0]], [[2.0, 0.0]]), 1.0)

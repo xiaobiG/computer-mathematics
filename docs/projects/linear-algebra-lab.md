@@ -7,7 +7,7 @@ description: 用可测试的教学实现串起矩阵乘法、消元、投影和�
 
 ## 目标
 
-本项目把线性代数专题的关键操作做成小型、可测试的 Python 模块：矩阵乘法、带部分选主元的方程求解、向量投影、幂迭代、低秩压缩，以及把灰度矩阵展平后的余弦相似度检索。它们用于核对数学定义，不取代 NumPy/SciPy 的生产实现。
+本项目把线性代数专题的关键操作做成小型、可测试的 Python 模块：矩阵乘法、带部分选主元的方程求解、向量投影、幂迭代、低秩压缩，以及把灰度矩阵展平后的余弦相似度检索。`compressed_image_search` 将压缩误差和压缩域排序放入同一报告，形成微型“压缩—检索”流程。它们用于核对数学定义，不取代 NumPy/SciPy 的生产实现。
 
 ## 数学连接
 
@@ -19,6 +19,19 @@ description: 用可测试的教学实现串起矩阵乘法、消元、投影和�
 - [低秩图像压缩](/linear-algebra/low-rank-image-compression)：以逐次秩一近似比较保留秩与重构误差。
 - [向量与点积](/linear-algebra/vectors-dot-product)：以余弦相似度对同形图像向量排序。
 
+## 压缩—检索实验
+
+```python
+from projects.linear_algebra_lab.main import compressed_image_search
+
+query = [[8.0, 0.0], [0.0, 3.0]]
+report = compressed_image_search(query, [query, [[0.0, 3.0], [8.0, 0.0]]], rank=2, iterations=120)
+assert report["ranking"][0][0] == 0
+assert report["query_error"] < 1e-9
+```
+
+报告同时给出查询/图库各自的分量数、Frobenius 压缩误差与余弦相似度排序。测试验证精确重构的小例中原图排第一；当使用较低秩或有限迭代时，必须另外观察误差和排序是否改变，不能从“压缩误差小”直接推断语义检索仍正确。
+
 ## 运行
 
 ```bash
@@ -26,7 +39,7 @@ python -m unittest projects.linear_algebra_lab.test_main
 python -m unittest projects.linear_algebra_lab.test_power_iteration
 ```
 
-测试覆盖矩阵形状错误、非交换变换、选主元、奇异系统、正交投影、幂迭代残差与失败边界、秩一矩阵重建、精确谱尾误差、低秩参数节省、更高保留秩不增加小例重构误差，以及同形图像的余弦检索。完整项目测试仍可通过 `npm run projects:test` 运行。
+测试覆盖矩阵形状错误、非交换变换、选主元、奇异系统、正交投影、幂迭代残差与失败边界、秩一矩阵重建、精确谱尾误差、低秩参数节省、更高保留秩不增加小例重构误差、压缩—检索联合报告，以及同形图像的余弦检索。完整项目测试仍可通过 `npm run projects:test` 运行。
 
 ## 挑战
 
