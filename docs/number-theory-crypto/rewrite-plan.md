@@ -15,12 +15,12 @@ description: 从同余和模逆元走向安全协议、攻击面与教学实验�
 | --- | --- | --- |
 | 0 | 整除、贝祖等式、最大公约数、模运算 | 既有文章待深化 |
 | 1 | 模逆元、快速幂、CRT、素数与群论直觉 | 素性测试、模逆元、快速幂、CRT 与[有限域、群与离散对数](/number-theory-crypto/finite-fields-groups)已深化 |
-| 2 | RSA 正确性、Diffie–Hellman、概率性素性测试 | RSA、Diffie–Hellman 与概率性素性测试已深化 |
-| 3 | 填充、侧信道、哈希/MAC、密码存储、椭圆曲线预备 | 密码存储、[消息认证码](/number-theory-crypto/message-authentication-codes)与[椭圆曲线预备](/number-theory-crypto/elliptic-curve-prelude)已深化；填充与侧信道由后续文章补齐 |
+| 2 | RSA 正确性、数字签名、Diffie–Hellman、概率性素性测试 | RSA、[数字签名与公开验证](/number-theory-crypto/digital-signatures)、Diffie–Hellman 与概率性素性测试已深化 |
+| 3 | 填充、侧信道、哈希/MAC、密码存储、椭圆曲线预备 | 密码存储、[消息认证码](/number-theory-crypto/message-authentication-codes)、[椭圆曲线预备](/number-theory-crypto/elliptic-curve-prelude)与数字签名的裸 RSA 反例已深化；标准签名填充与侧信道由后续文章补齐 |
 
 ## 项目连接
 
-[密码学玩具箱](/projects/crypto-toybox)验证模幂、模逆元、小参数 RSA 与有限域椭圆曲线点群的数学连接。后续扩展包括：演示裸 RSA 的确定性、比较错误密码存储与慢哈希、记录攻击前提；不实现或发布任何真实加密替代品。
+[密码学玩具箱](/projects/crypto-toybox)验证模幂、模逆元、小参数 RSA、教学签名验签等式与有限域椭圆曲线点群的数学连接。后续扩展包括：演示裸 RSA 的确定性、比较错误密码存储与慢哈希、记录攻击前提；不实现或发布任何真实加密替代品。
 
 ## 练习
 

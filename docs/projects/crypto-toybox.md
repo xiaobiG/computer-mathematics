@@ -1,6 +1,6 @@
 ---
 title: 项目：密码学玩具箱
-description: 用快速幂、模逆元、小参数 RSA 与有限域椭圆曲线串起数论课程的教学实现。
+description: 用快速幂、模逆元、小参数 RSA、教学签名验签与有限域椭圆曲线串起数论课程的教学实现。
 ---
 
 # 项目：密码学玩具箱
@@ -11,13 +11,14 @@ description: 用快速幂、模逆元、小参数 RSA 与有限域椭圆曲线�
 
 ## 目标
 
-实现并测试五块数学积木：模幂、扩展欧几里得算法、教学 RSA、有限域椭圆曲线点群和标准库 HMAC 验证。重点是看到这些函数在加密、解密、标量乘法或消息认证中如何连接，而非尝试自制密码系统。
+实现并测试六块数学积木：模幂、扩展欧几里得算法、教学 RSA、教学签名验签等式、有限域椭圆曲线点群和标准库 HMAC 验证。重点是看到这些函数在加密、验签、标量乘法或消息认证中如何连接，而非尝试自制密码系统。
 
 ## 数学连接
 
 - [模运算与快速幂](/number-theory-crypto/modular-arithmetic)
 - [最大公约数与模逆元](/number-theory-crypto/extended-euclid)
 - [RSA](/number-theory-crypto/rsa)
+- [数字签名](/number-theory-crypto/digital-signatures)
 - [中国剩余定理](/number-theory-crypto/chinese-remainder-theorem)
 - [椭圆曲线密码学预备](/number-theory-crypto/elliptic-curve-prelude)
 - [消息认证码](/number-theory-crypto/message-authentication-codes)
@@ -29,6 +30,7 @@ python projects/crypto_toybox/main.py
 python -m unittest projects.crypto_toybox.test_main
 python -m unittest projects.crypto_toybox.test_elliptic_curve
 python -m unittest projects.crypto_toybox.test_message_auth
+python -m unittest projects.crypto_toybox.test_signatures
 ```
 
 ## 实验问题

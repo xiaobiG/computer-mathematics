@@ -62,6 +62,25 @@ def decrypt(ciphertext: int, key: RsaKeyPair) -> int:
     return mod_pow(ciphertext, key.private_exponent, key.modulus)
 
 
+def toy_rsa_sign(representative: int, key: RsaKeyPair) -> int:
+    """Sign a small integer representative with the toy private exponent.
+
+    This exposes the RSA verification equation for teaching only.  It is not a
+    signature scheme: it has no hash-to-signature encoding, padding, key-size
+    requirements, or side-channel protection.
+    """
+    if not 0 <= representative < key.modulus:
+        raise ValueError("teaching representative must be in [0, n)")
+    return mod_pow(representative, key.private_exponent, key.modulus)
+
+
+def toy_rsa_verify(representative: int, signature: int, key: RsaKeyPair) -> bool:
+    """Verify s**e == representative mod n for the teaching key pair."""
+    if not 0 <= representative < key.modulus or not 0 <= signature < key.modulus:
+        return False
+    return mod_pow(signature, key.public_exponent, key.modulus) == representative
+
+
 if __name__ == "__main__":
     key = toy_rsa_keypair(61, 53, 17)
     message = 65

@@ -8,8 +8,9 @@
 2. 同余、模逆元与快速幂
 3. 欧拉函数、费马小定理与中国剩余定理
 4. RSA 的数学结构
-5. 密钥交换与椭圆曲线的直觉
-6. 哈希、KDF、随机数与安全工程边界
+5. 数字签名与公开验证
+6. 密钥交换与椭圆曲线的直觉
+7. 哈希、KDF、随机数与安全工程边界
 
 ## 当前深度版
 
@@ -18,6 +19,7 @@
 - [中国剩余定理](/number-theory-crypto/chinese-remainder-theorem)：构造、唯一性、通用合并和 RSA-CRT 故障边界；
 - [有限域、群与离散对数直觉](/number-theory-crypto/finite-fields-groups)：乘法群、元素阶、生成元与小子群边界；
 - [RSA](/number-theory-crypto/rsa)：模逆元、欧拉/CRT 正确性、快速幂与裸 RSA 的失败模式；
+- [数字签名](/number-theory-crypto/digital-signatures)：RSA 验签等式、公开验证、HMAC/加密的边界与裸签名风险；
 - [Diffie–Hellman](/number-theory-crypto/diffie-hellman)：共享秘密的推导、离散对数假设与中间人攻击；
 - [哈希与密码存储](/number-theory-crypto/hashing-passwords)：KDF、盐、成本参数与在线/离线猜测边界；
 - [消息认证码：HMAC](/number-theory-crypto/message-authentication-codes)：带密钥完整性、篡改检测与重放边界；
