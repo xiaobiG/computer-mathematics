@@ -30,8 +30,9 @@ python -m unittest discover -s projects/algorithm_lab -p "test_*.py"
 ```python
 from projects.algorithm_lab.topological_trace import topological_trace
 
-order, events = topological_trace({"build": ["compile"], "compile": []})
-print(order)          # ['build', 'compile']
+# 边表示“前置任务 -> 依赖它的后续任务”。
+order, events = topological_trace({"compile": ["build"], "build": []})
+print(order)          # ['compile', 'build']
 print(events[-1])     # 最后一次移除后的顺序与就绪队列
 assert topological_trace({"a": ["b"], "b": ["a"]})[0] is None
 ```
