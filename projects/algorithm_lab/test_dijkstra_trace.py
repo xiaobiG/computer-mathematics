@@ -1,7 +1,7 @@
 import unittest
 from math import inf
 
-from projects.algorithm_lab.dijkstra_trace import dijkstra_trace, reconstruct_path
+from projects.algorithm_lab.dijkstra_trace import dijkstra_trace, reconstruct_path, shortest_path_certificate
 
 
 class DijkstraTraceTests(unittest.TestCase):
@@ -21,6 +21,16 @@ class DijkstraTraceTests(unittest.TestCase):
         self.assertEqual(distances["isolated"], inf)
         self.assertIsNone(reconstruct_path(parents, "isolated"))
         self.assertEqual([event.distance for event in events], sorted(event.distance for event in events))
+        self.assertTrue(shortest_path_certificate(self.graph, "s", distances, parents, events)["valid"])
+
+    def test_certificate_rejects_a_distance_that_breaks_relaxation_and_parent_evidence(self):
+        distances, parents, events = dijkstra_trace(self.graph, "s")
+        distances = dict(distances)
+        distances["t"] = 8.0
+        certificate = shortest_path_certificate(self.graph, "s", distances, parents, events)
+        self.assertFalse(certificate["all_edges_relaxed"])
+        self.assertFalse(certificate["parent_paths_match_distances"])
+        self.assertFalse(certificate["valid"])
 
     def test_rejects_negative_nonfinite_and_implicit_edges(self):
         with self.assertRaises(ValueError):
