@@ -16,7 +16,7 @@ description: 用图搜索、拓扑排序、最大流轨迹和 3-SAT 验证器连
 - [图、树、二分图与拓扑排序](/discrete-math/graph-foundations-topological-sort)：依赖解除、拓扑序与有向环；
 - [渐进复杂度](/discrete-math/asymptotic-complexity)：为何邻接表下为 $O(V+E)$。
 - [P、NP 与多项式归约](/discrete-math/p-np-reductions)：候选解验证为何不等于快速搜索。
-- [Floyd–Warshall](/discrete-math/floyd-warshall)：用中间点集合做全源最短路动态规划。
+- [Floyd–Warshall](/discrete-math/floyd-warshall)：重放允许中间点集合逐步扩展的全源最短路动态规划。
 - [递推关系与分治复杂度](/discrete-math/recurrences)：用递归树层级和实际比较次数审计 $n\log n$ 工作量。
 - [渐进复杂度](/discrete-math/asymptotic-complexity)：用操作计数和双指针轨迹区分线性、二次与指数增长。
 - [集合、关系、等价类与偏序](/discrete-math/sets-relations-orders)：用性质报告和等价类划分验证有限关系。

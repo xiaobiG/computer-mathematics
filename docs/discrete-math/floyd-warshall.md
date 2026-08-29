@@ -28,17 +28,22 @@ $$D^{(k)}[i,j]=\min\left(D^{(k-1)}[i,j],D^{(k-1)}[i,k]+D^{(k-1)}[k,j]\right).$$
 ## 可运行实现
 
 ```python
-from projects.algorithm_lab.floyd_warshall import floyd_warshall
+from projects.algorithm_lab.floyd_warshall import (
+    floyd_warshall_trace,
+    floyd_warshall_trace_certificate,
+)
 
-distance = floyd_warshall(3, [(0, 1, 4), (0, 2, 11), (1, 2, -2)])
+edges = [(0, 1, 4), (0, 2, 11), (1, 2, -2)]
+distance, trace = floyd_warshall_trace(3, edges)
 assert distance[0][2] == 2.0
+assert floyd_warshall_trace_certificate(3, edges, distance, trace)
 ```
 
 ```bash
 python -m unittest projects.algorithm_lab.test_floyd_warshall
 ```
 
-初始化取平行边的最小权重，故不会因输入顺序改变答案。若最后存在 $D[i,i]<0$，则有从 $i$ 回到自己的负长度闭路，任意绕行次数都能使路径更小，最短距离无定义，项目会显式拒绝。
+初始化取平行边的最小权重，故不会因输入顺序改变答案。`floyd_warshall_trace` 记录每个 `middle` 完成后的完整距离矩阵；证书从初始边表独立重放三重循环，并拒绝任何被篡改的层。若最后存在 $D[i,i]<0$，则有从 $i$ 回到自己的负长度闭路，任意绕行次数都能使路径更小，最短距离无定义，项目会显式拒绝。NaN 和无穷边权也会在输入处被拒绝，而非进入比较后静默污染状态。
 
 ## 正确性与复杂度
 

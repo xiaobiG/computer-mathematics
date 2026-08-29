@@ -1,7 +1,9 @@
 import unittest
 from math import inf
 
-from projects.algorithm_lab.floyd_warshall import floyd_warshall
+from projects.algorithm_lab.floyd_warshall import (
+    FloydWarshallEvent, floyd_warshall, floyd_warshall_trace, floyd_warshall_trace_certificate,
+)
 
 
 class FloydWarshallTests(unittest.TestCase):
@@ -14,6 +16,18 @@ class FloydWarshallTests(unittest.TestCase):
     def test_uses_best_parallel_edge(self):
         self.assertEqual(floyd_warshall(2, [(0, 1, 8), (0, 1, 3)])[0][1], 3.0)
 
+    def test_trace_certificate_replays_each_allowed_intermediate_layer(self):
+        edges = [(0, 1, 4), (0, 2, 11), (1, 2, -2)]
+        distance, trace = floyd_warshall_trace(3, edges)
+        self.assertEqual(distance[0][2], 2.0)
+        self.assertTrue(floyd_warshall_trace_certificate(3, edges, distance, trace))
+        tampered = list(trace)
+        event = tampered[1]
+        changed = [list(row) for row in event.distance]
+        changed[0][2] = 11.0
+        tampered[1] = FloydWarshallEvent(event.middle, tuple(tuple(row) for row in changed))
+        self.assertFalse(floyd_warshall_trace_certificate(3, edges, distance, tampered))
+
     def test_rejects_negative_cycle_and_invalid_inputs(self):
         with self.assertRaises(ValueError):
             floyd_warshall(2, [(0, 1, -1), (1, 0, -1)])
@@ -21,6 +35,8 @@ class FloydWarshallTests(unittest.TestCase):
             floyd_warshall(0, [])
         with self.assertRaises(ValueError):
             floyd_warshall(2, [(0, 2, 1)])
+        with self.assertRaises(ValueError):
+            floyd_warshall(2, [(0, 1, float("nan"))])
 
 
 if __name__ == "__main__":
