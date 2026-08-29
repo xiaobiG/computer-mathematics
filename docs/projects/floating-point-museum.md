@@ -26,6 +26,7 @@ python projects/floating_point_museum/simulation.py
 python -m unittest projects.floating_point_museum.test_examples
 python -m unittest projects.floating_point_museum.test_simulation
 python -m unittest projects.floating_point_museum.test_root_finding
+python -m unittest projects.floating_point_museum.test_conditioning
 ```
 
 ## 三个案例
@@ -35,6 +36,7 @@ python -m unittest projects.floating_point_museum.test_root_finding
 3. $\sqrt{x+1}-\sqrt{x}$：通过有理化避免消去误差。
 4. 单位圆蒙特卡洛：用多个固定 seed 估计 $\pi$，报告均值、样本标准差和标准误，而不是挑选一次结果。
 5. 割线法：不提供导数求解 $x^2-2=0$，并观察零割线斜率如何被拒绝。
+6. 病态 $2\\times2$ 线性系统：保持残差接近零，同时观察微小右端扰动如何让解发生数量级更大的变化；这是条件数与后向误差不能混为一谈的反例。
 
 ## 工程边界
 

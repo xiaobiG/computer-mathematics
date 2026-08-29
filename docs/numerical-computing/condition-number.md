@@ -36,24 +36,29 @@ $$\kappa(A)=\lVert A\rVert\lVert A^{-1}\rVert.$$
 ## 算法实验与复杂度
 
 ```python
-from projects.linear_algebra_lab.main import solve
+from projects.floating_point_museum.conditioning import perturbation_report
 
 
-def intersection(epsilon, right_side):
-    # x + y = 2; x + (1 + epsilon)y = right_side
-    return solve([[1, 1], [1, 1 + epsilon]], [2, right_side])
+epsilon = 1e-6
+report = perturbation_report(
+    [[1.0, 1.0], [1.0, 1.0 + epsilon]],
+    [2.0, 2.0 + epsilon],       # 真解为 [1, 1]
+    [2.0, 2.0 + 2.0 * epsilon], # 右端只多了 epsilon
+)
 
-
-first = intersection(1e-8, 2 + 1e-8)
-second = intersection(1e-8, 2 + 2e-8)
-assert abs(first[1] - second[1]) > 0.1
+assert report["relative_rhs_change"] < 1e-6
+assert report["relative_solution_change"] > 0.9
+assert report["perturbed_residual_norm"] < 1e-10
+print(report["condition_number"])  # 约为 4_000_002
 ```
 
-这里的消元为 $O(n^3)$；条件数的精确计算通常也需要分解或迭代估计，生产程序往往只估计它，而非显式求逆矩阵。
+这份报告刻意同时给出两组解、相对扰动和残差。输入的相对变化约为 $5\times10^{-7}$，解却从 $[1,1]$ 变到 $[0,2]$；但第二个解的残差仍接近零，因为它准确地解了**被轻微改动后的问题**。这就是“后向看似很好、前向却不可靠”的可观察版本。
+
+实验的求解和求逆都是固定 $2\times2$ 的教学公式，因而为 $O(1)$；一般 $n\times n$ 情况中，消元为 $O(n^3)$，条件数的精确计算通常也需要分解或迭代估计。生产程序往往只估计它，而非显式求逆矩阵。
 
 ## 前向误差、后向误差与工程边界
 
-**前向误差**比较计算结果与真解；**后向误差**问“计算结果是否恰好解了一个很接近的输入问题”。后向稳定算法在良态问题上通常给出小前向误差，但再稳定的算法也无法挽救巨大条件数。正规方程会近似平方条件数，因此[最小二乘](/linear-algebra/least-squares)中常优先 QR/SVD；消元中选主元也是降低算法额外误差，而不是改变问题条件数。
+**前向误差**比较计算结果与真解；**后向误差**问“计算结果是否恰好解了一个很接近的输入问题”。上面的 `perturbed_residual_norm` 是后向诊断的一个起点，而 `relative_solution_change` 直接暴露前向敏感性。后向稳定算法在良态问题上通常给出小前向误差，但再稳定的算法也无法挽救巨大条件数。正规方程会近似平方条件数，因此[最小二乘](/linear-algebra/least-squares)中常优先 QR/SVD；消元中选主元也是降低算法额外误差，而不是改变问题条件数。
 
 ## 常见误区
 
@@ -65,7 +70,7 @@ assert abs(first[1] - second[1]) > 0.1
 
 1. **基础**：改变例子中的 `right_side`，观察解随 $\epsilon$ 变小时如何放大。
 2. **推导**：证明若 $A$ 是正交矩阵，在 2-范数下 $\kappa(A)=1$。
-3. **编码**：用实验室的 `solve` 对两个接近奇异的系统比较残差和解的变化。
+3. **编码**：修改 `perturbation_report`，分别报告矩阵扰动与右端扰动，并比较残差和解的变化。
 4. **开放**：解释为何特征标准化可改善某些建模问题，却不必然消除所有病态性。
 
 ## 延伸与下一步

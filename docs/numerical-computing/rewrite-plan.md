@@ -20,7 +20,7 @@ description: 从有限精度表示到稳定算法、误差分析和工程容差�
 
 ## 项目连接
 
-[浮点数错误博物馆](/projects/floating-point-museum)展示相等比较、普通/Kahan/pairwise 累计误差、消去误差、Jacobi/Gauss–Seidel 迭代轨迹与固定种子下的重复随机模拟。下一阶段将补充病态线性系统的可视化对比。
+[浮点数错误博物馆](/projects/floating-point-museum)展示相等比较、普通/Kahan/pairwise 累计误差、消去误差、Jacobi/Gauss–Seidel 迭代轨迹、固定种子下的重复随机模拟，以及病态 $2\\times2$ 线性系统中“残差很小但解很敏感”的可复核报告。下一阶段可在此基础上补充病态线性系统的可视化对比。
 
 ## 练习
 
