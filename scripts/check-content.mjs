@@ -58,6 +58,15 @@ for (const path of files) {
         errors.push(`${label}: “练习”章节至少需要 4 道分层题目（当前 ${exerciseCount} 道）`)
       }
     }
+    if (!/```(?:python|bash)\r?\n[\s\S]*?```/.test(source)) {
+      errors.push(`${label}: 缺少可运行的 Python 或 Bash 代码块`)
+    }
+    if (!/^##\s+.*(?:失败|边界|误区).*$/m.test(prose)) {
+      errors.push(`${label}: 缺少失败案例、工程边界或常见误区章节`)
+    }
+    if (!/^##\s+(?:延伸|延伸与下一步|下一步)\s*$/m.test(prose)) {
+      errors.push(`${label}: 缺少“延伸”或“下一步”章节`)
+    }
   }
   if (!/^##\s+/m.test(prose)) {
     errors.push(`${label}: 缺少至少一个二级章节`)
