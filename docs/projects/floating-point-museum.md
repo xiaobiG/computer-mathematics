@@ -19,6 +19,7 @@ description: 用可复现实验观察舍入、累计误差、消去误差与蒙�
 - [随机模拟的误差与可复现性](/numerical-computing/stochastic-simulation-reproducibility)：抽样误差、固定种子与重复报告。
 - [牛顿法](/numerical-computing/newton-method)：以符号变化区间和迭代轨迹审查混合求根的收敛证据。
 - [割线法](/numerical-computing/secant-method)：以两点插值公式、事件连接和残差审计无导数迭代。
+- [数值微分](/numerical-computing/numerical-differentiation)：扫描中心差分步长，审查二阶截断趋势与极小步长的误差反弹。
 
 ## 运行
 
@@ -30,6 +31,7 @@ python -m unittest projects.floating_point_museum.test_representation
 python -m unittest projects.floating_point_museum.test_integration
 python -m unittest projects.floating_point_museum.test_simulation
 python -m unittest projects.floating_point_museum.test_root_finding
+python -m unittest projects.floating_point_museum.test_differentiation
 python -m unittest projects.floating_point_museum.test_conditioning
 ```
 
@@ -44,6 +46,7 @@ python -m unittest projects.floating_point_museum.test_conditioning
 7. 病态 $2\\times2$ 线性系统：保持残差接近零，同时观察微小右端扰动如何让解发生数量级更大的变化；这是条件数与后向误差不能混为一谈的反例。
 8. 数值积分：以 $\sin x$ 的精确积分为预言，比较梯形法和 Simpson 法网格加密时约为 4 与 16 的误差比，并拒绝奇数 Simpson 网格和非有限函数值。
 9. 受保护牛顿法：对每一步保留的符号变化区间做审计；当牛顿建议跳出区间时回退到二分，而不是把循环或越界伪装成收敛。
+10. 数值微分：扫描中心差分的十进制步长，核对粗步长区的二阶误差趋势与极小步长的舍入误差反弹；域边界使双侧差分不可用时，确认接口拒绝函数值非有限的样本。
 
 ## 工程边界
 

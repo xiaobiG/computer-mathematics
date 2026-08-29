@@ -46,30 +46,17 @@ $$E(h)\approx C_1h^2+C_2\frac{u}{h}.$$
 ## 可运行实验：扫描而不是猜一个神奇 h
 
 ```python
-from math import cos, isfinite
+from math import cos, sin
 
-def central_difference(f, x: float, h: float) -> float:
-    if not isfinite(x) or not isfinite(h) or h <= 0:
-        raise ValueError("x 和正步长 h 必须有限")
-    left, right = f(x - h), f(x + h)
-    if not (isfinite(left) and isfinite(right)):
-        raise ValueError("函数值必须有限")
-    return (right - left) / (2.0 * h)
+from projects.floating_point_museum.differentiation import central_difference_report
 
-def scan_steps(f, exact_derivative, x: float, exponents=range(1, 17)):
-    rows = []
-    exact = exact_derivative(x)
-    for power in exponents:
-        h = 10.0 ** (-power)
-        estimate = central_difference(f, x, h)
-        rows.append((h, estimate, abs(estimate - exact)))
-    return rows
-
-for h, estimate, error in scan_steps(__import__('math').sin, cos, 1.0):
-    print(f"h={h:.0e}, estimate={estimate:.16f}, error={error:.2e}")
+report = central_difference_report(sin, cos, 1.0)
+assert report["certificate"]["coarse_steps_show_second_order_trend"]
+assert report["certificate"]["small_steps_rebound_after_best"]
+print(report["best"])
 ```
 
-输出通常先随 $h$ 减小而变好，随后因舍入误差而变坏，形成 U 形曲线。不要把某次最低点当作普遍最优值；它随平台、函数、输入和噪声改变。
+运行 `python -m unittest projects.floating_point_museum.test_differentiation`。扫描报告保留每个 $h=10^{-k}$ 的估计和绝对误差，并检查粗步长的相邻误差比是否处于二阶趋势的合理范围、最小步长之后是否发生误差反弹。输出通常先随 $h$ 减小而变好，随后因舍入误差而变坏，形成 U 形曲线。不要把某次最低点当作普遍最优值；它随平台、函数、输入和噪声改变。
 
 ## 算法选择与验证
 
