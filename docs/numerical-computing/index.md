@@ -20,6 +20,7 @@
 - [割线法](/numerical-computing/secant-method)：用两点函数值替代导数的快速求根；
 - [迭代解线性方程组](/numerical-computing/iterative-linear-systems)：Jacobi、Gauss–Seidel、残差与收敛/发散证据；
 - [数值微分](/numerical-computing/numerical-differentiation)：截断误差、舍入误差与步长选择；
+- [数值插值](/numerical-computing/interpolation)：差商、牛顿形式、Runge 现象与外推边界；
 - [数值积分](/numerical-computing/numerical-integration)：梯形法、Simpson 法与自适应切分边界；
 - [随机模拟的误差与可复现性](/numerical-computing/stochastic-simulation-reproducibility)：抽样波动、固定种子与可复核报告；
 - [数值计算深度版路线](/numerical-computing/rewrite-plan)：稳定求和、数值线性代数与工程实验。

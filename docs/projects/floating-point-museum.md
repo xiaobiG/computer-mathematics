@@ -15,6 +15,7 @@ description: 用可复现实验观察舍入、累计误差、消去误差与蒙�
 - [Kahan 求和](/numerical-computing/kahan-summation)：如何补偿累计时丢失的低位；
 - [条件数](/numerical-computing/condition-number)：为何有些表达式对误差天生敏感。
 - [迭代解线性方程组](/numerical-computing/iterative-linear-systems)：用残差和步长一起审查 Jacobi/Gauss–Seidel 的收敛。
+- [数值插值](/numerical-computing/interpolation)：用差商构造多项式，并观察外推与高阶节点的误差边界。
 - [随机模拟的误差与可复现性](/numerical-computing/stochastic-simulation-reproducibility)：抽样误差、固定种子与重复报告。
 
 ## 运行
