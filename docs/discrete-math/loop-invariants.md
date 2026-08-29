@@ -43,28 +43,26 @@ description: 用初始化、保持与终止三步证明循环算法的正确性�
 ## 算法实现与复杂度
 
 ```python
-def binary_search(values, target):
-    """Return an index of target in a sorted sequence, otherwise -1."""
-    left, right = 0, len(values)
-    while left < right:
-        mid = left + (right - left) // 2
-        if values[mid] == target:
-            return mid
-        if values[mid] < target:
-            left = mid + 1
-        else:
-            right = mid
-    return -1
+from projects.algorithm_lab.binary_search_trace import (
+    binary_search_trace,
+    trace_respects_invariant,
+)
 
-assert binary_search([1, 3, 5, 7], 5) == 2
-assert binary_search([1, 3, 5, 7], 4) == -1
+values = [1, 3, 5, 7]
+result, steps = binary_search_trace(values, 4)
+
+assert result == -1
+assert trace_respects_invariant(values, 4, result, steps)
+assert steps[-1].next_left == steps[-1].next_right  # 终止时是空区间
 ```
+
+每个轨迹事件都记录更新前后的半开区间与比较结果；`trace_respects_invariant` 独立检查“目标若存在仍在候选区间中”以及“未命中时区间严格缩小”。测试还穷举包含重复值的小型有序数组，避免只凭两个示例相信边界正确。
 
 区间长度每轮至多约减半，时间复杂度为 $O(\log n)$，额外空间为 $O(1)$。这份证明同时解释了为何不能把更新写成 `left = mid`：当 `left == mid` 时区间可能不再缩小，终止性失效。
 
 ## 失败案例与工程边界
 
-二分查找的前提是数组按同一比较规则有序。对未排序数组运行，代码仍会终止，却没有正确性保证。浮点数、字符串本地化排序或比较器不满足传递性时，也必须先明确“有序”的语义。
+二分查找的前提是数组按同一比较规则有序。实验实现会拒绝未排序输入；许多库为了性能不会做这一步，因此对未排序数组运行通常仍会终止，却没有正确性保证。浮点数、字符串本地化排序或比较器不满足传递性时，也必须先明确“有序”的语义。
 
 ## 常见误区
 
