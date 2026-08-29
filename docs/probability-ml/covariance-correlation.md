@@ -144,41 +144,24 @@ S=\frac1{n-1}Z^\mathsf T Z.
 
 ## 用代码把定义变成可检查的计算
 
-下面的实现不依赖第三方库，刻意暴露了中心化、分母选择和零方差这些关键环节。
+下面的实验不依赖第三方库，刻意暴露了中心化、分母选择和零方差这些关键环节。
 
 ```python
-from math import sqrt
+from projects.naive_bayes_spam.covariance import (
+    covariance_report, sample_correlation, sample_covariance,
+)
 
+report = covariance_report([[1.0, 2.0], [2.0, 4.0], [3.0, 6.0]])
+assert report["covariance"] == [[1.0, 2.0], [2.0, 4.0]]
+assert report["certificate"]["valid"]
 
-def mean(values):
-    if not values:
-        raise ValueError("至少需要一个数")
-    return sum(values) / len(values)
-
-
-def sample_covariance(xs, ys):
-    if len(xs) != len(ys) or len(xs) < 2:
-        raise ValueError("两列数据等长且至少包含两个样本")
-    mx, my = mean(xs), mean(ys)
-    return sum((x - mx) * (y - my) for x, y in zip(xs, ys)) / (len(xs) - 1)
-
-
-def sample_correlation(xs, ys):
-    cov = sample_covariance(xs, ys)
-    sx = sqrt(sample_covariance(xs, xs))
-    sy = sqrt(sample_covariance(ys, ys))
-    if sx == 0 or sy == 0:
-        raise ValueError("常量列没有定义相关系数")
-    return cov / (sx * sy)
-
-
-hours = [1, 2, 3, 4, 5]
-scores = [52, 60, 63, 74, 81]
-print(sample_covariance(hours, scores))
-print(round(sample_correlation(hours, scores), 3))
+xs = [-2.0, -1.0, 0.0, 1.0, 2.0]
+ys = [value * value for value in xs]
+assert sample_covariance(xs, ys) == 0.0
+assert sample_correlation(xs, ys) == 0.0
 ```
 
-试着将 `scores` 改为 `[(x - 3) ** 2 for x in hours]`。你会得到接近零的相关系数，却明知得分由 `hours` 唯一决定。这是检查“指标是否适合问题”的最低成本实验。
+运行 `python -m unittest projects.naive_bayes_spam.test_covariance`。`covariance_report` 自动检查中心化列和、协方差矩阵对称性与对角方差非负；这些是定义直接导出的结构证据。第二组对称的二次样本精确给出零协方差、零相关，却由 `ys = xs^2` 确定性生成，形成“零相关不等于独立”的可运行反例。
 
 ## 相关不是因果：还缺少什么
 
@@ -196,11 +179,11 @@ print(round(sample_correlation(hours, scores), 3))
 
 ## 练习
 
-1. 从 \(\mathbb E[(X-\mu_X)(Y-\mu_Y)]\) 逐项展开，证明本课的协方差计算式。
-2. 证明协方差矩阵的对称性，并完成 \(\mathbf v^\mathsf T\Sigma\mathbf v=\operatorname{Var}(\mathbf v^\mathsf T\mathbf X)\) 的推导。
-3. 用 1000 个等距的 \([-1,1]\) 点构造 \(Y=X^2\)，计算样本相关系数并画出散点图。解释为什么数值接近零。
-4. 找一份两列以上的真实数据：分别在原始尺度与标准化后做 PCA，比较第一主方向。哪一个结果更适合问题？写出你的量纲理由。
-5. 新闻中出现“冰淇淋销量与溺水人数正相关”。画出一个含季节变量的因果图，说明为何该相关不能支持“冰淇淋导致溺水”。
+1. **基础**：从 \(\mathbb E[(X-\mu_X)(Y-\mu_Y)]\) 逐项展开，证明本课的协方差计算式。
+2. **推导**：证明协方差矩阵的对称性，并完成 \(\mathbf v^\mathsf T\Sigma\mathbf v=\operatorname{Var}(\mathbf v^\mathsf T\mathbf X)\) 的推导。
+3. **编码**：为 `covariance_report` 添加三维样本，检查对称性与对角方差；再传入常量列，验证相关系数被拒绝。
+4. **开放**：找一份两列以上的真实数据：分别在原始尺度与标准化后做 PCA，比较第一主方向，并写出量纲理由。
+5. **开放**：新闻中出现“冰淇淋销量与溺水人数正相关”。画出一个含季节变量的因果图，说明为何该相关不能支持因果结论。
 
 ## 下一步
 
