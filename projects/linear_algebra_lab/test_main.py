@@ -2,7 +2,7 @@ import unittest
 
 from projects.linear_algebra_lab.main import (
     compress_grayscale, dominant_right_singular_vector, frobenius_error, image_cosine_similarity, matmul, norm, project,
-    rank_k_approximation, rank_one_approximation, solve,
+    least_squares_qr, rank_k_approximation, rank_one_approximation, solve,
 )
 
 
@@ -32,6 +32,20 @@ class LinearAlgebraLabTests(unittest.TestCase):
         self.assertEqual(projected, [3.0, 0.0])
         self.assertEqual(sum(a * b for a, b in zip(residual, [1, 0])), 0.0)
         self.assertAlmostEqual(norm(residual), 4.0)
+
+    def test_qr_least_squares_has_column_orthogonal_residual(self):
+        matrix = [[0.0, 1.0], [1.0, 1.0], [2.0, 1.0]]
+        solution, residual = least_squares_qr(matrix, [1.0, 2.0, 2.0])
+        self.assertAlmostEqual(solution[0], 0.5)
+        self.assertAlmostEqual(solution[1], 7 / 6)
+        self.assertAlmostEqual(sum(matrix[row][0] * residual[row] for row in range(3)), 0.0, places=12)
+        self.assertAlmostEqual(sum(matrix[row][1] * residual[row] for row in range(3)), 0.0, places=12)
+
+    def test_qr_least_squares_rejects_rank_deficiency_and_wide_matrix(self):
+        with self.assertRaises(ValueError):
+            least_squares_qr([[1.0, 1.0], [2.0, 2.0]], [1.0, 2.0])
+        with self.assertRaises(ValueError):
+            least_squares_qr([[1.0, 2.0]], [1.0])
 
     def test_rank_one_matrix_is_reconstructed(self):
         matrix = [[3.0, 6.0], [4.0, 8.0]]

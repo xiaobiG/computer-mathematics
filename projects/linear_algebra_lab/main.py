@@ -62,6 +62,38 @@ def norm(vector):
     return sqrt(sum(value * value for value in vector))
 
 
+def least_squares_qr(matrix, target, epsilon=EPSILON):
+    """Solve min ||Ax-b||_2 with modified Gram--Schmidt and back substitution.
+
+    This small dense teaching implementation requires full column rank.  It
+    avoids forming A^T A, whose condition number is roughly squared.
+    """
+    if (not matrix or not matrix[0] or len(target) != len(matrix)
+            or any(len(row) != len(matrix[0]) for row in matrix)):
+        raise ValueError("matrix must be non-empty rectangular and match target")
+    rows, columns = len(matrix), len(matrix[0])
+    if rows < columns:
+        raise ValueError("least squares QR requires at least as many rows as columns")
+    work_columns = [[float(matrix[row][column]) for row in range(rows)] for column in range(columns)]
+    orthonormal, upper = [], [[0.0] * columns for _ in range(columns)]
+    for column, work in enumerate(work_columns):
+        for basis_index, basis in enumerate(orthonormal):
+            upper[basis_index][column] = sum(left * right for left, right in zip(basis, work))
+            work = [value - upper[basis_index][column] * basis[row] for row, value in enumerate(work)]
+        upper[column][column] = norm(work)
+        if upper[column][column] <= epsilon:
+            raise ValueError("matrix columns are linearly dependent at this tolerance")
+        orthonormal.append([value / upper[column][column] for value in work])
+    projected = [sum(value * float(target[row]) for row, value in enumerate(basis)) for basis in orthonormal]
+    solution = [0.0] * columns
+    for row in range(columns - 1, -1, -1):
+        solution[row] = (projected[row] - sum(upper[row][column] * solution[column]
+                                               for column in range(row + 1, columns))) / upper[row][row]
+    residual = [float(target[row]) - sum(matrix[row][column] * solution[column] for column in range(columns))
+                for row in range(rows)]
+    return solution, residual
+
+
 def dominant_right_singular_vector(matrix, iterations=80, epsilon=EPSILON):
     """Approximate the leading right singular vector by power iteration on A^T A.
 

@@ -42,7 +42,20 @@ def residual_sum_squares(a, b, x):
 assert residual_sum_squares([[1]], [3], [3]) == 0
 ```
 
-构造正规方程的密集成本约为 $O(mn^2)$；随后求解 $n\times n$ 系统为 $O(n^3)$。
+实验室同时提供不显式形成 $A^TA$ 的 QR 路径：
+
+```python
+from projects.linear_algebra_lab.main import least_squares_qr
+
+A = [[0.0, 1.0], [1.0, 1.0], [2.0, 1.0]]
+x, residual = least_squares_qr(A, [1.0, 2.0, 2.0])
+assert abs(sum(A[row][0] * residual[row] for row in range(3))) < 1e-12
+assert abs(sum(A[row][1] * residual[row] for row in range(3))) < 1e-12
+```
+
+`least_squares_qr` 以改进 Gram–Schmidt 得到 $A=QR$，计算 $Q^Tb$ 后对上三角 $R$ 回代。上述两个断言正是最优性条件 $A^Tr=0$，而不只是“画出来看起来像拟合”。运行 `python -m unittest projects.linear_algebra_lab.test_main` 可验证小例解、正交残差、秩亏列和宽矩阵边界。
+
+构造正规方程或 QR 的密集成本都约为 $O(mn^2)$；随后求解 $n\times n$ 系统为 $O(n^3)$。QR 避免了正规方程将条件数近似平方的额外放大。
 
 ## 失败案例与工程边界
 
@@ -56,9 +69,10 @@ assert residual_sum_squares([[1]], [3], [3]) == 0
 
 ## 练习
 
-1. 完成例子中的二元系统并验证两个正交条件。
-2. 给一个重复特征列，解释为什么正规方程奇异。
-3. 用 QR/SVD 库函数与正规方程比较病态输入。
+1. **基础**：完成例子中的二元系统并验证两个正交条件。
+2. **推导**：由 $A=QR$ 和 $Q^TQ=I$ 推导 $R\hat x=Q^Tb$。
+3. **编码**：给 `least_squares_qr` 增加一组带截距的线性拟合测试，并检查 $A^Tr$。
+4. **开放**：用 QR/SVD 库函数与正规方程比较病态输入的残差与前向误差。
 
 ## 下一步
 
