@@ -36,28 +36,23 @@ $$S_n=\frac h3\left[f(x_0)+f(x_n)+4\sum_{i\text{ odd}}f(x_i)+2\sum_{i\text{ even
 ## 可运行实现与验证
 
 ```python
-from math import isfinite
+from math import pi, sin
 
-def composite_trapezoid(f, a, b, n):
-    if n <= 0 or not (isfinite(a) and isfinite(b)):
-        raise ValueError("端点必须有限，n 必须为正")
-    h = (b - a) / n
-    total = 0.5 * (f(a) + f(b))
-    for i in range(1, n):
-        total += f(a + i * h)
-    return h * total
+from projects.floating_point_museum.integration import (
+    composite_simpson,
+    composite_trapezoid,
+    refinement_report,
+)
 
-def composite_simpson(f, a, b, n):
-    if n <= 0 or n % 2:
-        raise ValueError("Simpson 法要求正的偶数分段")
-    h = (b - a) / n
-    total = f(a) + f(b)
-    for i in range(1, n):
-        total += (4 if i % 2 else 2) * f(a + i * h)
-    return h * total / 3
+assert abs(composite_trapezoid(sin, 0.0, pi, 64) - 2.0) < 1e-3
+assert abs(composite_simpson(sin, 0.0, pi, 64) - 2.0) < 1e-6
+
+report = refinement_report(sin, 0.0, pi, exact=2.0, segments=8)
+assert 3.9 < report.trapezoid_error_ratio < 4.1
+assert 15.5 < report.simpson_error_ratio < 16.5
 ```
 
-以 $\int_0^\pi\sin x\,dx=2$ 为测试预言：计算 $n,2n$ 的误差比。平滑函数上，梯形法应趋近 $4$，Simpson 应趋近 $16$。这比只打印“看起来接近 2”的结果更能验证实现和推导。
+以 $\int_0^\pi\sin x\,dx=2$ 为测试预言：计算 $n,2n$ 的误差比。平滑函数上，梯形法应趋近 $4$，Simpson 应趋近 $16$。`refinement_report` 在某条规则恰好精确时拒绝比值——分母为零不是“无限收敛阶”。这比只打印“看起来接近 2”的结果更能验证实现和推导。
 
 时间复杂度为 $O(n)$ 次函数调用，空间为 $O(1)$。当 `f` 是昂贵模拟器时，减少调用通常比循环优化重要；当 `f` 很便宜、$n$ 极大时，求和顺序和补偿求和开始影响最后几位。
 
