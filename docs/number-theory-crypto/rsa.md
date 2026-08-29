@@ -1,32 +1,92 @@
 ---
-title: RSA：公开加密为何可行
-description: 用欧拉定理理解公钥、私钥和模幂运算的关系。
+title: RSA：公开加密为何可行，以及裸 RSA 为何不安全
+description: 从模逆元和欧拉定理推导 RSA 正确性，理解快速幂、填充与侧信道边界。
 ---
 
-# RSA：公开加密为何可行
+# RSA：公开加密为何可行，以及裸 RSA 为何不安全
 
-## 构造步骤
+## 文章元信息
 
-1. 选择大质数 $p,q$，令 $n=pq$；
-2. 计算 $\varphi(n)=(p-1)(q-1)$；
-3. 选择与 $\varphi(n)$ 互素的公开指数 $e$；
-4. 求 $d$，使 $ed\equiv1\pmod{\varphi(n)}$；
-5. 公开 $(n,e)$，保密 $d$。
+- **建议阅读层级**：2–3 · 数论推导、算法与安全工程
+- **前置知识**：[模运算与快速幂](/number-theory-crypto/modular-arithmetic)、[模逆元](/number-theory-crypto/extended-euclid)、互素与欧拉函数
+- **预计学习时间**：65 分钟
+- **配套实验**：[密码学玩具箱](/projects/crypto-toybox)
 
-加密为 $c=m^e\bmod n$，解密为 $m=c^d\bmod n$。
+## 从一个计算问题开始
 
-## 为什么能解密
+公开密钥 $(n,e)$ 允许任何人计算 $m^e\bmod n$。为什么只有持有私钥的人能还原 $m$？更重要的是：如果这个数学过程能运行，为什么真实系统仍然不能直接使用它加密一段消息？
 
-$ed=1+k\varphi(n)$。由欧拉定理，在相应条件下：
+## 直觉模型
 
-$$m^{ed}=m^{1+k\varphi(n)}\equiv m\pmod n$$
+RSA 把“反复乘幂”放入模 $n=pq$ 的世界。公开指数 $e$ 是一个可执行的变换；私钥指数 $d$ 被选择为它在指数意义上的逆变换。知道 $n$ 却不知道质因子，会使构造该逆变换所需的 $\varphi(n)$ 困难。
 
-因此私钥指数恰好“撤销”公钥指数。安全性依赖于攻击者难以从 $n$ 分解出 $p,q$，而非算法隐藏。
+## 严格定义与构造
 
-## 必须强调的边界
+1. 选择不同质数 $p,q$，令 $n=pq$、$\varphi(n)=(p-1)(q-1)$；
+2. 选择 $\gcd(e,\varphi(n))=1$；
+3. 用扩展欧几里得求 $d$，使 $ed\equiv1\pmod{\varphi(n)}$；
+4. 公钥为 $(n,e)$，私钥包含 $d$（实际实现也会保留 $p,q$ 作 CRT 优化）；
+5. 教学中的整数消息满足 $0\le m<n$，加密 $c=m^e\bmod n$，解密 $m'=c^d\bmod n$。
 
-实际 RSA 必须使用标准填充方案、足够长的密钥、经过审计的库和安全随机数。裸 RSA 易受攻击；本章仅用于理解数学结构。
+## 分步推导：为何能解密
+
+由模逆元定义，存在整数 $k$ 使 $ed=1+k\varphi(n)$。当 $m$ 与 $n$ 互素时，欧拉定理给出 $m^{\varphi(n)}\equiv1\pmod n$，于是
+
+$$m^{ed}=m^{1+k\varphi(n)}=m(m^{\varphi(n)})^k\equiv m\pmod n.$$
+
+对不与 $n$ 互素的消息，可分别在模 $p$、模 $q$ 下使用费马小定理，再由中国剩余定理合并，仍得到 $m^{ed}\equiv m\pmod n$。这就是 RSA 正确性；它不是“指数相除”，而是同余类中的指数关系。
+
+## 手算一个完整例子
+
+取 $p=5,q=11$，则 $n=55,\varphi(n)=40$。选择 $e=3$，因为 $3\times27=81\equiv1\pmod{40}$，故 $d=27$。对 $m=7$：
+
+$$c=7^3\bmod55=13,\qquad m'=13^{27}\bmod55=7.$$
+
+实际计算不应先构造 $13^{27}$，而应使用重复平方。
+
+## 算法实现与复杂度
+
+```python
+def mod_pow(base, exponent, modulus):
+    result, base = 1, base % modulus
+    while exponent:
+        if exponent & 1:
+            result = (result * base) % modulus
+        base = (base * base) % modulus
+        exponent >>= 1
+    return result
+
+
+def encrypt_toy(message, public_key):
+    modulus, exponent = public_key
+    if not 0 <= message < modulus:
+        raise ValueError("toy RSA message must be in [0, n)")
+    return mod_pow(message, exponent, modulus)
+
+
+assert encrypt_toy(7, (55, 3)) == 13
+assert mod_pow(13, 27, 55) == 7
+```
+
+重复平方需要 $O(\log e)$ 次模乘；大整数模乘本身有成本。真实 RSA 使用经过审计的库和 CRT 等优化，但优化也需要防止故障攻击与计时泄漏。
+
+## 失败案例与工程边界
+
+**裸 RSA 完全不能用于真实加密。** 它是确定性的、可乘的：攻击者可从 $c$ 构造与相关明文对应的密文，还可猜测小消息并验证。真实加密必须使用标准化、随机化的 RSA-OAEP；签名使用相应的 RSA-PSS，并由成熟库实现。密钥生成需要密码学安全随机数；私钥操作需考虑常量时间、故障注入、错误消息泄漏和密钥生命周期。现代系统也常优先使用椭圆曲线或混合加密。
+
+## 常见误区
+
+- $e,d$ 不是普通倒数，关系是模 $\varphi(n)$ 的乘法逆元。
+- 安全性不来自“公式保密”，而来自大整数分解等计算难题和正确协议设计。
+- 用小质数、固定随机数或 Python 教学代码“加密成功”不代表安全。
 
 ## 练习
 
-用小质数手算一组教学参数，利用上一章的模逆元求出 $d$，再验证加密解密流程。
+1. **基础**：用 $p=3,q=11,e=3$ 求 $n,\varphi(n),d$，并验证一个消息的加解密。
+2. **推导**：用中国剩余定理补全 $m$ 与 $n$ 不互素时的正确性论证。
+3. **编码**：为 `encrypt_toy` 添加负数、等于 $n$、大于 $n$ 的输入测试。
+4. **开放**：查阅 OAEP 要解决的确定性/可塑性问题，并解释为何“自己实现填充”仍不安全。
+
+## 延伸与下一步
+
+[Diffie–Hellman](/number-theory-crypto/diffie-hellman)展示另一种基于离散对数的密钥协商；[哈希与密码存储](/number-theory-crypto/hashing-passwords)则强调真实安全系统通常比单个数学原语更依赖协议与实现边界。
