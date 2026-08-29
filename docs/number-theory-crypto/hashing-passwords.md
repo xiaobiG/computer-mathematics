@@ -47,30 +47,21 @@ derived_key = KDF(password, salt, parameters)
 ## 可运行教学示例：使用库，不自造 KDF
 
 ```python
-from hashlib import pbkdf2_hmac
-from hmac import compare_digest
-from secrets import token_bytes
+from projects.crypto_toybox.password_storage import (
+    make_password_record, migrate_after_successful_login, verify_password,
+)
 
-def make_password_record(password: str, *, rounds=200_000) -> dict:
-    if not password or rounds < 100_000:
-        raise ValueError("示例要求非空密码和足够迭代次数")
-    salt = token_bytes(16)
-    derived = pbkdf2_hmac("sha256", password.encode("utf-8"), salt, rounds)
-    return {"algorithm": "pbkdf2_sha256", "rounds": rounds, "salt": salt, "derived": derived}
-
-def verify_password(password: str, record: dict) -> bool:
-    if record.get("algorithm") != "pbkdf2_sha256":
-        raise ValueError("未知或不受支持的记录格式")
-    candidate = pbkdf2_hmac("sha256", password.encode("utf-8"),
-                             record["salt"], record["rounds"])
-    return compare_digest(candidate, record["derived"])
-
-record = make_password_record("demo-only-password")
+record = make_password_record("demo-only-password", rounds=200_000)
 assert verify_password("demo-only-password", record)
 assert not verify_password("wrong-password", record)
+
+upgraded = migrate_after_successful_login(
+    "demo-only-password", record, target_rounds=300_000,
+)
+assert upgraded is not None and upgraded.rounds == 300_000
 ```
 
-这段代码展示记录形状与验证流，不是完整认证系统：示例成本参数不是普适安全建议；生产环境应通过所选库和部署硬件的基准测试确定参数，并交给受审计的身份平台处理会话、恢复、MFA 和监控。
+运行 `python -m unittest projects.crypto_toybox.test_password_storage`。模块用不可变记录保存算法、轮数、盐和派生值；测试固定不同盐，以验证相同密码不产生同一记录，并验证错误密码绝不会触发成本迁移。`salt` 参数仅为确定性课堂测试而暴露，实际调用必须省略它以生成随机盐。这段代码展示记录形状与验证流，不是完整认证系统：示例成本参数不是普适安全建议；生产环境应通过所选库和部署硬件的基准测试确定参数，并交给受审计的身份平台处理会话、恢复、MFA 和监控。
 
 ## 为什么安全比较与限速都需要
 

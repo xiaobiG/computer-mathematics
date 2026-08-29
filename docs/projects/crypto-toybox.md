@@ -30,6 +30,7 @@ description: 用快速幂、模逆元、小参数 RSA、教学签名验签与有
 python projects/crypto_toybox/main.py
 python -m unittest projects.crypto_toybox.test_main
 python -m unittest projects.crypto_toybox.test_primality
+python -m unittest projects.crypto_toybox.test_password_storage
 python -m unittest projects.crypto_toybox.test_diffie_hellman
 python -m unittest projects.crypto_toybox.test_elliptic_curve
 python -m unittest projects.crypto_toybox.test_message_auth
@@ -45,6 +46,7 @@ python -m unittest projects.crypto_toybox.test_signatures
 5. 在小素域上验证 $P+(-P)=\mathcal O$，并解释为何这不构成真实椭圆曲线密码实现。
 6. 对比诚实 DH 和中间人转录：前者的两端共享值相同，后者中攻击者分别与两端匹配而两端并未建立同一秘密。
 7. 对 Carmichael 数 561 运行 `miller_rabin_report`，重放某个合数见证者的平方链，并说明为何无见证者不构成素数证明。
+8. 用同一密码创建两条含不同盐的教学记录，确认派生值不同；再用错误密码尝试迁移成本参数，确认不会生成新记录。
 
 ## 从这里走向真实系统
 
