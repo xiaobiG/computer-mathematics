@@ -21,7 +21,8 @@
 | 9 | [幂迭代](/linear-algebra/power-iteration) | 如何只用矩阵—向量乘法找到主方向？ | 深度正文 · 55 分钟 |
 | 10 | [SVD](/linear-algebra/svd) | 如何用低秩近似压缩矩阵？ | 深度正文 · 55 分钟 |
 | 11 | [低秩图像压缩](/linear-algebra/low-rank-image-compression) | 保留多少模式才能以可测误差压缩图像？ | 深度正文 · 70 分钟 |
-| 12 | [Jacobian、Hessian 与自动微分](/linear-algebra/jacobian-hessian-autodiff) | 梯度如何成为可计算的线性代数？ | 深度正文 · 65 分钟 |
+| 12 | [低秩推荐](/linear-algebra/low-rank-recommendation) | 缺失评分如何变成可学习的预测？ | 深度正文 · 70 分钟 |
+| 13 | [Jacobian、Hessian 与自动微分](/linear-algebra/jacobian-hessian-autodiff) | 梯度如何成为可计算的线性代数？ | 深度正文 · 65 分钟 |
 
 ## 版本资源
 
