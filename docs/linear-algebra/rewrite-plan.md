@@ -25,6 +25,7 @@ v0.2 已将“概念导读”升级为能支撑编程实践的学习闭环。每
 | 7 | [SVD](/linear-algebra/svd) · 完成 | 奇异值、低秩近似与截断误差 | 秩一重构与压缩误差 |
 | 7.5 | [低秩图像压缩](/linear-algebra/low-rank-image-compression) · 完成 | 残差提取、参数量与重构误差 | 灰度矩阵的秩 $k$ 近似 |
 | 7.6 | [图像误差指标](/linear-algebra/image-error-metrics) · 完成 | MSE、RMSE、PSNR 与最大误差 | 可重放的数值保真报告 |
+| 7.7 | [随机范围发现](/linear-algebra/randomized-range-finder) · 完成 | 随机草图、正交投影与幂迭代 | 带种子重放的 $QQ^TA$ 报告 |
 | 7.75 | [低秩推荐](/linear-algebra/low-rank-recommendation) · 完成 | 缺失评分、ALS 与观测集误差 | 秩一 ALS 轨迹与冷启动反例 |
 | 8 | [Jacobian、Hessian 与自动微分](/linear-algebra/jacobian-hessian-autodiff) · 完成 | 局部线性化、链式法则与梯度检查 | 解析梯度与中心差分对照 |
 
@@ -59,6 +60,7 @@ v0.2 已补齐“点积”与“矩阵变换”之间的[线性组合、基与�
                                                                           ├──→ 低秩图像压缩
                                                                           │      ↓
                                                                           │  图像误差指标
+                                                                          ├──→ 随机范围发现
                                                                           └──→ 低秩推荐
 ```
 
