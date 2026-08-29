@@ -4,6 +4,7 @@ from projects.floating_point_museum.examples import (
     kahan_sum,
     nearly_equal,
     naive_sum,
+    pairwise_sum,
     naive_root_difference,
     stable_root_difference,
 )
@@ -16,6 +17,12 @@ class FloatingPointMuseumTests(unittest.TestCase):
     def test_kahan_recovers_small_terms(self):
         self.assertEqual(naive_sum([1e16, 1.0, 1.0, -1e16]), 0.0)
         self.assertEqual(kahan_sum([1e16, 1.0, 1.0, -1e16]), 2.0)
+
+    def test_pairwise_handles_empty_odd_and_fixed_tree_order(self):
+        self.assertEqual(pairwise_sum([]), 0.0)
+        self.assertEqual(pairwise_sum([1.0, 2.0, 3.0]), 6.0)
+        self.assertEqual(pairwise_sum([1e16, 1.0, 1.0, -1e16]), 0.0)
+        self.assertEqual(pairwise_sum([1e16, -1e16, 1.0, 1.0]), 2.0)
 
     def test_stable_root_difference_avoids_cancellation(self):
         self.assertEqual(naive_root_difference(1e16), 0.0)

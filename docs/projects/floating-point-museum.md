@@ -28,7 +28,7 @@ python -m unittest projects.floating_point_museum.test_simulation
 ## 三个案例
 
 1. `0.1 + 0.2`：说明二进制近似与容差比较；
-2. `1e16 + 1 + 1 - 1e16`：比较普通累加与 Kahan 求和；
+2. `1e16 + 1 + 1 - 1e16`：比较普通累加、Kahan 与固定归约树的 pairwise 求和；观察 pairwise 改善误差层数，却不保证修复每个抵消顺序。
 3. $\sqrt{x+1}-\sqrt{x}$：通过有理化避免消去误差。
 4. 单位圆蒙特卡洛：用多个固定 seed 估计 $\pi$，报告均值、样本标准差和标准误，而不是挑选一次结果。
 

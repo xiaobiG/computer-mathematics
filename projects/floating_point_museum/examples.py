@@ -31,6 +31,21 @@ def naive_sum(values: Iterable[float]) -> float:
     return total
 
 
+def pairwise_sum(values: Iterable[float]) -> float:
+    """Sum a fixed balanced tree without allocating recursive slices."""
+    items = list(values)
+
+    def total_between(start: int, end: int) -> float:
+        if start == end:
+            return 0.0
+        if end - start == 1:
+            return items[start]
+        middle = start + (end - start) // 2
+        return total_between(start, middle) + total_between(middle, end)
+
+    return total_between(0, len(items))
+
+
 def naive_root_difference(x: float) -> float:
     return sqrt(x + 1.0) - sqrt(x)
 
@@ -46,6 +61,7 @@ if __name__ == "__main__":
     print(f"接近比较: {nearly_equal(0.1 + 0.2, 0.3)}")
     print(f"朴素逐项求和: {naive_sum(values)}")
     print(f"Kahan 求和: {kahan_sum(values)}")
+    print(f"Pairwise 求和: {pairwise_sum(values)}")
     x = 1e16
     print(f"直接相减: {naive_root_difference(x)}")
     print(f"有理化后: {stable_root_difference(x)}")
