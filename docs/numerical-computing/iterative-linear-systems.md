@@ -59,16 +59,17 @@ $$|a_{ii}|>\sum_{j\ne i}|a_{ij}|,$$
 ## 可运行实现与验证
 
 ```python
-from projects.floating_point_museum.linear_iterations import solve_iteratively
+from projects.floating_point_museum.linear_iterations import iteration_trace_certificate, solve_iteratively
 
 A = [[4.0, -1.0, 0.0], [-1.0, 4.0, -1.0], [0.0, -1.0, 3.0]]
 b = [15.0, 10.0, 10.0]
 solution, trace = solve_iteratively(A, b, method="gauss-seidel")
 assert max(abs(value - 5.0) for value in solution) < 1e-8
+assert iteration_trace_certificate(A, b, "gauss-seidel", solution, trace)["valid"]
 print(trace[-1])
 ```
 
-运行 `python -m unittest projects.floating_point_museum.test_linear_iterations`。实现返回完整轨迹；每项包含迭代编号、$\lVert x^{(k+1)}-x^{(k)}\rVert_\infty$ 和 $\lVert b-Ax^{(k+1)}\rVert_\infty$。测试验证两种算法能解严格对角占优系统、Gauss–Seidel 在这个固定系统上不需更多轮、残差定义正确，以及发散/零对角/错误方法会显式失败。
+运行 `python -m unittest projects.floating_point_museum.test_linear_iterations`。实现返回完整轨迹；每项包含迭代编号、完整迭代向量、$\lVert x^{(k+1)}-x^{(k)}\rVert_\infty$ 和 $\lVert b-Ax^{(k+1)}\rVert_\infty$。`iteration_trace_certificate` 会从零向量逐步重放 Jacobi 或 Gauss–Seidel 更新，并重新计算两种范数和最终停止条件；篡改某一轮的估计或度量会使证书失效。测试验证两种算法能解严格对角占优系统、Gauss–Seidel 在这个固定系统上不需更多轮、残差定义正确，以及发散/零对角/错误方法会显式失败。
 
 每轮稠密实现为 $O(n^2)$ 时间、$O(n)$ 额外空间，$k$ 轮总计 $O(kn^2)$。对稀疏矩阵应只遍历非零元，使每轮成本接近 $O(\operatorname{nnz}(A))$。
 

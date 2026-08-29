@@ -32,6 +32,7 @@ python -m unittest projects.floating_point_museum.test_integration
 python -m unittest projects.floating_point_museum.test_simulation
 python -m unittest projects.floating_point_museum.test_root_finding
 python -m unittest projects.floating_point_museum.test_differentiation
+python -m unittest projects.floating_point_museum.test_linear_iterations
 python -m unittest projects.floating_point_museum.test_stability
 python -m unittest projects.floating_point_museum.test_conditioning
 ```
@@ -49,6 +50,7 @@ python -m unittest projects.floating_point_museum.test_conditioning
 9. 受保护牛顿法：对每一步保留的符号变化区间做审计；当牛顿建议跳出区间时回退到二分，而不是把循环或越界伪装成收敛。
 10. 数值微分：扫描中心差分的十进制步长，核对粗步长区的二阶误差趋势与极小步长的舍入误差反弹；域边界使双侧差分不可用时，确认接口拒绝函数值非有限的样本。
 11. 算法稳定性：对二次方程的小根比较直接公式与 Vieta 改写，使用高精度参考值检查消去如何放大前向误差。
+12. 驻定迭代：重放 Jacobi/Gauss–Seidel 的每一步向量、更新量与残差，确认停止不是由被篡改的轨迹标签触发。
 
 ## 工程边界
 
