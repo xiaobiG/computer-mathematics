@@ -38,6 +38,8 @@ $$OPT(j)=\max\{OPT(j-1),\;w_j+OPT(p(j))\},\qquad OPT(0)=0.$$
 from projects.algorithm_lab.weighted_activity import (
     brute_force_best_value,
     compatible_schedule,
+    weighted_activity_trace,
+    weighted_activity_trace_certificate,
     weighted_activity_selection,
 )
 
@@ -47,9 +49,12 @@ value, chosen = weighted_activity_selection(activities)
 assert value == 100.0                     # 最早结束贪心会选错 short
 assert compatible_schedule(chosen)
 assert value == brute_force_best_value(activities)
+
+value, chosen, trace = weighted_activity_trace(activities)
+assert weighted_activity_trace_certificate(activities, value, chosen, trace)
 ```
 
-实验室的 `brute_force_best_value` 明确限制在 18 个活动以内，作为 DP 的测试 oracle 而非算法替代；它验证回溯出的活动两两兼容，且价值确实达到小规模全局最优。二分搜索每个 $p(j)$ 需 $O(\log n)$，总时间 $O(n\log n)$（排序也相同），状态数组和回溯空间 $O(n)$。若只需最优值且能流式计算兼容关系，可讨论空间压缩；若要重建方案，必须保留足够决策信息。
+实验室的 `brute_force_best_value` 明确限制在 18 个活动以内，作为 DP 的测试 oracle 而非算法替代；它验证回溯出的活动两两兼容，且价值确实达到小规模全局最优。`weighted_activity_trace` 还记录每个前缀的兼容前缀、跳过值、选取值与最终决策；独立证书会重放两条 DAG 边，拒绝被篡改的状态。二分搜索每个 $p(j)$ 需 $O(\log n)$，总时间 $O(n\log n)$（排序也相同），状态数组和回溯空间 $O(n)$。若只需最优值且能流式计算兼容关系，可讨论空间压缩；若要重建方案，必须保留足够决策信息。
 
 ## DAG 视角与正确性
 
@@ -61,7 +66,7 @@ assert value == brute_force_best_value(activities)
 
 对不超过 12 个活动的随机小输入，枚举 $2^n$ 子集，过滤兼容集后比较价值与函数返回值。还应构造贪心失败例：`(0,2,1,'short'), (0,4,100,'valuable')`，最早结束规则会选价值 1，而 DP 应选价值 100。
 
-测试回溯时不要只比较活动名顺序：断言返回活动两两兼容、价值和等于 `best_value`、并与穷举最优值相同。
+测试回溯时不要只比较活动名顺序：断言返回活动两两兼容、价值和等于 `best_value`、并与穷举最优值相同。再篡改一条 `trace` 的选取值或兼容前缀，确认 `weighted_activity_trace_certificate` 拒绝它；这分别审计“每步按递推更新”和“小输入达到全局最优”，而不是把其中任一项误当作完整证明。
 
 ## 失败案例与工程边界
 
