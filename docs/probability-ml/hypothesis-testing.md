@@ -40,29 +40,18 @@ $$P_{H_0}(\text{拒绝 }H_0)\le\alpha.$$
 当 $H_0$ 认为组标签可交换时，把所有观测混合、随机重新分组，便模拟了零假设下统计量的分布。以“至少同样极端”的次数估计 p 值；加一修正避免得到不可能的零 p 值。
 
 ```python
-from random import Random
-from statistics import fmean
+from projects.naive_bayes_spam.permutation_test import two_sided_permutation_test
 
-def permutation_p_value(control: list[float], treatment: list[float], *, rounds=10_000, seed=0) -> float:
-    if not control or not treatment or rounds <= 0:
-        raise ValueError("两组都非空，rounds 必须为正")
-    observed = fmean(treatment) - fmean(control)
-    pooled = control + treatment
-    n_control = len(control)
-    rng = Random(seed)
-    extreme = 0
-    for _ in range(rounds):
-        shuffled = pooled[:]
-        rng.shuffle(shuffled)
-        simulated = fmean(shuffled[n_control:]) - fmean(shuffled[:n_control])
-        if abs(simulated) >= abs(observed):
-            extreme += 1
-    return (extreme + 1) / (rounds + 1)
+result = two_sided_permutation_test([0.0] * 6, [1.0] * 6, rounds=2_000, seed=8)
+assert result.observed_difference == 1.0
+assert result.p_value < 0.05
+assert result.p_value >= 1 / 2_001  # 加一修正，不把有限模拟报成 p=0
 
-print(permutation_p_value([0, 0, 1, 0, 1], [1, 1, 1, 0, 1]))
+same = two_sided_permutation_test([0, 1, 0], [0, 1, 0], rounds=200, seed=4)
+assert same.p_value == 1.0
 ```
 
-时间复杂度约为 $O(Bn)$：$B$ 为置换次数、$n$ 为总样本量。随机种子使教学实验可复现，但真实分析应报告 $B$、随机源和数据排除规则。
+结果还保留 `extreme_permutations`、轮数和观察到的效应量，因此可复查分子、分母与模拟误差来源。时间复杂度约为 $O(Bn)$：$B$ 为置换次数、$n$ 为总样本量。随机种子使教学实验可复现，但真实分析应报告 $B$、随机源和数据排除规则。
 
 ## 正确性、效应量与区间
 
@@ -88,7 +77,7 @@ print(permutation_p_value([0, 0, 1, 0, 1], [1, 1, 1, 0, 1]))
 
 1. **基础题**：为“新排序是否改变平均停留时间”写出 $H_0$、双侧 $H_1$、统计量和 $\alpha$。
 2. **推导题**：若独立地进行 $20$ 个真实零假设检验，每个 $\alpha=0.05$，计算至少一次假阳性的概率 $1-0.95^{20}$，解释其含义。
-3. **编码题**：给 `permutation_p_value` 增加单侧选项，并用固定种子验证两组相同数据的 p 值不会很小。
+3. **编码题**：给 `two_sided_permutation_test` 增加预先声明的单侧选项，并用固定种子验证两组相同数据的 p 值为 1。
 4. **开放题**：为一次高风险医疗或金融实验设计预注册表：列出随机化单位、主指标、MDE、停止规则、排除条件和报告格式。
 
 ## 延伸
