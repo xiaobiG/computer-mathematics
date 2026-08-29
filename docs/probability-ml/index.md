@@ -9,7 +9,8 @@
 3. 方差、协方差与相关性
 4. 抽样、估计与置信区间
 5. 最大似然与交叉熵
-6. 朴素贝叶斯、EM 与模型不确定性
+6. 生成模型、朴素贝叶斯与逻辑回归
+7. 朴素贝叶斯、EM 与模型不确定性
 
 ## 当前深度版
 
@@ -17,6 +18,7 @@
 - [协方差、相关性与特征](/probability-ml/covariance-correlation)：共同变化、协方差矩阵、PCA 与因果边界；
 - [抽样误差、置信区间与覆盖率](/probability-ml/confidence-intervals-sampling)：标准误、覆盖率、bootstrap 与实验设计边界；
 - [最大似然](/probability-ml/maximum-likelihood)：对数似然、MAP 与交叉熵；
+- [生成模型、朴素贝叶斯与逻辑回归](/probability-ml/generative-discriminative-logistic)：伯努利似然、梯度下降与两条概率分类路径；
 - [共轭先验与后验预测](/probability-ml/conjugate-priors-predictive)：Beta–Bernoulli 更新、平滑与小样本边界；
 - [常见分布](/probability-ml/common-distributions)：从生成机制选择伯努利、泊松、指数与正态模型；
 - [假设检验与 p 值](/probability-ml/hypothesis-testing)：置换检验、错误率与实验决策边界；

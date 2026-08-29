@@ -7,12 +7,12 @@ description: 从词袋、拉普拉斯平滑到稳定后验、混淆矩阵与校�
 
 ## 目标
 
-将[贝叶斯更新](/probability-ml/bayes)和[最大似然](/probability-ml/maximum-likelihood)落实为可测试分类器：从带标签文本估计先验和词条件概率，在对数域比较后验，再以混淆矩阵与[校准指标](/probability-ml/calibration-reliability)审查输出。
+将[贝叶斯更新](/probability-ml/bayes)和[最大似然](/probability-ml/maximum-likelihood)落实为可测试分类器：从带标签文本估计先验和词条件概率，在对数域比较后验，再以混淆矩阵与[校准指标](/probability-ml/calibration-reliability)审查输出。另有[生成模型与逻辑回归](/probability-ml/generative-discriminative-logistic)的最小批量梯度下降实现，用于比较直接学习后验的路径。
 
 ## 运行
 
 ```bash
-python -m unittest projects.naive_bayes_spam.test_main
+python -m unittest discover -s projects/naive_bayes_spam -p "test_*.py"
 ```
 
 ## 数学与验证
@@ -33,3 +33,4 @@ $$P(w\mid y)=\frac{\operatorname{count}(w,y)+1}{\sum_{w'}\operatorname{count}(w'
 2. 为每个可靠性箱加入置信区间；
 3. 用 [Beta–Bernoulli 后验预测](/probability-ml/conjugate-priors-predictive)比较拉普拉斯平滑与显式先验；
 4. 用独立验证集实现简单再校准，并审计测试集泄漏。
+5. 在相同训练/验证切分上比较词袋朴素贝叶斯与逻辑回归，记录 F1、Brier 分数和失败样本。
