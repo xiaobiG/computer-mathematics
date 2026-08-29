@@ -47,6 +47,18 @@ for (const path of files) {
   if (!label.endsWith('rewrite-plan.md') && !/^##\s+学习目标\s*$/m.test(prose)) {
     errors.push(`${label}: 缺少“学习目标”章节`)
   }
+  if (!label.endsWith('rewrite-plan.md')) {
+    const exerciseHeading = /^##\s+练习\s*$/m.exec(prose)
+    if (exerciseHeading) {
+      const afterHeading = prose.slice(exerciseHeading.index + exerciseHeading[0].length)
+      const nextHeading = afterHeading.search(/^##\s+/m)
+      const exerciseBody = nextHeading === -1 ? afterHeading : afterHeading.slice(0, nextHeading)
+      const exerciseCount = (exerciseBody.match(/^\d+\.\s+/gm) ?? []).length
+      if (exerciseCount < 4) {
+        errors.push(`${label}: “练习”章节至少需要 4 道分层题目（当前 ${exerciseCount} 道）`)
+      }
+    }
+  }
   if (!/^##\s+/m.test(prose)) {
     errors.push(`${label}: 缺少至少一个二级章节`)
   }
