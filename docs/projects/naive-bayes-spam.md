@@ -7,7 +7,7 @@ description: 从词袋、拉普拉斯平滑到稳定后验、混淆矩阵与校�
 
 ## 目标
 
-将[贝叶斯更新](/probability-ml/bayes)和[最大似然](/probability-ml/maximum-likelihood)落实为可测试分类器：先用独立的二元后验轨迹审计先验、似然、证据概率与连续更新，用有限分布矩和全方差报告验证期望、组内波动与组间差异，用协方差报告验证中心化、对称性与方差非负，并以二次关系展示零相关不等于独立，用计数诊断比较均值、方差与泊松零值基线，用双侧置换检验审计“标签在零假设下可交换”的 p 值模拟，再从带标签文本估计先验和词条件概率，在对数域比较后验，并以混淆矩阵与[校准指标](/probability-ml/calibration-reliability)审查输出。另有[生成模型与逻辑回归](/probability-ml/generative-discriminative-logistic)的最小批量梯度下降实现，用于比较直接学习后验的路径；[Metropolis–Hastings](/probability-ml/metropolis-hastings)模块则演示仅知道未归一化权重时如何采样。
+将[贝叶斯更新](/probability-ml/bayes)和[最大似然](/probability-ml/maximum-likelihood)落实为可测试分类器：先用独立的二元后验轨迹审计先验、似然、证据概率与连续更新，用有限分布矩和全方差报告验证期望、组内波动与组间差异，用协方差报告验证中心化、对称性与方差非负，并以二次关系展示零相关不等于独立，用重复伯努利抽样对照样本均值的 $1/\sqrt n$ 标准误缩放与经验覆盖，用计数诊断比较均值、方差与泊松零值基线，用双侧置换检验审计“标签在零假设下可交换”的 p 值模拟，再从带标签文本估计先验和词条件概率，在对数域比较后验，并以混淆矩阵与[校准指标](/probability-ml/calibration-reliability)审查输出。另有[生成模型与逻辑回归](/probability-ml/generative-discriminative-logistic)的最小批量梯度下降实现，用于比较直接学习后验的路径；[Metropolis–Hastings](/probability-ml/metropolis-hastings)模块则演示仅知道未归一化权重时如何采样。
 
 ## 运行
 
