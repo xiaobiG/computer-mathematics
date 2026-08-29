@@ -68,39 +68,17 @@ $$e_{k+1}=\frac{f''(r)}{2f'(r)}e_k^2+O(e_k^3).$$
 ## 可运行实现：受保护的牛顿法
 
 ```python
-from math import isfinite
+from projects.floating_point_museum.root_finding import safeguarded_newton_trace
 
-def safeguarded_newton(f, df, left, right, x, *,
-                       residual_tol=1e-12, step_tol=1e-12, max_steps=80):
-    fa, fb = f(left), f(right)
-    if not (isfinite(fa) and isfinite(fb)) or fa * fb > 0:
-        raise ValueError("端点必须有限，且区间必须包住一个符号变化")
-    if not left <= x <= right:
-        raise ValueError("初值必须在区间内")
-
-    for _ in range(max_steps):
-        fx = f(x)
-        if abs(fx) <= residual_tol:
-            return x
-        slope = df(x)
-        candidate = x - fx / slope if abs(slope) > 1e-14 else float("nan")
-        if not isfinite(candidate) or not left < candidate < right:
-            candidate = (left + right) / 2
-        fc = f(candidate)
-        if fa * fc <= 0:
-            right, fb = candidate, fc
-        else:
-            left, fa = candidate, fc
-        if abs(candidate - x) <= step_tol * max(1.0, abs(candidate)) and abs(fc) <= residual_tol:
-            return candidate
-        x = candidate
-    raise RuntimeError("未在迭代上限内收敛")
-
-root = safeguarded_newton(lambda x: x * x - 2, lambda x: 2 * x, 0, 2, 1)
-print(root, root * root - 2)
+root, events = safeguarded_newton_trace(
+    lambda x: x * x - 2.0, lambda x: 2.0 * x,
+    0.0, 2.0, initial=1.0,
+)
+assert abs(root * root - 2.0) <= 1e-12
+assert all(event.left_value * event.right_value <= 0.0 for event in events)
 ```
 
-每轮计算量为 $O(1)$（不计函数本身），总成本为 $O(k)$ 次函数/导数评估。局部二次收敛能显著减小 $k$，但昂贵导数、自动微分图和区间回退都会改变实际成本。
+运行 `python -m unittest projects.floating_point_museum.test_root_finding`。`safeguarded_newton_trace` 返回每一步的方法、候选值、残差和更新后的区间端点/函数值。测试不只检查 $\sqrt2$ 的近似值，还验证每个事件仍保留符号变化；对 $x^3-2x+2$ 从 $0$ 出发，首次越界的牛顿建议会被替换为二分步。每轮计算量为 $O(1)$（不计函数本身），总成本为 $O(k)$ 次函数/导数评估。局部二次收敛能显著减小 $k$，但昂贵导数、自动微分图和区间回退都会改变实际成本。
 
 ## 正确性与可验证实验
 

@@ -1,7 +1,7 @@
 import unittest
 from math import sqrt
 
-from projects.floating_point_museum.root_finding import secant_root
+from projects.floating_point_museum.root_finding import safeguarded_newton_trace, secant_root
 
 
 class SecantRootTests(unittest.TestCase):
@@ -17,6 +17,35 @@ class SecantRootTests(unittest.TestCase):
             secant_root(lambda _: 1.0, 0.0, 1.0)
         with self.assertRaises(ValueError):
             secant_root(lambda value: value, 0.0, 1.0, max_steps=0)
+
+    def test_safeguarded_newton_returns_a_sign_change_certificate(self):
+        root, events = safeguarded_newton_trace(
+            lambda value: value * value - 2.0, lambda value: 2.0 * value,
+            0.0, 2.0, initial=1.0,
+        )
+        self.assertAlmostEqual(root, sqrt(2.0), places=10)
+        self.assertTrue(events)
+        for event in events:
+            self.assertLessEqual(event.left, root)
+            self.assertLessEqual(root, event.right)
+            self.assertLessEqual(event.left_value * event.right_value, 0.0)
+
+    def test_safeguard_falls_back_when_newton_step_leaves_the_bracket(self):
+        root, events = safeguarded_newton_trace(
+            lambda value: value ** 3 - 2.0 * value + 2.0,
+            lambda value: 3.0 * value * value - 2.0,
+            -3.0, 0.0, initial=0.0,
+        )
+        self.assertEqual(events[0].method, "bisection")
+        self.assertLess(abs(root ** 3 - 2.0 * root + 2.0), 1e-12)
+
+    def test_safeguarded_newton_rejects_missing_bracket_and_bad_derivative(self):
+        with self.assertRaises(ValueError):
+            safeguarded_newton_trace(lambda value: value * value + 1.0, lambda value: 2.0 * value,
+                                     -1.0, 1.0, initial=0.0)
+        with self.assertRaises(RuntimeError):
+            safeguarded_newton_trace(lambda value: value - 0.2, lambda _: float("nan"),
+                                     0.0, 1.0, initial=0.0, max_steps=1)
 
 
 if __name__ == "__main__":
