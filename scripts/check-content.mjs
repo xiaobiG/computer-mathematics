@@ -3,6 +3,7 @@ import { join, relative } from 'node:path'
 
 const docsRoot = 'docs'
 const courseFolders = new Set([
+  'foundations',
   'discrete-math',
   'linear-algebra',
   'probability-ml',
