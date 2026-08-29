@@ -42,7 +42,11 @@ $$
 ## 把算法实现为代码
 
 ```python
-from projects.linear_algebra_lab.main import classify_linear_system, solve_with_pivot_trace
+from projects.linear_algebra_lab.main import (
+    classify_linear_system,
+    pivot_trace_certificate,
+    solve_with_pivot_trace,
+)
 
 matrix = [[1e-16, 1.0], [1.0, 1.0]]
 solution, trace = solve_with_pivot_trace(matrix, [1.0, 2.0])
@@ -50,10 +54,11 @@ solution, trace = solve_with_pivot_trace(matrix, [1.0, 2.0])
 assert trace[0]["swapped"]             # 选中第二行的 1.0，而不是 1e-16
 assert abs(trace[-1]["upper"][1][0]) < 1e-12
 assert solution == [1.0, 1.0]
+assert pivot_trace_certificate(matrix, [1.0, 2.0], solution, trace)
 assert classify_linear_system([[1, 1], [2, 2]], [2, 5]) == "none"
 ```
 
-`trace` 保存每列的主元行、是否交换、消元倍数和当时的上三角增广矩阵，可让读者检查不变量，而非只相信最终答案。[线性代数实验室](/projects/linear-algebra-lab)提供完整教学实现与自动测试。
+`trace` 保存每列的主元行、是否交换、消元倍数和当时的上三角增广矩阵。`pivot_trace_certificate` 从原始 $[A\mid b]$ 独立重选主元、重放行交换与消元，再回代比较解；篡改任一倍数或上三角项都会被拒绝。它让读者检查不变量，而非只相信最终答案，但并不能以小残差掩盖病态系统。[线性代数实验室](/projects/linear-algebra-lab)提供完整教学实现与自动测试。
 
 ## 失败案例与工程边界
 

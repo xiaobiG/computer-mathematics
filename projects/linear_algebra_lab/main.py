@@ -67,6 +67,50 @@ def solve_with_pivot_trace(matrix, target, epsilon=EPSILON):
     return result, trace
 
 
+def pivot_trace_certificate(matrix, target, solution, trace, epsilon=EPSILON):
+    """Replay partial pivoting, elimination and back substitution exactly.
+
+    This checks a finite floating-point execution against the stated algorithm.
+    It does not prove a tiny residual means the original system is well
+    conditioned; that is a separate property of the mathematical problem.
+    """
+    try:
+        size = _validate_linear_system(matrix, target, epsilon)
+        if not isinstance(solution, list) or len(solution) != size or not isinstance(trace, list) or len(trace) != size:
+            return False
+        augmented = [list(map(float, row)) + [float(target[i])] for i, row in enumerate(matrix)]
+        for column, event in enumerate(trace):
+            pivot = max(range(column, size), key=lambda row: abs(augmented[row][column]))
+            if abs(augmented[pivot][column]) <= epsilon:
+                return False
+            swapped = pivot != column
+            augmented[column], augmented[pivot] = augmented[pivot], augmented[column]
+            pivot_value = augmented[column][column]
+            multipliers = []
+            for row in range(column + 1, size):
+                factor = augmented[row][column] / pivot_value
+                multipliers.append(factor)
+                for item in range(column, size + 1):
+                    augmented[row][item] -= factor * augmented[column][item]
+            expected = {
+                "column": column,
+                "pivot_row": pivot,
+                "swapped": swapped,
+                "multipliers": multipliers,
+                "upper": [row.copy() for row in augmented],
+            }
+            if event != expected:
+                return False
+        expected_solution = [0.0] * size
+        for row in range(size - 1, -1, -1):
+            expected_solution[row] = (augmented[row][size] - sum(
+                augmented[row][column] * expected_solution[column] for column in range(row + 1, size)
+            )) / augmented[row][row]
+        return solution == expected_solution
+    except (ArithmeticError, TypeError, ValueError):
+        return False
+
+
 def solve(matrix, target, epsilon=EPSILON):
     """Solve a square dense system using Gaussian elimination with pivoting."""
     result, _ = solve_with_pivot_trace(matrix, target, epsilon)

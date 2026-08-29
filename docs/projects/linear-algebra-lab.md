@@ -7,7 +7,7 @@ description: 用可测试的教学实现串起矩阵乘法、消元、投影和�
 
 ## 目标
 
-本项目把线性代数专题的关键操作做成小型、可测试的 Python 模块：矩阵乘法、列独立性和基坐标重构、带部分选主元的方程求解、正规方程与 QR 的最小二乘对照、双数前向自动微分、二维 PCA、向量投影、幂迭代、低秩压缩，以及把灰度矩阵展平后的余弦相似度检索。`column_independence_report` 用逐列正交残差和秩检查冗余方向，`basis_coordinate_report` 用 $Ac-b$ 检查坐标重构；`demo_jvp_certificate` 将双数 JVP 与 $\nabla L^Tv$ 对照；`least_squares_comparison_report` 用同一份 $A^Tr$ 证书检查两条拟合路径；`pca_2d_report` 检查中心化、投影正交性和舍弃方差—重构误差恒等式；`compressed_image_search` 将压缩误差和压缩域排序放入同一报告，形成微型“压缩—检索”流程。它们用于核对数学定义，不取代 NumPy/SciPy 的生产实现。
+本项目把线性代数专题的关键操作做成小型、可测试的 Python 模块：矩阵乘法、列独立性和基坐标重构、带部分选主元且可重放的方程求解、正规方程与 QR 的最小二乘对照、双数前向自动微分、二维 PCA、向量投影、幂迭代、低秩压缩，以及把灰度矩阵展平后的余弦相似度检索。`pivot_trace_certificate` 从原始增广矩阵重放主元选择、行交换、消元和回代；`column_independence_report` 用逐列正交残差和秩检查冗余方向，`basis_coordinate_report` 用 $Ac-b$ 检查坐标重构；`demo_jvp_certificate` 将双数 JVP 与 $\nabla L^Tv$ 对照；`least_squares_comparison_report` 用同一份 $A^Tr$ 证书检查两条拟合路径；`pca_2d_report` 检查中心化、投影正交性和舍弃方差—重构误差恒等式；`compressed_image_search` 将压缩误差和压缩域排序放入同一报告，形成微型“压缩—检索”流程。它们用于核对数学定义，不取代 NumPy/SciPy 的生产实现。
 
 ## 数学连接
 

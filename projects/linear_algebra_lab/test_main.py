@@ -5,7 +5,7 @@ from projects.linear_algebra_lab.main import (
     classify_linear_system, compress_grayscale, dominant_right_singular_vector, frobenius_error, image_cosine_similarity,
     compressed_image_search, least_squares_comparison_report, least_squares_normal_equations, low_rank_parameter_report,
     matmul, norm, project, least_squares_qr, rank_k_approximation, rank_one_approximation,
-    solve, solve_with_pivot_trace, truncated_svd_frobenius_error,
+    pivot_trace_certificate, solve, solve_with_pivot_trace, truncated_svd_frobenius_error,
 )
 
 
@@ -30,12 +30,17 @@ class LinearAlgebraLabTests(unittest.TestCase):
             solve([[1, 1], [2, 2]], [2, 4])
 
     def test_pivot_trace_records_a_row_swap_and_triangular_invariant(self):
-        solution, trace = solve_with_pivot_trace([[1e-16, 1.0], [1.0, 1.0]], [1.0, 2.0])
+        matrix, target = [[1e-16, 1.0], [1.0, 1.0]], [1.0, 2.0]
+        solution, trace = solve_with_pivot_trace(matrix, target)
         self.assertTrue(trace[0]["swapped"])
         self.assertEqual(trace[0]["pivot_row"], 1)
         self.assertAlmostEqual(trace[-1]["upper"][1][0], 0.0, places=12)
-        self.assertTrue(all(abs(sum(a * x for a, x in zip(row, solution)) - target) < 1e-10
-                            for row, target in zip([[1e-16, 1.0], [1.0, 1.0]], [1.0, 2.0])))
+        self.assertTrue(all(abs(sum(a * x for a, x in zip(row, solution)) - value) < 1e-10
+                            for row, value in zip(matrix, target)))
+        self.assertTrue(pivot_trace_certificate(matrix, target, solution, trace))
+        tampered = [dict(event) for event in trace]
+        tampered[0]["multipliers"] = [0.0]
+        self.assertFalse(pivot_trace_certificate(matrix, target, solution, tampered))
 
     def test_classifies_consistent_and_inconsistent_singular_systems(self):
         self.assertEqual(classify_linear_system([[1.0, 1.0], [2.0, 2.0]], [2.0, 4.0]), "infinitely_many")
