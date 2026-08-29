@@ -48,11 +48,28 @@ report = perturbation_report(
 
 assert report["relative_rhs_change"] < 1e-6
 assert report["relative_solution_change"] > 0.9
-assert report["perturbed_residual_norm"] < 1e-10
+assert report["certificate"]["observed_change_is_bounded_by_condition_number"]
+assert report["certificate"]["perturbed_solution_has_small_scaled_residual"]
 print(report["condition_number"])  # 约为 4_000_002
 ```
 
-这份报告刻意同时给出两组解、相对扰动和残差。输入的相对变化约为 $5\times10^{-7}$，解却从 $[1,1]$ 变到 $[0,2]$；但第二个解的残差仍接近零，因为它准确地解了**被轻微改动后的问题**。这就是“后向看似很好、前向却不可靠”的可观察版本。
+这份报告刻意同时给出两组解、相对扰动、观测放大倍数与条件数界。它核对
+
+$$
+\frac{\lVert\delta x\rVert_\infty}{\lVert x\rVert_\infty}
+\leq
+\kappa_\infty(A)
+\frac{\lVert\delta b\rVert_\infty}{\lVert b\rVert_\infty},
+$$
+
+而不是只打印一个很大的条件数。输入的相对变化约为 $5\times10^{-7}$，解却从 $[1,1]$ 变到 $[0,2]$；但第二个解的残差仍接近零，因为它准确地解了**被轻微改动后的问题**。报告还给出尺度无关的残差比
+
+$$
+\eta(\hat x)=\frac{\lVert b-A\hat x\rVert_\infty}
+{\lVert A\rVert_\infty\lVert\hat x\rVert_\infty+\lVert b\rVert_\infty}.
+$$
+
+小 $\eta$ 只说明方程的后向一致性；它不能反驳这个病态问题造成的大前向变化。这就是“后向看似很好、前向却不可靠”的可观察版本。
 
 实验的求解和求逆都是固定 $2\times2$ 的教学公式，因而为 $O(1)$；一般 $n\times n$ 情况中，消元为 $O(n^3)$，条件数的精确计算通常也需要分解或迭代估计。生产程序往往只估计它，而非显式求逆矩阵。
 
