@@ -47,7 +47,7 @@ $$Av_1=\sigma_1u_1,\qquad A^{(1)}=A-\sigma_1u_1v_1^T.$$
 ## 算法实现：压缩一个灰度矩阵
 
 ```python
-from projects.linear_algebra_lab.main import compress_grayscale
+from projects.linear_algebra_lab.main import compress_grayscale, low_rank_parameter_report
 
 pixels = [[8.0, 0.0], [0.0, 3.0]]
 components, approximation, error = compress_grayscale(pixels, rank=1, iterations=120)
@@ -55,9 +55,10 @@ components, approximation, error = compress_grayscale(pixels, rank=1, iterations
 print(len(components))
 print(approximation)
 print(error)
+print(low_rank_parameter_report(2, 2, rank=1))
 ```
 
-`compress_grayscale` 每轮从当前残差抽取一个秩一部分，并返回分量、重构矩阵和 $\|A-\hat A\|_F$。完整测试：
+`compress_grayscale` 每轮从当前残差抽取一个秩一部分，并返回分量、重构矩阵和 $\|A-\hat A\|_F$。`low_rank_parameter_report` 同时返回密集参数数、低秩参数数、差额和是否真的节省参数；这样“压缩”不再只是名称。完整测试：
 
 ```bash
 python -m unittest projects.linear_algebra_lab.test_main

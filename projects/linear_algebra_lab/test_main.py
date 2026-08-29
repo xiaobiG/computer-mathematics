@@ -1,8 +1,10 @@
 import unittest
+from math import sqrt
 
 from projects.linear_algebra_lab.main import (
     classify_linear_system, compress_grayscale, dominant_right_singular_vector, frobenius_error, image_cosine_similarity,
-    matmul, norm, project, least_squares_qr, rank_k_approximation, rank_one_approximation, solve, solve_with_pivot_trace,
+    low_rank_parameter_report, matmul, norm, project, least_squares_qr, rank_k_approximation, rank_one_approximation,
+    solve, solve_with_pivot_trace, truncated_svd_frobenius_error,
 )
 
 
@@ -91,6 +93,26 @@ class LinearAlgebraLabTests(unittest.TestCase):
     def test_rank_k_rejects_nonpositive_rank(self):
         with self.assertRaises(ValueError):
             rank_k_approximation([[1.0]], rank=0)
+
+    def test_exact_truncated_svd_error_is_the_discarded_spectral_energy(self):
+        self.assertAlmostEqual(truncated_svd_frobenius_error([5.0, 2.0, 1.0], rank=1), sqrt(5.0))
+        self.assertEqual(truncated_svd_frobenius_error([5.0, 2.0, 1.0], rank=3), 0.0)
+
+    def test_svd_certificate_rejects_invalid_spectra_and_rank(self):
+        with self.assertRaises(ValueError):
+            truncated_svd_frobenius_error([2.0, 5.0], rank=1)
+        with self.assertRaises(ValueError):
+            truncated_svd_frobenius_error([1.0, float("nan")], rank=1)
+        with self.assertRaises(ValueError):
+            truncated_svd_frobenius_error([1.0], rank=2)
+
+    def test_low_rank_parameter_report_makes_the_storage_tradeoff_explicit(self):
+        report = low_rank_parameter_report(8, 8, rank=2)
+        self.assertEqual(report["dense_parameters"], 64)
+        self.assertEqual(report["low_rank_parameters"], 34)
+        self.assertEqual(report["saved_parameters"], 30)
+        self.assertTrue(report["has_parameter_savings"])
+        self.assertFalse(low_rank_parameter_report(2, 2, rank=2)["has_parameter_savings"])
 
     def test_flattened_image_cosine_similarity(self):
         self.assertAlmostEqual(image_cosine_similarity([[1.0, 0.0]], [[2.0, 0.0]]), 1.0)

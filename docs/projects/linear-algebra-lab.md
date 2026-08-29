@@ -15,7 +15,7 @@ description: 用可测试的教学实现串起矩阵乘法、消元、投影和�
 - [高斯消元](/linear-algebra/gaussian-elimination)：保持解集的行变换；
 - [最小二乘](/linear-algebra/least-squares)：投影与残差的基本构件。
 - [幂迭代](/linear-algebra/power-iteration)：以 Rayleigh 商和残差审查主特征方向。
-- [SVD](/linear-algebra/svd)：通过 $A^TA$ 的幂迭代获得主奇异方向，并重建秩一近似。
+- [SVD](/linear-algebra/svd)：通过 $A^TA$ 的幂迭代获得主奇异方向；另以已验证的谱尾公式计算精确截断误差与参数量。
 - [低秩图像压缩](/linear-algebra/low-rank-image-compression)：以逐次秩一近似比较保留秩与重构误差。
 - [向量与点积](/linear-algebra/vectors-dot-product)：以余弦相似度对同形图像向量排序。
 
@@ -26,7 +26,7 @@ python -m unittest projects.linear_algebra_lab.test_main
 python -m unittest projects.linear_algebra_lab.test_power_iteration
 ```
 
-测试覆盖矩阵形状错误、非交换变换、选主元、奇异系统、正交投影、幂迭代残差与失败边界、秩一矩阵重建、更高保留秩不增加小例重构误差，以及同形图像的余弦检索。完整项目测试仍可通过 `npm run projects:test` 运行。
+测试覆盖矩阵形状错误、非交换变换、选主元、奇异系统、正交投影、幂迭代残差与失败边界、秩一矩阵重建、精确谱尾误差、低秩参数节省、更高保留秩不增加小例重构误差，以及同形图像的余弦检索。完整项目测试仍可通过 `npm run projects:test` 运行。
 
 ## 挑战
 

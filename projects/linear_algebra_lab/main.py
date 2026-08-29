@@ -220,6 +220,46 @@ def compress_grayscale(matrix, rank, iterations=80, epsilon=EPSILON):
     return components, approximation, frobenius_error(matrix, approximation)
 
 
+def truncated_svd_frobenius_error(singular_values, rank):
+    """Return the exact Frobenius error of an exact rank-``rank`` SVD truncation.
+
+    The input is a descending, finite singular spectrum.  Keeping this
+    calculation separate from ``rank_k_approximation`` makes the distinction
+    between the Eckart--Young theorem and the lab's finite-iteration teaching
+    approximation explicit.
+    """
+    if not isinstance(singular_values, (list, tuple)):
+        raise ValueError("singular values must be a sequence")
+    if not isinstance(rank, int) or isinstance(rank, bool) or rank < 0:
+        raise ValueError("rank must be a non-negative integer")
+    if rank > len(singular_values):
+        raise ValueError("rank cannot exceed the number of singular values")
+    previous = float("inf")
+    for value in singular_values:
+        if not isinstance(value, (int, float)) or not isfinite(value) or value < 0:
+            raise ValueError("singular values must be finite and non-negative")
+        if value > previous:
+            raise ValueError("singular values must be in non-increasing order")
+        previous = value
+    return sqrt(sum(value * value for value in singular_values[rank:]))
+
+
+def low_rank_parameter_report(rows, columns, rank):
+    """Compare dense and rank-k factor storage counts for a matrix shape."""
+    if (not isinstance(rows, int) or isinstance(rows, bool) or rows <= 0
+            or not isinstance(columns, int) or isinstance(columns, bool) or columns <= 0
+            or not isinstance(rank, int) or isinstance(rank, bool) or rank < 0):
+        raise ValueError("rows and columns must be positive integers and rank non-negative")
+    dense = rows * columns
+    factors = rank * (rows + columns + 1)
+    return {
+        "dense_parameters": dense,
+        "low_rank_parameters": factors,
+        "saved_parameters": dense - factors,
+        "has_parameter_savings": factors < dense,
+    }
+
+
 def image_cosine_similarity(left, right):
     """Compare same-shaped grayscale matrices as flattened vectors; zero images score 0."""
     if (not left or not right or len(left) != len(right)
