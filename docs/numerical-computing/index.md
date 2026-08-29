@@ -16,6 +16,7 @@
 - [浮点数表示](/numerical-computing/floating-point)：IEEE 754、舍入、NaN 与尺度相关比较；
 - [绝对误差、相对误差与消去](/numerical-computing/error-propagation)：误差传播、相减条件数与零参考值边界；
 - [条件数](/numerical-computing/condition-number)：用可运行的 $2\\times2$ 扰动报告对照病态问题、前向/后向误差与稳定算法；
+- [算法稳定性：二次公式](/numerical-computing/algorithmic-stability)：从 Vieta 关系推导避免消去的小根公式，并以高精度参考值审计前向误差；
 - [浮点比较、容差与属性测试](/numerical-computing/tolerances-property-testing)：尺度相关契约、残差与可复现实验；
 - [牛顿法](/numerical-computing/newton-method)：二次收敛、停止准则与区间保护；
 - [割线法](/numerical-computing/secant-method)：用两点函数值替代导数的快速求根；
