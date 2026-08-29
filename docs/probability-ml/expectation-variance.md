@@ -53,22 +53,26 @@ $$\operatorname{Var}(X)=E[\operatorname{Var}(X\mid Y)]+\operatorname{Var}(E[X\mi
 ## 算法实现与复杂度
 
 ```python
-def mean(values):
-    if not values:
-        raise ValueError("values must be non-empty")
-    return sum(values) / len(values)
+from projects.naive_bayes_spam.moments import (
+    finite_expectation,
+    finite_variance,
+    total_variance_report,
+    welford_population,
+)
 
+distribution = {1.0: 1 / 3, 3.0: 1 / 3, 5.0: 1 / 3}
+assert finite_expectation(distribution) == 3.0
+assert finite_variance(distribution) == 8 / 3
+assert welford_population([1.0, 3.0, 5.0])[1] == 8 / 3
 
-def population_variance(values):
-    average = mean(values)
-    return sum((value - average) ** 2 for value in values) / len(values)
-
-
-assert mean([1, 3, 5]) == 3
-assert population_variance([1, 3, 5]) == 8 / 3
+report = total_variance_report(
+    {"low": 0.25, "high": 0.75},
+    {"low": {0.0: 0.5, 2.0: 0.5}, "high": {8.0: 0.5, 10.0: 0.5}},
+)
+assert report["total_variance"] == report["within_variance"] + report["between_variance"]
 ```
 
-两遍实现为 $O(n)$ 时间和 $O(1)$ 额外空间；对巨大或流式数据可使用 Welford 在线算法，避免累计平方与均值相减造成的消去误差。
+运行 `python -m unittest projects.naive_bayes_spam.test_moments`。有限分布模块检查概率质量后计算 $E[X]$ 与 $\operatorname{Var}(X)$；`welford_population` 逐项维护均值和平方偏差和；`total_variance_report` 分别给出组内项、组间项和总量，形成全方差公式的可运行证书。两遍实现与 Welford 均为 $O(n)$ 时间和 $O(1)$ 额外空间；对巨大或流式数据，后者避免累计平方与均值相减造成的消去误差。
 
 ## 正确性与工程边界
 
