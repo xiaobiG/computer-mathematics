@@ -16,6 +16,7 @@
 - [模运算与快速幂](/number-theory-crypto/modular-arithmetic)：重复平方的不变量、复杂度与侧信道边界；
 - [扩展欧几里得与模逆元](/number-theory-crypto/extended-euclid)：贝祖等式、逆元存在条件与算法证明；
 - [中国剩余定理](/number-theory-crypto/chinese-remainder-theorem)：构造、唯一性、通用合并和 RSA-CRT 故障边界；
+- [有限域、群与离散对数直觉](/number-theory-crypto/finite-fields-groups)：乘法群、元素阶、生成元与小子群边界；
 - [RSA](/number-theory-crypto/rsa)：模逆元、欧拉/CRT 正确性、快速幂与裸 RSA 的失败模式；
 - [Diffie–Hellman](/number-theory-crypto/diffie-hellman)：共享秘密的推导、离散对数假设与中间人攻击；
 - [哈希与密码存储](/number-theory-crypto/hashing-passwords)：KDF、盐、成本参数与在线/离线猜测边界；
