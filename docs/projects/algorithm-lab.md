@@ -17,6 +17,7 @@ description: 用图搜索、拓扑排序、最大流轨迹和 3-SAT 验证器连
 - [渐进复杂度](/discrete-math/asymptotic-complexity)：为何邻接表下为 $O(V+E)$。
 - [P、NP 与多项式归约](/discrete-math/p-np-reductions)：候选解验证为何不等于快速搜索。
 - [Floyd–Warshall](/discrete-math/floyd-warshall)：用中间点集合做全源最短路动态规划。
+- [递推关系与分治复杂度](/discrete-math/recurrences)：用递归树层级和实际比较次数审计 $n\log n$ 工作量。
 - [Dijkstra](/discrete-math/dijkstra)：用堆的确定顺序与松弛轨迹验证非负最短路。
 - [Bellman–Ford](/discrete-math/bellman-ford)：用冻结轮次的松弛轨迹验证负边正确性，并报告可达负环。
 - [最大流最小割](/discrete-math/max-flow-min-cut)：增广路和残量可达集如何构成最优证书。
@@ -34,6 +35,7 @@ python projects/algorithm_lab/sat_verifier.py
 python -m unittest projects.algorithm_lab.test_floyd_warshall
 python -m unittest projects.algorithm_lab.test_dijkstra_trace
 python -m unittest projects.algorithm_lab.test_bellman_ford_trace
+python -m unittest projects.algorithm_lab.test_recurrence_trace
 python -m unittest projects.algorithm_lab.test_max_flow
 python -m unittest discover -s projects/algorithm_lab -p "test_*.py"
 ```
