@@ -52,45 +52,17 @@ $$mt\equiv b-a\pmod n.$$
 它有解当且仅当 $g=\gcd(m,n)$ 整除 $b-a$。先除以 $g$，再在互素的 $m/g$ 与 $n/g$ 上求逆元，即可得到模 $\operatorname{lcm}(m,n)$ 的合并解。这比只实现“完全互素版”更能显式表达边界。
 
 ```python
-from math import gcd
+from projects.crypto_toybox.chinese_remainder import chinese_remainder, combine_congruences
 
-def extended_gcd(a: int, b: int) -> tuple[int, int, int]:
-    if b == 0:
-        return abs(a), 1 if a >= 0 else -1, 0
-    g, x, y = extended_gcd(b, a % b)
-    return g, y, x - (a // b) * y
-
-def combine_congruences(a: int, m: int, b: int, n: int) -> tuple[int, int]:
-    """返回 (r, modulus)，使 x ≡ r (mod modulus)；无解时抛 ValueError。"""
-    if m <= 0 or n <= 0:
-        raise ValueError("模数必须为正")
-    a, b = a % m, b % n
-    g = gcd(m, n)
-    difference = b - a
-    if difference % g:
-        raise ValueError("两个同余条件不相容")
-    reduced_m, reduced_n = m // g, n // g
-    _, inverse, _ = extended_gcd(reduced_m, reduced_n)
-    t = (difference // g * inverse) % reduced_n
-    modulus = m * reduced_n
-    return (a + m * t) % modulus, modulus
-
-def crt(congruences: list[tuple[int, int]]) -> tuple[int, int]:
-    if not congruences:
-        raise ValueError("至少需要一个同余条件")
-    residue, modulus = congruences[0]
-    for next_residue, next_modulus in congruences[1:]:
-        residue, modulus = combine_congruences(residue, modulus, next_residue, next_modulus)
-    return residue, modulus
-
-print(crt([(2, 3), (3, 5), (2, 7)]))  # (23, 105)
+assert chinese_remainder([(2, 3), (3, 5), (2, 7)]) == (23, 105)
+assert combine_congruences((1, 4), (3, 6)) == (9, 12)
 ```
 
-每次合并由一次扩展欧几里得主导，时间约为 $O(\log\min(m,n))$ 个大整数算术步骤；但实际密码库中，大整数乘法和常数时间实现才是主要工程成本。
+运行 `python -m unittest projects.crypto_toybox.test_chinese_remainder`。实现以 `(residue, modulus)` 表示每条同余，不只适用于两两互素模数；测试用三条互素条件恢复一个隐藏整数的模类，也验证 $x\equiv1\pmod4,x\equiv3\pmod6$ 合并为 $x\equiv9\pmod{12}$。每次合并由一次扩展欧几里得主导，时间约为 $O(\log\min(m,n))$ 个大整数算术步骤；但实际密码库中，大整数乘法和常数时间实现才是主要工程成本。
 
 ## 正确性与可验证实验
 
-每次 `combine_congruences` 返回后，断言 `result % m == a % m` 和 `result % n == b % n`；再随机生成小模数和一个秘密 $x$，由 $x\bmod m_i$ 还原并比对 $x\bmod M$。另测两类负例：
+每次 `combine_congruences` 返回后，断言 `result % m == a % m` 和 `result % n == b % n`；再生成小模数和一个秘密 $x$，由 $x\bmod m_i$ 还原并比对 $x\bmod M$。另测两类负例：
 
 - $x\equiv0\pmod2,x\equiv1\pmod2$ 不相容，必须报错；
 - $x\equiv1\pmod4,x\equiv3\pmod6$ 相容，合并后为 $x\equiv9\pmod{12}$，说明非互素不等于无解。
