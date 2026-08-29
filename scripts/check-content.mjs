@@ -44,6 +44,9 @@ for (const path of files) {
   if (!/^##\s+练习\s*$/m.test(prose)) {
     errors.push(`${label}: 缺少“练习”章节`)
   }
+  if (!label.endsWith('rewrite-plan.md') && !/^##\s+学习目标\s*$/m.test(prose)) {
+    errors.push(`${label}: 缺少“学习目标”章节`)
+  }
   if (!/^##\s+/m.test(prose)) {
     errors.push(`${label}: 缺少至少一个二级章节`)
   }
