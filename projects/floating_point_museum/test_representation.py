@@ -1,0 +1,28 @@
+import math
+import unittest
+
+from projects.floating_point_museum.representation import adjacent_values, float64_parts, spacing_at
+
+
+class RepresentationTests(unittest.TestCase):
+    def test_binary64_fields_distinguish_normal_zero_subnormal_and_special_values(self):
+        self.assertEqual(float64_parts(0.1).classification, "normal")
+        self.assertEqual(float64_parts(0.0).classification, "zero")
+        self.assertEqual(float64_parts(-0.0).sign, 1)
+        self.assertEqual(float64_parts(math.nextafter(0.0, 1.0)).classification, "subnormal")
+        self.assertEqual(float64_parts(float("inf")).classification, "infinity")
+        self.assertEqual(float64_parts(float("nan")).classification, "nan")
+
+    def test_adjacent_values_and_ulp_show_scale_dependent_spacing(self):
+        lower, upper = adjacent_values(1.0)
+        self.assertLess(lower, 1.0)
+        self.assertGreater(upper, 1.0)
+        self.assertEqual(upper - 1.0, 2.0 ** -52)
+        self.assertEqual(spacing_at(1e16), 2.0)
+        self.assertEqual(1e16 + 1.0, 1e16)
+
+    def test_nonfinite_neighbour_and_spacing_requests_are_rejected(self):
+        with self.assertRaises(ValueError):
+            adjacent_values(float("inf"))
+        with self.assertRaises(ValueError):
+            spacing_at(float("nan"))

@@ -35,23 +35,26 @@ $$(-1)^s\times(1.f)_2\times2^{e-\text{bias}},$$
 $1/2=0.1_2$ 可以有限表示，$1/10=0.000110011\ldots_2$ 则不断重复。以下比较使用绝对容差与相对容差的较大者，而不是固定的小数位：
 
 ```python
-from math import isclose
+from projects.floating_point_museum.examples import nearly_equal
+from projects.floating_point_museum.representation import adjacent_values, float64_parts, spacing_at
 
-
-def nearly_equal(left, right, rel_tol=1e-12, abs_tol=1e-15):
-    return abs(left - right) <= max(abs_tol, rel_tol * max(abs(left), abs(right)))
-
-
+parts = float64_parts(0.1)
+assert parts.classification == "normal"
 assert 0.1 + 0.2 != 0.3
 assert nearly_equal(0.1 + 0.2, 0.3)
-assert isclose(1e12, 1e12 + 0.1, rel_tol=1e-12)
+
+lower, upper = adjacent_values(1.0)
+assert lower < 1.0 < upper
+assert upper - 1.0 == 2.0 ** -52
+assert spacing_at(1e16) == 2.0
+assert 1e16 + 1.0 == 1e16
 ```
 
-比较为 $O(1)$。相对项适合大尺度，绝对项保证接近零时仍有合理阈值；两者参数必须源自量纲、测量精度和业务容忍度。
+`float64_parts` 让符号、11 位有偏指数和 52 位尾数字段可见；`adjacent_values` 与 `spacing_at` 则显示浮点数不是均匀网格。`1e16` 附近两个相邻可表示数相差 2，所以加 1 会在舍入后回到原数。所有这些检查为 $O(1)$。相对项适合大尺度，绝对项保证接近零时仍有合理阈值；两者参数必须源自量纲、测量精度和业务容忍度。
 
 ## 正确性与工程边界
 
-若差值不超过 `max(abs_tol, rel_tol * scale)`，函数明确实现“在允许绝对或相对误差内相等”的业务定义；它并不恢复数学上的相等。NaN 与任何数（包括自身）都不相等，应显式检测；无穷值、正负零、次正规数、上溢和下溢也有独立语义。金额宜用最小货币单位整数或十进制定点类型，不能依赖 epsilon。
+若差值不超过 `tolerance * max(1, |x|, |y|)`，函数明确实现“在允许绝对或相对误差内相等”的业务定义；它并不恢复数学上的相等。NaN 与任何数（包括自身）都不相等，应显式检测；无穷值、正负零、次正规数、上溢和下溢也有独立语义。表示实验专门拒绝非有限数的“相邻值”请求，避免把特殊值混进普通数的网格直觉。金额宜用最小货币单位整数或十进制定点类型，不能依赖 epsilon。
 
 ## 常见误区
 
