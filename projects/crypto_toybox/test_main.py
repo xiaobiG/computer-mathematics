@@ -4,6 +4,8 @@ from projects.crypto_toybox.main import (
     decrypt,
     encrypt,
     mod_pow,
+    mod_pow_trace,
+    mod_pow_trace_certificate,
     modular_inverse,
     raw_rsa_properties,
     rsa_round_trip_report,
@@ -14,6 +16,18 @@ from projects.crypto_toybox.main import (
 class CryptoToyboxTests(unittest.TestCase):
     def test_fast_power_matches_known_result(self):
         self.assertEqual(mod_pow(7, 128, 13), pow(7, 128, 13))
+
+    def test_fast_power_trace_certifies_each_bit_update_and_rejects_tampering(self):
+        result, events = mod_pow_trace(3, 13, 7)
+        self.assertEqual(result, pow(3, 13, 7))
+        self.assertEqual([event.bit for event in events], [1, 0, 1, 1])
+        self.assertTrue(mod_pow_trace_certificate(3, 13, 7, result, events))
+        tampered = list(events)
+        tampered[1] = tampered[1].__class__(
+            tampered[1].iteration, tampered[1].exponent_before, tampered[1].bit,
+            (tampered[1].result_after + 1) % 7, tampered[1].base_after, tampered[1].exponent_after,
+        )
+        self.assertFalse(mod_pow_trace_certificate(3, 13, 7, result, tampered))
 
     def test_modular_inverse(self):
         inverse = modular_inverse(17, 3120)
@@ -35,6 +49,8 @@ class CryptoToyboxTests(unittest.TestCase):
         key = toy_rsa_keypair(61, 53, 17)
         with self.assertRaises(ValueError):
             encrypt(key.modulus, key)
+        with self.assertRaises(ValueError):
+            mod_pow(2, -1, 7)
 
     def test_key_generation_rejects_nonprime_and_invalid_exponents(self):
         with self.assertRaises(ValueError):

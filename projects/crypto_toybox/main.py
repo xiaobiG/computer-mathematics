@@ -8,16 +8,75 @@ from math import gcd
 from projects.crypto_toybox.finite_group import is_prime
 
 
-def mod_pow(base: int, exponent: int, modulus: int) -> int:
+def _validate_mod_pow_inputs(base: int, exponent: int, modulus: int) -> None:
+    if any(not isinstance(value, int) or isinstance(value, bool) for value in (base, exponent, modulus)):
+        raise ValueError("底数、指数和模数必须是整数")
     if modulus <= 1 or exponent < 0:
         raise ValueError("模数必须大于 1，指数必须非负")
+
+
+@dataclass(frozen=True)
+class ModPowEvent:
+    """One square-and-multiply round after processing its lowest exponent bit."""
+
+    iteration: int
+    exponent_before: int
+    bit: int
+    result_after: int
+    base_after: int
+    exponent_after: int
+
+
+def mod_pow_trace(base: int, exponent: int, modulus: int) -> tuple[int, list[ModPowEvent]]:
+    """Compute a modular power while exposing the teaching loop invariant.
+
+    Recording exponent bits is deliberately unsuitable for secret exponents.
+    This function exists to audit the square-and-multiply derivation only.
+    """
+    _validate_mod_pow_inputs(base, exponent, modulus)
     result = 1
     base %= modulus
+    events: list[ModPowEvent] = []
+    iteration = 0
     while exponent:
-        if exponent & 1:
+        iteration += 1
+        exponent_before = exponent
+        bit = exponent & 1
+        if bit:
             result = (result * base) % modulus
         base = (base * base) % modulus
         exponent >>= 1
+        events.append(ModPowEvent(iteration, exponent_before, bit, result, base, exponent))
+    return result, events
+
+
+def mod_pow_trace_certificate(
+    original_base: int, original_exponent: int, modulus: int, result: int, events: list[ModPowEvent],
+) -> bool:
+    """Check every update against square-and-multiply and its terminal value."""
+    try:
+        _validate_mod_pow_inputs(original_base, original_exponent, modulus)
+    except ValueError:
+        return False
+    expected_result, expected_base, expected_exponent = 1, original_base % modulus, original_exponent
+    for iteration, event in enumerate(events, start=1):
+        if (event.iteration != iteration or event.exponent_before != expected_exponent
+                or event.bit != expected_exponent & 1):
+            return False
+        if event.bit:
+            expected_result = (expected_result * expected_base) % modulus
+        expected_base = (expected_base * expected_base) % modulus
+        expected_exponent >>= 1
+        if (event.result_after, event.base_after, event.exponent_after) != (
+            expected_result, expected_base, expected_exponent,
+        ):
+            return False
+    return expected_exponent == 0 and result == expected_result
+
+
+def mod_pow(base: int, exponent: int, modulus: int) -> int:
+    """Return the teaching modular power without retaining a bit-level trace."""
+    result, _ = mod_pow_trace(base, exponent, modulus)
     return result
 
 

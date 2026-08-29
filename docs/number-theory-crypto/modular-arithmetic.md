@@ -37,26 +37,19 @@ $$a\equiv b\pmod n\Rightarrow ac\equiv bc\pmod n.$$
 ## 算法实现与正确性
 
 ```python
-def mod_pow(base, exponent, modulus):
-    if modulus <= 1 or exponent < 0:
-        raise ValueError("modulus must exceed 1 and exponent must be non-negative")
-    result, base = 1, base % modulus
-    while exponent:
-        if exponent & 1:
-            result = (result * base) % modulus
-        base = (base * base) % modulus
-        exponent >>= 1
-    return result
+from projects.crypto_toybox.main import mod_pow_trace, mod_pow_trace_certificate
 
-
-assert mod_pow(7, 128, 13) == pow(7, 128, 13)
+result, events = mod_pow_trace(3, 13, 7)
+assert result == pow(3, 13, 7)
+assert [event.bit for event in events] == [1, 0, 1, 1]
+assert mod_pow_trace_certificate(3, 13, 7, result, events)
 ```
 
-不变量是：初始指数为 $E$ 时，$result\cdot base^{exponent}\equiv a^E\pmod n$。若最低位为 1，将一个 `base` 移到 `result`；平方 `base` 且指数右移保持等价。指数归零时不变量给出结果正确。时间为 $O(\log e)$ 次模乘，额外空间 $O(1)$（忽略大整数位数）。
+`ModPowEvent` 记录每轮处理前的剩余指数、当前位、更新后的 `result`/`base` 和右移结果。`mod_pow_trace_certificate` 从原始输入独立重放每次模乘，因此能发现“最终答案偶然正确、某一位的更新却写错”的问题。不变量是：初始指数为 $E$ 时，$result\cdot base^{exponent}\equiv a^E\pmod n$。若最低位为 1，将一个 `base` 移到 `result`；平方 `base` 且指数右移保持等价。指数归零时不变量给出结果正确。时间为 $O(\log e)$ 次模乘，保留教学轨迹为 $O(\log e)$ 额外空间；普通 `mod_pow` 不保留轨迹，仍为 $O(1)$（忽略大整数位数）。
 
 ## 失败案例与工程边界
 
-普通实现的 `if exponent & 1` 和运行时间可能泄漏指数位；用于私钥时，攻击者可借计时、缓存或功耗推断秘密。生产密码只能使用经审计库中的常量时间实现，还需要安全随机数、填充、协议验证和密钥管理。负指数意味着模逆元，只有底数与模数互素时才有定义。
+普通实现的 `if exponent & 1` 和运行时间可能泄漏指数位；本课的 `mod_pow_trace` 更是有意将每一位公开，绝不能用于私钥。生产密码只能使用经审计库中的常量时间实现，还需要安全随机数、填充、协议验证和密钥管理。负指数意味着模逆元，只有底数与模数互素时才有定义。
 
 ## 常见误区
 
