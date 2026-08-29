@@ -36,13 +36,30 @@ $$b=c_1v_1+\cdots+c_kv_k.$$
 ## 代码实验与复杂度
 
 ```python
-def reconstruct(c1, c2):
-    return (c1, c2)  # 基 (1, 0)、(0, 1) 下的坐标重构
+from projects.linear_algebra_lab.basis import (
+    basis_coordinate_report,
+    column_independence_report,
+)
 
-assert reconstruct(4, 3) == (4, 3)
+# 第三个方向由前两个方向组合而成，因此不会提高秩。
+report = column_independence_report([[1.0, 0.0], [0.0, 1.0], [1.0, 1.0]])
+assert report["rank"] == 2
+assert report["basis_indices"] == [0, 1]
+assert not report["is_linearly_independent"]
+
+# 非标准基下，目标向量仍有唯一坐标。
+coordinates = basis_coordinate_report([[1.0, 1.0], [1.0, -1.0]], [4.0, 2.0])
+assert coordinates["coordinates"] == [3.0, 1.0]
+assert coordinates["reconstructs_target"]
 ```
 
-判断 $b$ 是否属于列空间，就是解 $Ax=b$，密集情形可由消元在 $O(n^3)$ 时间完成。数据近似可表示时转向最小二乘，而不是强行判断“无解”。
+`column_independence_report` 以改进 Gram–Schmidt 逐列观察“去掉已有方向后还剩多少长度”：残差非零就保留该列，接近零就标记为冗余。`basis_coordinate_report` 再把列向量排成矩阵、以选主元消元求解 $Ac=b$，并将 $Ac-b$ 作为重构证书。对 $d$ 维、$k$ 个候选方向，诊断约为 $O(kd^2)$；恰有 $d$ 个基向量时坐标求解为 $O(d^3)$。数据近似可表示时转向最小二乘，而不是强行判断“无解”。
+
+## 正确性与数值边界
+
+Gram–Schmidt 在第 $j$ 列上减去它在此前正交方向的投影。若残差为零，则该列属于此前列的张成空间；若非零，归一化残差与此前方向正交，因而确实引入一个新维度。于是被保留列线性无关，保留数就是本实现报告的秩。
+
+当恰好保留 $d$ 个 $d$ 维方向时，列矩阵可逆，$Ac=b$ 对每个目标都有唯一解。实验的 `reconstructs_target` 检查把这个代数结论落实为 $Ac-b=0$。浮点数中“零残差”依赖容差；近共线列会让坐标极不稳定，生产数值代码应改用带主元 QR 或 SVD 并报告有效秩。
 
 ## 失败案例与工程边界
 
@@ -56,9 +73,10 @@ assert reconstruct(4, 3) == (4, 3)
 
 ## 练习
 
-1. 求 $(2,3)$ 在 $(1,1)$、$(1,-1)$ 下的坐标。
-2. 说明 $(1,0)$、$(2,0)$ 为什么不能成为二维平面的基。
-3. 为三个高度相关的数据列预测删除一列对秩的影响。
+1. **基础**：求 $(2,3)$ 在 $(1,1)$、$(1,-1)$ 下的坐标。
+2. **推导**：说明 $(1,0)$、$(2,0)$ 为什么不能成为二维平面的基，并用“残差为零”重述证明。
+3. **编码**：为 `column_independence_report` 添加三个二维列向量的排列，比较为何基索引可变、秩不变。
+4. **开放**：构造三个高度相关但不严格相关的数据列，改变容差并报告有效秩和坐标变化；解释为什么这不是纯代数问题。
 
 ## 下一步
 
