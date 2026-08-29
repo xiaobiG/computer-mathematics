@@ -93,6 +93,13 @@ assert report["non_coprime_messages"] == [0, 5, 11, 50]
 3. **编码**：为 `encrypt_toy` 添加负数、等于 $n$、大于 $n$ 的输入测试。
 4. **开放**：查阅 OAEP 要解决的确定性/可塑性问题，并解释为何“自己实现填充”仍不安全。
 
+## 练习答案提示
+
+1. 先算 $n=33$、$\varphi(n)=20$，再解 $3d\equiv1\pmod{20}$；选择 $0\le m<n$ 的消息，并用重复平方核验两次模幂。
+2. 分别证明 $m^{ed}\equiv m\pmod p$ 与 $\pmod q$：若对应素数整除 $m$，同余立即成立；否则用费马小定理，最后由 CRT 合并。
+3. 明确教学 API 的消息域是 $0\le m<n$；三类输入都应断言拒绝方式一致，并保留一个边界内的正常回归用例。
+4. OAEP 的随机编码阻止同明文得到同密文，并破坏裸 RSA 的直接可乘关系；安全性还依赖经过审计的参数、随机数和恒定时间实现，因此不能自行拼接填充。
+
 ## 延伸与下一步
 
 [Diffie–Hellman](/number-theory-crypto/diffie-hellman)展示另一种基于离散对数的密钥协商；[哈希与密码存储](/number-theory-crypto/hashing-passwords)则强调真实安全系统通常比单个数学原语更依赖协议与实现边界。
