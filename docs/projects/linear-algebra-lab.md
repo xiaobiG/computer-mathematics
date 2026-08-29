@@ -7,7 +7,7 @@ description: 用可测试的教学实现串起矩阵计算、消元、投影、�
 
 ## 目标
 
-本项目把线性代数专题的关键操作做成小型、可测试的 Python 模块：矩阵乘法、列独立性和基坐标重构、带部分选主元且可重放的方程求解、正规方程与 QR 的最小二乘对照、双数前向自动微分、二维 PCA、向量投影、幂迭代、低秩压缩、把灰度矩阵展平后的余弦相似度检索，以及只在观测评分上拟合的秩一 ALS。`pivot_trace_certificate` 从原始增广矩阵重放主元选择、行交换、消元和回代；`column_independence_report` 用逐列正交残差和秩检查冗余方向，`basis_coordinate_report` 用 $Ac-b$ 检查坐标重构；`demo_jvp_certificate` 将双数 JVP 与 $\nabla L^Tv$ 对照；`least_squares_comparison_report` 用同一份 $A^Tr$ 证书检查两条拟合路径；`pca_2d_report` 检查中心化、投影正交性和舍弃方差—重构误差恒等式；`compressed_image_search` 将压缩误差和压缩域排序放入同一报告，形成微型“压缩—检索”流程；`rank_one_als_trace_certificate` 重放每轮用户/物品的坐标最小化，核对观测集误差而不假装验证缺失评分。它们用于核对数学定义，不取代 NumPy/SciPy 的生产实现。
+本项目把线性代数专题的关键操作做成小型、可测试的 Python 模块：矩阵乘法、列独立性和基坐标重构、带部分选主元且可重放的方程求解、正规方程与 QR 的最小二乘对照、双数前向自动微分、二维 PCA、向量投影、幂迭代、低秩压缩、把灰度矩阵展平后的余弦相似度检索，以及只在观测评分上拟合的秩一 ALS。`pivot_trace_certificate` 从原始增广矩阵重放主元选择、行交换、消元和回代；`column_independence_report` 用逐列正交残差和秩检查冗余方向，`basis_coordinate_report` 用 $Ac-b$ 检查坐标重构；`demo_jvp_certificate` 将双数 JVP 与 $\nabla L^Tv$ 对照；`least_squares_comparison_report` 用同一份 $A^Tr$ 证书检查两条拟合路径；`pca_2d_report` 检查中心化、投影正交性和舍弃方差—重构误差恒等式；`compressed_image_search` 将压缩误差和压缩域排序放入同一报告，形成微型“压缩—检索”流程；`image_quality_certificate` 重算 MSE、RMSE、PSNR 与最大误差；`rank_one_als_trace_certificate` 重放每轮用户/物品的坐标最小化，核对观测集误差而不假装验证缺失评分。它们用于核对数学定义，不取代 NumPy/SciPy 的生产实现。
 
 ## 数学连接
 
@@ -20,6 +20,7 @@ description: 用可测试的教学实现串起矩阵计算、消元、投影、�
 - [特征值与 PCA](/linear-algebra/eigenvalues-pca)：从中心化协方差到投影重构，并核对舍弃方差证书。
 - [SVD](/linear-algebra/svd)：通过 $A^TA$ 的幂迭代获得主奇异方向；另以已验证的谱尾公式计算精确截断误差与参数量。
 - [低秩图像压缩](/linear-algebra/low-rank-image-compression)：以逐次秩一近似比较保留秩与重构误差。
+- [图像误差指标](/linear-algebra/image-error-metrics)：将同一重构残差转换为 MSE、RMSE、PSNR 与最大误差。
 - [低秩推荐](/linear-algebra/low-rank-recommendation)：只对观测评分做交替最小二乘，并分离训练误差与缺失预测。
 - [向量与点积](/linear-algebra/vectors-dot-product)：以余弦相似度对同形图像向量排序。
 
@@ -49,6 +50,18 @@ assert rank_one_als_trace_certificate(ratings, report, iterations=20, regulariza
 
 这个报告仅度量已观测评分上的拟合误差。没有评分的用户或物品会被显式拒绝为冷启动，而不是偷偷填零；未观测格的数值是模型假设产生的预测，仍需要留出集与在线指标验证。
 
+## 图像误差实验
+
+```python
+from projects.linear_algebra_lab.image_metrics import image_quality_report
+
+report = image_quality_report([[0.0, 255.0]], [[0.0, 0.0]])
+assert report.mse == 255.0 ** 2 / 2
+assert report.max_absolute_error == 255.0
+```
+
+PSNR 将像素 RMSE 与约定峰值联系起来；它仍只是逐像素数值度量，不能替代感知质量或检索质量的评估。
+
 ## 运行
 
 ```bash
@@ -57,10 +70,11 @@ python -m unittest projects.linear_algebra_lab.test_power_iteration
 python -m unittest projects.linear_algebra_lab.test_pca
 python -m unittest projects.linear_algebra_lab.test_basis
 python -m unittest projects.linear_algebra_lab.test_forward_autodiff
+python -m unittest projects.linear_algebra_lab.test_image_metrics
 python -m unittest projects.linear_algebra_lab.test_recommendation
 ```
 
-测试覆盖矩阵形状错误、非交换变换、列独立性与基坐标重构、选主元、奇异系统、正规方程与 QR 的最小二乘一致性及 $A^Tr$ 证书、双数 JVP 与梯度点积、二维 PCA 的中心化/正交/舍弃方差证书、正交投影、幂迭代残差与失败边界、秩一矩阵重建、精确谱尾误差、低秩参数节省、更高保留秩不增加小例重构误差、压缩—检索联合报告、同形图像的余弦检索，以及 ALS 观测误差与轨迹篡改/冷启动边界。完整项目测试仍可通过 `npm run projects:test` 运行。
+测试覆盖矩阵形状错误、非交换变换、列独立性与基坐标重构、选主元、奇异系统、正规方程与 QR 的最小二乘一致性及 $A^Tr$ 证书、双数 JVP 与梯度点积、二维 PCA 的中心化/正交/舍弃方差证书、正交投影、幂迭代残差与失败边界、秩一矩阵重建、精确谱尾误差、低秩参数节省、更高保留秩不增加小例重构误差、压缩—检索联合报告、同形图像的余弦检索、MSE/RMSE/PSNR 报告与篡改拒绝，以及 ALS 观测误差与轨迹篡改/冷启动边界。完整项目测试仍可通过 `npm run projects:test` 运行。
 
 ## 挑战
 
