@@ -8,6 +8,8 @@ from projects.crypto_toybox.main import (
     mod_pow_trace_certificate,
     modular_inverse,
     raw_rsa_properties,
+    RsaKeyPair,
+    rsa_keypair_certificate,
     rsa_round_trip_report,
     toy_rsa_keypair,
 )
@@ -37,6 +39,22 @@ class CryptoToyboxTests(unittest.TestCase):
         key = toy_rsa_keypair(61, 53, 17)
         self.assertEqual(key.private_exponent, 2753)
         self.assertEqual(decrypt(encrypt(65, key), key), 65)
+
+    def test_keypair_certificate_audits_theorem_preconditions_and_rejects_tampering(self):
+        key = toy_rsa_keypair(5, 11, 3)
+        self.assertEqual(
+            rsa_keypair_certificate(5, 11, key),
+            {
+                "distinct_prime_factors": True,
+                "modulus_matches_factors": True,
+                "public_exponent_is_a_unit": True,
+                "private_exponent_is_inverse": True,
+                "valid": True,
+            },
+        )
+        tampered = RsaKeyPair(key.modulus, key.public_exponent, key.private_exponent + 1)
+        self.assertFalse(rsa_keypair_certificate(5, 11, tampered)["private_exponent_is_inverse"])
+        self.assertFalse(rsa_keypair_certificate(5, 11, tampered)["valid"])
 
     def test_round_trip_report_covers_coprime_and_non_coprime_messages(self):
         key = toy_rsa_keypair(5, 11, 3)

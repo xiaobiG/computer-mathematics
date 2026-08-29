@@ -119,6 +119,39 @@ def toy_rsa_keypair(p: int, q: int, public_exponent: int) -> RsaKeyPair:
     return RsaKeyPair(p * q, public_exponent, modular_inverse(public_exponent, phi))
 
 
+def rsa_keypair_certificate(p: int, q: int, key: RsaKeyPair) -> dict[str, bool]:
+    """Independently audit the classroom RSA construction preconditions.
+
+    Passing ``p`` and ``q`` is intentional: a real private-key API must not
+    expose factorization merely to verify itself.  Here they make the theorem
+    assumptions explicit and let learners check the modular-inverse relation
+    used by the RSA correctness proof.
+    """
+    if (not isinstance(key, RsaKeyPair)
+            or any(not isinstance(value, int) or isinstance(value, bool) for value in (p, q))):
+        return {
+            "distinct_prime_factors": False,
+            "modulus_matches_factors": False,
+            "public_exponent_is_a_unit": False,
+            "private_exponent_is_inverse": False,
+            "valid": False,
+        }
+    phi = (p - 1) * (q - 1)
+    distinct_primes = p != q and is_prime(p) and is_prime(q)
+    modulus_matches = key.modulus == p * q
+    public_exponent_is_a_unit = 1 < key.public_exponent < phi and gcd(key.public_exponent, phi) == 1
+    private_exponent_is_inverse = (
+        public_exponent_is_a_unit and (key.public_exponent * key.private_exponent) % phi == 1
+    )
+    return {
+        "distinct_prime_factors": distinct_primes,
+        "modulus_matches_factors": modulus_matches,
+        "public_exponent_is_a_unit": public_exponent_is_a_unit,
+        "private_exponent_is_inverse": private_exponent_is_inverse,
+        "valid": all((distinct_primes, modulus_matches, public_exponent_is_a_unit, private_exponent_is_inverse)),
+    }
+
+
 def encrypt(message: int, key: RsaKeyPair) -> int:
     if not 0 <= message < key.modulus:
         raise ValueError("教学明文必须位于 [0, n) 内")
