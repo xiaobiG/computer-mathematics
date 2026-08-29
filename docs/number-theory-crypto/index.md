@@ -21,6 +21,7 @@
 - [Diffie–Hellman](/number-theory-crypto/diffie-hellman)：共享秘密的推导、离散对数假设与中间人攻击；
 - [哈希与密码存储](/number-theory-crypto/hashing-passwords)：KDF、盐、成本参数与在线/离线猜测边界；
 - [素性测试](/number-theory-crypto/primality-testing)：Miller–Rabin、Carmichael 数与概率性证书；
+- [椭圆曲线密码学预备](/number-theory-crypto/elliptic-curve-prelude)：有限域点群、标量乘法与安全实现边界；
 - [密码学与数论深度版路线](/number-theory-crypto/rewrite-plan)：原语、协议和攻击面之间的学习路径；
 - [密码学玩具箱](/projects/crypto-toybox)：仅教学用途的可测试数论实验。
 

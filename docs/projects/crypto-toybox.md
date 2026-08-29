@@ -1,6 +1,6 @@
 ---
 title: 项目：密码学玩具箱
-description: 用快速幂、模逆元与小参数 RSA 串起数论课程的教学实现。
+description: 用快速幂、模逆元、小参数 RSA 与有限域椭圆曲线串起数论课程的教学实现。
 ---
 
 # 项目：密码学玩具箱
@@ -11,7 +11,7 @@ description: 用快速幂、模逆元与小参数 RSA 串起数论课程的教�
 
 ## 目标
 
-实现并测试三块数学积木：模幂、扩展欧几里得算法和教学 RSA。重点是看到这些函数在加密、解密流程中如何连接，而非尝试自制密码系统。
+实现并测试四块数学积木：模幂、扩展欧几里得算法、教学 RSA 和有限域椭圆曲线点群。重点是看到这些函数在加密、解密或标量乘法流程中如何连接，而非尝试自制密码系统。
 
 ## 数学连接
 
@@ -19,12 +19,14 @@ description: 用快速幂、模逆元与小参数 RSA 串起数论课程的教�
 - [最大公约数与模逆元](/number-theory-crypto/extended-euclid)
 - [RSA](/number-theory-crypto/rsa)
 - [中国剩余定理](/number-theory-crypto/chinese-remainder-theorem)
+- [椭圆曲线密码学预备](/number-theory-crypto/elliptic-curve-prelude)
 
 ## 运行
 
 ```bash
 python projects/crypto_toybox/main.py
 python -m unittest projects.crypto_toybox.test_main
+python -m unittest projects.crypto_toybox.test_elliptic_curve
 ```
 
 ## 实验问题
@@ -32,6 +34,7 @@ python -m unittest projects.crypto_toybox.test_main
 1. 修改明文 $m$，验证 `decrypt(encrypt(m)) == m`；
 2. 用扩展欧几里得算法验证公开指数和私钥指数互为模逆元；
 3. 思考：为什么知道 $n=pq$ 但不知道 $p,q$ 会使计算私钥变困难？
+4. 在小素域上验证 $P+(-P)=\mathcal O$，并解释为何这不构成真实椭圆曲线密码实现。
 
 ## 从这里走向真实系统
 
