@@ -1,8 +1,8 @@
 import unittest
 
 from projects.linear_algebra_lab.main import (
-    dominant_right_singular_vector, frobenius_error, matmul, norm, project,
-    rank_one_approximation, solve,
+    compress_grayscale, dominant_right_singular_vector, frobenius_error, matmul, norm, project,
+    rank_k_approximation, rank_one_approximation, solve,
 )
 
 
@@ -44,6 +44,22 @@ class LinearAlgebraLabTests(unittest.TestCase):
     def test_power_iteration_rejects_zero_matrix(self):
         with self.assertRaises(ValueError):
             dominant_right_singular_vector([[0.0, 0.0], [0.0, 0.0]])
+
+    def test_rank_k_exactly_reconstructs_small_rank_two_matrix(self):
+        matrix = [[3.0, 0.0], [0.0, 2.0]]
+        components, approximation = rank_k_approximation(matrix, rank=2, iterations=120)
+        self.assertEqual(len(components), 2)
+        self.assertLess(frobenius_error(matrix, approximation), 1e-9)
+
+    def test_higher_rank_does_not_increase_compression_error(self):
+        pixels = [[8.0, 0.0], [0.0, 3.0]]
+        _, _, rank_one_error = compress_grayscale(pixels, rank=1, iterations=120)
+        _, _, rank_two_error = compress_grayscale(pixels, rank=2, iterations=120)
+        self.assertLessEqual(rank_two_error, rank_one_error + 1e-9)
+
+    def test_rank_k_rejects_nonpositive_rank(self):
+        with self.assertRaises(ValueError):
+            rank_k_approximation([[1.0]], rank=0)
 
 
 if __name__ == "__main__":

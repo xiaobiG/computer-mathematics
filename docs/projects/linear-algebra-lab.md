@@ -1,13 +1,13 @@
 ---
 title: 项目：线性代数实验室
-description: 用可测试的教学实现串起矩阵乘法、消元和投影。
+description: 用可测试的教学实现串起矩阵乘法、消元、投影和低秩图像压缩。
 ---
 
 # 项目：线性代数实验室
 
 ## 目标
 
-本项目把线性代数专题的四类关键操作做成小型、可测试的 Python 模块：矩阵乘法、带部分选主元的方程求解、向量投影，以及用幂迭代近似的秩一压缩。它们用于核对数学定义，不取代 NumPy/SciPy 的生产实现。
+本项目把线性代数专题的关键操作做成小型、可测试的 Python 模块：矩阵乘法、带部分选主元的方程求解、向量投影，以及用幂迭代和残差消去近似的低秩压缩。它们用于核对数学定义，不取代 NumPy/SciPy 的生产实现。
 
 ## 数学连接
 
@@ -15,6 +15,7 @@ description: 用可测试的教学实现串起矩阵乘法、消元和投影。
 - [高斯消元](/linear-algebra/gaussian-elimination)：保持解集的行变换；
 - [最小二乘](/linear-algebra/least-squares)：投影与残差的基本构件。
 - [SVD](/linear-algebra/svd)：通过 $A^TA$ 的幂迭代获得主奇异方向，并重建秩一近似。
+- [低秩图像压缩](/linear-algebra/low-rank-image-compression)：以逐次秩一近似比较保留秩与重构误差。
 
 ## 运行
 
@@ -22,7 +23,7 @@ description: 用可测试的教学实现串起矩阵乘法、消元和投影。
 python -m unittest projects.linear_algebra_lab.test_main
 ```
 
-测试覆盖矩阵形状错误、非交换变换、选主元、奇异系统、正交投影与秩一矩阵重建。完整项目测试仍可通过 `npm run projects:test` 运行。
+测试覆盖矩阵形状错误、非交换变换、选主元、奇异系统、正交投影、秩一矩阵重建与“更高保留秩不增加小例重构误差”。完整项目测试仍可通过 `npm run projects:test` 运行。
 
 ## 挑战
 

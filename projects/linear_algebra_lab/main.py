@@ -98,6 +98,38 @@ def rank_one_approximation(matrix, iterations=80, epsilon=EPSILON):
     return sigma, left, right, approximation
 
 
+def rank_k_approximation(matrix, rank, iterations=80, epsilon=EPSILON):
+    """Use residual deflation to build a small teaching rank-k approximation.
+
+    Each iteration extracts one dominant direction of the current residual.
+    This is deliberately simple and only suitable for tiny dense matrices; a
+    production image pipeline should use a robust truncated SVD.
+    """
+    if rank <= 0:
+        raise ValueError("rank must be positive")
+    if not matrix or not matrix[0] or any(len(row) != len(matrix[0]) for row in matrix):
+        raise ValueError("matrix must be non-empty and rectangular")
+    residual = [[float(value) for value in row] for row in matrix]
+    approximation = [[0.0 for _ in matrix[0]] for _ in matrix]
+    components = []
+    for _ in range(rank):
+        if frobenius_error(residual, [[0.0 for _ in row] for row in residual]) <= epsilon:
+            break
+        sigma, left, right, part = rank_one_approximation(residual, iterations, epsilon)
+        components.append((sigma, left, right))
+        for row in range(len(matrix)):
+            for column in range(len(matrix[0])):
+                approximation[row][column] += part[row][column]
+                residual[row][column] -= part[row][column]
+    return components, approximation
+
+
+def compress_grayscale(matrix, rank, iterations=80, epsilon=EPSILON):
+    """Return a low-rank grayscale reconstruction and its Frobenius error."""
+    components, approximation = rank_k_approximation(matrix, rank, iterations, epsilon)
+    return components, approximation, frobenius_error(matrix, approximation)
+
+
 def frobenius_error(matrix, approximation):
     """Return ||matrix - approximation||_F after checking compatible shapes."""
     if (len(matrix) != len(approximation) or not matrix
