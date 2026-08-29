@@ -62,6 +62,21 @@ def decrypt(ciphertext: int, key: RsaKeyPair) -> int:
     return mod_pow(ciphertext, key.private_exponent, key.modulus)
 
 
+def raw_rsa_properties(left: int, right: int, key: RsaKeyPair) -> dict[str, bool]:
+    """Expose two unsafe raw-RSA algebraic properties for a lesson only.
+
+    The function does not construct an attack or padding scheme. Its purpose is
+    to make deterministic and multiplicative structure visible, explaining why
+    real systems need audited OAEP/PSS implementations.
+    """
+    first = encrypt(left, key)
+    second = encrypt(right, key)
+    return {
+        "deterministic": first == encrypt(left, key),
+        "multiplicative": encrypt((left * right) % key.modulus, key) == (first * second) % key.modulus,
+    }
+
+
 def toy_rsa_sign(representative: int, key: RsaKeyPair) -> int:
     """Sign a small integer representative with the toy private exponent.
 

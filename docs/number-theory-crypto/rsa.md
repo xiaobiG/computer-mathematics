@@ -51,26 +51,15 @@ $$c=7^3\bmod55=13,\qquad m'=13^{27}\bmod55=7.$$
 ## 算法实现与复杂度
 
 ```python
-def mod_pow(base, exponent, modulus):
-    result, base = 1, base % modulus
-    while exponent:
-        if exponent & 1:
-            result = (result * base) % modulus
-        base = (base * base) % modulus
-        exponent >>= 1
-    return result
+from projects.crypto_toybox.main import decrypt, encrypt, raw_rsa_properties, toy_rsa_keypair
 
-
-def encrypt_toy(message, public_key):
-    modulus, exponent = public_key
-    if not 0 <= message < modulus:
-        raise ValueError("toy RSA message must be in [0, n)")
-    return mod_pow(message, exponent, modulus)
-
-
-assert encrypt_toy(7, (55, 3)) == 13
-assert mod_pow(13, 27, 55) == 7
+key = toy_rsa_keypair(5, 11, 3)
+assert encrypt(7, key) == 13
+assert decrypt(13, key) == 7
+assert raw_rsa_properties(2, 3, key) == {"deterministic": True, "multiplicative": True}
 ```
+
+运行 `python -m unittest projects.crypto_toybox.test_main`。`raw_rsa_properties` 不产生攻击载荷或自制填充，它只核对同一明文总产生同一密文，以及 $E(m_1m_2\bmod n)=E(m_1)E(m_2)\bmod n$。这两个为真的断言就是“数学可解密”并不足以构成安全加密的可执行证据。
 
 重复平方需要 $O(\log e)$ 次模乘；大整数模乘本身有成本。真实 RSA 使用经过审计的库和 CRT 等优化，但优化也需要防止故障攻击与计时泄漏。
 

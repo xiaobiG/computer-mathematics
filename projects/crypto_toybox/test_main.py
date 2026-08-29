@@ -5,6 +5,7 @@ from projects.crypto_toybox.main import (
     encrypt,
     mod_pow,
     modular_inverse,
+    raw_rsa_properties,
     toy_rsa_keypair,
 )
 
@@ -26,6 +27,10 @@ class CryptoToyboxTests(unittest.TestCase):
         key = toy_rsa_keypair(61, 53, 17)
         with self.assertRaises(ValueError):
             encrypt(key.modulus, key)
+
+    def test_raw_rsa_exposes_deterministic_and_multiplicative_structure(self):
+        key = toy_rsa_keypair(61, 53, 17)
+        self.assertEqual(raw_rsa_properties(2, 3, key), {"deterministic": True, "multiplicative": True})
 
 
 if __name__ == "__main__":
