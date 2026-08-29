@@ -39,30 +39,15 @@ description: 用队列分层不变量证明 BFS 的最短步数，并实现路�
 ## 算法实现与复杂度
 
 ```python
-from collections import deque
+from projects.algorithm_lab.bfs_trace import bfs_shortest_path_certificate, bfs_trace_with_parents
 
-
-def shortest_path(graph, start, target):
-    queue, parent = deque([start]), {start: None}
-    while queue:
-        node = queue.popleft()
-        if node == target:
-            path = []
-            while node is not None:
-                path.append(node)
-                node = parent[node]
-            return list(reversed(path))
-        for neighbor in graph.get(node, []):
-            if neighbor not in parent:
-                parent[neighbor] = node
-                queue.append(neighbor)
-    return None
-
-
-assert shortest_path({"s": ["a", "b"], "a": ["t"], "b": [], "t": []}, "s", "t") == ["s", "a", "t"]
+graph = {"s": ["a", "b"], "a": ["t"], "b": [], "t": []}
+distances, parents, events = bfs_trace_with_parents(graph, "s")
+assert distances["t"] == 2
+assert bfs_shortest_path_certificate(graph, "s", distances, parents, events)["valid"]
 ```
 
-每个顶点至多入队一次、每条边至多检查一次，邻接表下时间为 $O(V+E)$，`parent` 与队列的空间为 $O(V)$。
+运行 `python -m unittest projects.algorithm_lab.test_bfs_trace`。证书分成两半：`parent` 边证明每个记录距离都有一条同长度路径；所有已达边满足 $d(v)\le d(u)+1$，故任何“再加一条边”的路径都不能改善标签。它还重放每次出队后的队列状态，以审计分层顺序。篡改一个距离或队列事件会使证书失效。每个顶点至多入队一次、每条边至多检查一次，邻接表下时间为 $O(V+E)$，`parent` 与队列的空间为 $O(V)$。
 
 ## 失败案例与工程边界
 

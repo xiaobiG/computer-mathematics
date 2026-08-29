@@ -1,6 +1,12 @@
 import unittest
 
-from projects.algorithm_lab.bfs_trace import bfs_trace, shortest_path
+from projects.algorithm_lab.bfs_trace import (
+    BfsEvent,
+    bfs_shortest_path_certificate,
+    bfs_trace,
+    bfs_trace_with_parents,
+    shortest_path,
+)
 
 
 class BfsTraceTests(unittest.TestCase):
@@ -26,6 +32,21 @@ class BfsTraceTests(unittest.TestCase):
     def test_shortest_path_and_unreachable_target(self):
         self.assertEqual(shortest_path(self.graph, "A", "F"), ["A", "B", "D", "F"])
         self.assertIsNone(shortest_path(self.graph, "A", "Z"))
+
+    def test_certificate_replays_queue_events_and_rejects_tampered_distance(self):
+        distances, parents, events = bfs_trace_with_parents(self.graph, "A")
+        certificate = bfs_shortest_path_certificate(self.graph, "A", distances, parents, events)
+        self.assertTrue(certificate["parent_paths_match_distances"])
+        self.assertTrue(certificate["all_reached_edges_respect_layers"])
+        self.assertTrue(certificate["events_replay"])
+        self.assertTrue(certificate["valid"])
+
+        tampered = dict(distances)
+        tampered["F"] = 2
+        certificate = bfs_shortest_path_certificate(self.graph, "A", tampered, parents, events)
+        self.assertFalse(certificate["parent_paths_match_distances"])
+        self.assertFalse(certificate["events_replay"])
+        self.assertFalse(certificate["valid"])
 
 
 if __name__ == "__main__":
