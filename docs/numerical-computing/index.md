@@ -19,6 +19,7 @@
 - [牛顿法](/numerical-computing/newton-method)：二次收敛、停止准则与区间保护；
 - [数值微分](/numerical-computing/numerical-differentiation)：截断误差、舍入误差与步长选择；
 - [数值积分](/numerical-computing/numerical-integration)：梯形法、Simpson 法与自适应切分边界；
+- [随机模拟的误差与可复现性](/numerical-computing/stochastic-simulation-reproducibility)：抽样波动、固定种子与可复核报告；
 - [数值计算深度版路线](/numerical-computing/rewrite-plan)：稳定求和、数值线性代数与工程实验。
 
 第一个实验：复现并解释 `0.1 + 0.2 !== 0.3`。
