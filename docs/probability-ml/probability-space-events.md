@@ -1,0 +1,96 @@
+---
+title: 概率空间与事件：从集合运算到条件概率
+description: 在有限样本空间中推导事件的并、交、补、条件概率与独立性，并用可重放报告审计概率质量。
+courseLevel: "0–1（概率语言与建模基础）"
+prerequisites: "集合、函数、有限求和与 Python 容器"
+estimatedMinutes: 55
+experiment: "枚举两个公平硬币的有限样本空间，验证事件恒等式、条件化与独立性残差"
+---
+
+# 概率空间与事件：从集合运算到条件概率
+
+## 学习目标
+
+读完后，你能把有限随机试验写成样本空间和概率质量函数；计算事件的并、交、补与条件概率；从乘法定义判断独立性；运行可重放的事件报告；并能识别零概率条件、遗漏结果和“独立”被误用的边界。
+
+## 从一个建模问题开始
+
+程序模拟两次公平抛硬币，日志出现 `HH`、`HT`、`TH`、`TT`。如果只把“第一次正面”和“第二次正面”写成两个布尔变量，程序很容易把“至少一次正面”“两次都是正面”“已知第一次正面”混在一起。概率建模的第一步不是套贝叶斯公式，而是明确每个基本结果是什么、哪些结果组成一个事件、它们各自有多少概率质量。
+
+## 定义：样本空间、事件与概率公理
+
+有限样本空间 $\Omega$ 是所有互斥基本结果的集合。概率质量函数为每个 $\omega\in\Omega$ 指定 $p(\omega)$，满足
+
+$$p(\omega)\ge0,\qquad\sum_{\omega\in\Omega}p(\omega)=1.$$
+
+事件 $A,B$ 是 $\Omega$ 的子集。它们的并、交、补分别为 $A\cup B$、$A\cap B$、$A^c=\Omega\setminus A$，并且
+
+$$P(A)=\sum_{\omega\in A}p(\omega),\qquad
+P(A\cup B)=P(A)+P(B)-P(A\cap B).$$
+
+最后一项避免把同时属于 $A,B$ 的结果加两次。若 $P(A)>0$，条件概率定义为
+
+$$P(B\mid A)=\frac{P(A\cap B)}{P(A)}.$$
+
+## 分步推导：独立为何是乘积关系
+
+说 $A,B$ 独立，定义是“知道 $A$ 发生后，不改变 $B$ 的概率”：
+
+$$P(B\mid A)=P(B),\qquad P(A)>0.$$
+
+把条件概率的分式乘回分母，得到等价的乘积检验：
+
+$$P(A\cap B)=P(A)P(B).$$
+
+对两次公平硬币，令 $A$ 为“第一次正面”、$B$ 为“第二次正面”。$P(A)=P(B)=1/2$，交集只有 `HH`，概率为 $1/4$，恰为乘积，因此独立。注意：互斥的两个非零事件反而不独立，因为交集为零而概率乘积为正。
+
+## 算法实现：枚举并核对事件报告
+
+```python
+from projects.naive_bayes_spam.finite_events import finite_event_certificate, finite_event_report
+
+space = {("H", "H"): .25, ("H", "T"): .25, ("T", "H"): .25, ("T", "T"): .25}
+first_head = {("H", "H"), ("H", "T")}
+second_head = {("H", "H"), ("T", "H")}
+report = finite_event_report(space, first_head, second_head)
+
+assert report.intersection_probability == .25
+assert report.conditional_right_given_left == .5
+assert report.independence_residual == 0.0
+assert finite_event_certificate(space, first_head, second_head, report)
+```
+
+运行 `python -m unittest projects.naive_bayes_spam.test_finite_events`。实现先验证每个原子概率有限且非负、总和为一，并拒绝样本空间外的结果；随后通过集合并、交、补求和生成报告。证书从输入重新计算每个字段，拒绝篡改的并概率。对 $N=|\Omega|$，构造事件集合与求和至多为 $O(N)$；这只适合小型离散空间，不能枚举所有连续结果或长序列。
+
+## 正确性与复杂度
+
+事件概率将事件中的互斥原子恰好求和一次。$A\cup B$ 可拆成互不相交的 $A$ 与 $B\setminus A$，于是
+
+$$P(A\cup B)=P(A)+P(B)-P(A\cap B).$$
+
+补事件与原事件分割整个空间，所以 $P(A^c)=1-P(A)$。当 $P(A)>0$，把交集质量除以 $P(A)$ 会使所有 $B$ 的条件概率重新归一，因此条件化是“限制到 $A$ 后重分配质量”，不是凭空添加证据。独立性残差 $|P(A\cap B)-P(A)P(B)|$ 为零正好是有限空间中的独立证书；非零时量化偏离，但不解释因果。
+
+## 失败案例与工程边界
+
+- **零概率条件**：有限表中不能对 $P(A)=0$ 除法；实现显式拒绝。连续模型的“条件在一个点”需要测度论或密度的进一步语言。
+- **遗漏原子**：未列出的结果是“真零概率”还是“数据没有收集”，会改变模型；代码不能替代这个业务判断。
+- **频率不等于真概率**：样本比例有抽样误差，尤其在稀有事件中；应连接置信区间、平滑或先验。
+- **独立不等于因果或无关**：独立只是一份特定分布下的乘积等式，样本不足时也无法由近似残差直接断言总体独立。
+
+## 常见误区
+
+1. “互斥事件一定独立。”错误：两个非零互斥事件不能同时发生，通常反而依赖。
+2. “条件概率就是倒过来的概率。”错误：$P(B\mid A)$ 与 $P(A\mid B)$ 的分母不同。
+3. “所有没有出现的结果都应填零。”错误：需先说明数据契约与观测范围。
+4. “独立残差接近零就证明因果不存在。”错误：概率乘积不处理机制、混杂或样本不确定性。
+
+## 练习
+
+1. **基础题**：在两枚公平硬币中，计算“至少一枚正面”的概率及其补事件概率。
+2. **推导题**：从互不相交分割推导并集公式，并证明 $P(A^c)=1-P(A)$。
+3. **编码题**：为 `finite_event_report` 加入“条件在右事件上”的字段与篡改拒绝测试。
+4. **开放题**：为垃圾邮件的“含链接/含附件”建立有限事件空间，说明哪些原子由数据支持、哪些必须作为建模假设，并设计抽样误差报告。
+
+## 延伸
+
+[联合、边缘与条件分布](/probability-ml/joint-marginal-conditional)把有限事件扩展为两个随机变量的联合表；[条件概率与贝叶斯更新](/probability-ml/bayes)将条件化用于证据更新；[抽样误差与置信区间](/probability-ml/confidence-intervals-sampling)处理从有限数据估计这些概率的误差。继续学习可检索 probability axioms、sigma algebra、conditional expectation 与 exchangeability。

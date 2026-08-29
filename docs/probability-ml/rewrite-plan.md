@@ -13,7 +13,7 @@ description: 从不确定性建模到统计推断与机器学习损失函数的�
 
 | 层级 | 文章或主题 | 状态 |
 | --- | --- | --- |
-| 0 | 集合、事件、计数、条件化 | 计划补齐 |
+| 0 | 集合、事件、计数、条件化 | [概率空间与事件](/probability-ml/probability-space-events) 已深化；连续条件化与测度论留作延伸 |
 | 1 | 条件概率、随机变量、期望、方差、协方差与分布 | [贝叶斯更新](/probability-ml/bayes)、[协方差与相关性](/probability-ml/covariance-correlation) 已深化 |
 | 2 | 全概率、抽样误差、置信区间、MLE/MAP、交叉熵、假设检验 | [抽样误差与置信区间](/probability-ml/confidence-intervals-sampling)、[共轭先验与后验预测](/probability-ml/conjugate-priors-predictive)、最大似然与假设检验已深化 |
 | 3 | 校准、蒙特卡洛、重要性采样、MCMC、生成模型 | [校准与可靠性曲线](/probability-ml/calibration-reliability)、[生成模型与逻辑回归](/probability-ml/generative-discriminative-logistic)、[Metropolis–Hastings](/probability-ml/metropolis-hastings)、蒙特卡洛与重要性采样已深化；下一缺口是再校准与数据漂移 |

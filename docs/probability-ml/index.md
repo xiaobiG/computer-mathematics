@@ -15,6 +15,7 @@
 
 ## 当前深度版
 
+- [概率空间与事件](/probability-ml/probability-space-events)：有限样本空间、集合运算、条件化与独立性；
 - [条件概率与贝叶斯更新](/probability-ml/bayes)：全概率、低基率与校准边界；
 - [联合、边缘与条件分布](/probability-ml/joint-marginal-conditional)：有限联合表、边缘化、条件化与独立性证书；
 - [协方差、相关性与特征](/probability-ml/covariance-correlation)：共同变化、协方差矩阵、PCA 与因果边界；
