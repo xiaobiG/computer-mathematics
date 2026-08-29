@@ -1,4 +1,8 @@
 ---
+courseLevel: "2（正确性证明）"
+prerequisites: "命题逻辑、循环与有序数组"
+estimatedMinutes: 50
+experiment: "为二分查找编写属性测试"
 title: 循环不变量：二分查找为什么不会漏掉答案
 description: 用初始化、保持与终止三步证明循环算法的正确性。
 ---

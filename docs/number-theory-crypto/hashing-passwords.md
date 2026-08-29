@@ -1,4 +1,8 @@
 ---
+courseLevel: "2–3（安全工程）"
+prerequisites: "哈希、随机性与威胁模型"
+estimatedMinutes: 50
+experiment: "比较加盐与慢 KDF 的离线猜测成本"
 title: 哈希与密码存储
 description: 理解哈希、盐、KDF 与安全边界。
 ---

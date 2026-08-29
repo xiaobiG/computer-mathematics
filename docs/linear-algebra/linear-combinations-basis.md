@@ -1,4 +1,8 @@
 ---
+courseLevel: "1–2（核心概念与推导）"
+prerequisites: "向量、方程组与矩阵"
+estimatedMinutes: 50
+experiment: "用消元检查线性无关与坐标表示"
 title: 线性组合、基与维度：数据为何能被压缩
 description: 从可表示性、独立性到维度，理解矩阵列空间和特征冗余。
 ---

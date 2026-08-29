@@ -1,4 +1,8 @@
 ---
+courseLevel: "2–3（推导与应用）"
+prerequisites: "特征值、正交矩阵与范数"
+estimatedMinutes: 65
+experiment: "用截断 SVD 做低秩压缩"
 title: SVD：矩阵的通用分解
 description: 用奇异值分解理解坐标旋转、低秩近似、压缩与 PCA。
 ---

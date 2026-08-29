@@ -1,4 +1,8 @@
 ---
+courseLevel: "2–3（推导与应用）"
+prerequisites: "矩阵乘法、协方差与投影"
+estimatedMinutes: 60
+experiment: "实现中心化、协方差与二维 PCA"
 title: 特征值与 PCA：寻找数据变化最大的方向
 description: 从特征方向、中心化和协方差推导主成分分析。
 ---

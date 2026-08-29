@@ -1,4 +1,8 @@
 ---
+courseLevel: "1–2（核心概念与推导）"
+prerequisites: "代数、向量与 Python 基础"
+estimatedMinutes: 45
+experiment: "实现投影与余弦相似度边界测试"
 title: 向量与点积：程序如何判断两个对象是否相似
 description: 从投影推导余弦相似度，并实现能处理边界输入的向量比较。
 ---

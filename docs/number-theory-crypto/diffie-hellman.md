@@ -1,4 +1,8 @@
 ---
+courseLevel: "2–3（协议与安全）"
+prerequisites: "模幂、群论直觉与离散对数"
+estimatedMinutes: 50
+experiment: "用小参数模拟密钥协商与中间人攻击"
 title: Diffie–Hellman 密钥交换
 description: 理解双方如何在公开信道上协商同一秘密。
 ---

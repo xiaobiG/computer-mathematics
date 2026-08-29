@@ -1,4 +1,8 @@
 ---
+courseLevel: "2（误差分析）"
+prerequisites: "导数、泰勒展开与浮点数"
+estimatedMinutes: 50
+experiment: "扫描差分步长并观察误差 U 形曲线"
 title: 数值微分与步长选择
 description: 理解截断误差和舍入误差为何会共同限制近似精度。
 ---

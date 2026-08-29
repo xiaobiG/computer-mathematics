@@ -42,6 +42,14 @@ for (const path of files) {
   if (!/^##\s+/m.test(source)) {
     errors.push(`${label}: 缺少至少一个二级章节`)
   }
+  if (!label.endsWith('rewrite-plan.md')) {
+    const requiredMetadata = ['courseLevel', 'prerequisites', 'estimatedMinutes', 'experiment']
+    for (const key of requiredMetadata) {
+      if (!new RegExp(`^${key}:\\s*.+$`, 'm').test(source)) {
+        errors.push(`${label}: 缺少 ${key} 课程元信息`)
+      }
+    }
+  }
   if (folder === 'linear-algebra' && !label.endsWith('rewrite-plan.md')) {
     const requiredSections = [
       '学习目标',

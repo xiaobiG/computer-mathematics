@@ -1,4 +1,8 @@
 ---
+courseLevel: "2–3（推导与工程）"
+prerequisites: "内积、投影与最小二乘"
+estimatedMinutes: 60
+experiment: "比较 Gram–Schmidt 与正规方程"
 title: 正交投影、Gram–Schmidt 与 QR 分解：稳定地求最近解
 description: 从投影推导 Gram–Schmidt 正交化和 QR 分解，理解它为何优于正规方程。
 ---

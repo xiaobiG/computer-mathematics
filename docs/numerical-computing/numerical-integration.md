@@ -1,4 +1,8 @@
 ---
+courseLevel: "2（算法与误差）"
+prerequisites: "积分、函数与求和"
+estimatedMinutes: 45
+experiment: "比较梯形法和 Simpson 法的误差阶"
 title: 数值积分：从求和逼近面积
 description: 用梯形法和 Simpson 法理解积分的离散近似。
 ---

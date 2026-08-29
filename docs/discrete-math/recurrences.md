@@ -1,4 +1,8 @@
 ---
+courseLevel: "2（递推与分析）"
+prerequisites: "递归、求和与对数"
+estimatedMinutes: 50
+experiment: "比较递归树预测与实际运行计数"
 title: 递推关系与分治复杂度：递归树如何计算总代价
 description: 从递归代码建立递推式，用递归树和主定理分析分治算法的时间与边界。
 ---

@@ -1,4 +1,8 @@
 ---
+courseLevel: "1–2（核心概念与工程）"
+prerequisites: "二进制、小数与 Python 基础"
+estimatedMinutes: 50
+experiment: "观察舍入、NaN、无穷与容差比较"
 title: 浮点数表示：为什么 0.1 + 0.2 不等于 0.3
 description: 从 IEEE 754 的有限二进制表示、舍入到尺度相关的稳健比较。
 ---

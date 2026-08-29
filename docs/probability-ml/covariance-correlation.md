@@ -1,4 +1,8 @@
 ---
+courseLevel: "1–2（核心概念与推导）"
+prerequisites: "期望、方差与散点图"
+estimatedMinutes: 45
+experiment: "计算协方差并构造相关不等于因果的例子"
 title: 协方差、相关性与特征
 description: 区分共同变化、线性相关和因果关系。
 ---

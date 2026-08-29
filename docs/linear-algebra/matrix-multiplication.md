@@ -1,4 +1,8 @@
 ---
+courseLevel: "1–2（核心概念与推导）"
+prerequisites: "向量与函数复合"
+estimatedMinutes: 40
+experiment: "实现矩阵乘法并验证维度与结合律"
 title: 矩阵乘法：连续变换如何合成为一步
 description: 从线性变换推导行乘列规则、维度约束与组合顺序。
 ---

@@ -1,4 +1,8 @@
 ---
+courseLevel: "1–2（核心概念与推导）"
+prerequisites: "随机变量、求和与基础代数"
+estimatedMinutes: 55
+experiment: "模拟样本均值与方差的收敛"
 title: 期望、方差与不确定性：平均值遗漏了什么
 description: 从随机变量的加权平均推导方差、全期望和全方差，并连接采样与模型风险。
 ---

@@ -1,4 +1,8 @@
 ---
+courseLevel: "2（推导与建模）"
+prerequisites: "概率分布、对数与微分"
+estimatedMinutes: 55
+experiment: "实现伯努利 MLE 与拉普拉斯平滑"
 title: 最大似然：从数据估计参数
 description: 推导伯努利模型的最大似然估计，并连接 MAP、交叉熵与数值稳定性。
 ---

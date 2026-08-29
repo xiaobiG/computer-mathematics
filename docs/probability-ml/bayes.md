@@ -1,4 +1,8 @@
 ---
+courseLevel: "1–2（核心概念与推导）"
+prerequisites: "条件概率、事件与分数"
+estimatedMinutes: 55
+experiment: "模拟低基率事件的贝叶斯更新"
 title: 条件概率与贝叶斯更新：证据为什么不等于结论
 description: 从全概率公式推导后验概率，理解低基率、朴素贝叶斯与校准边界。
 ---

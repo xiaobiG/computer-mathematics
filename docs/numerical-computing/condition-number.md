@@ -1,4 +1,8 @@
 ---
+courseLevel: "2–3（误差分析与工程）"
+prerequisites: "相对误差、矩阵与范数"
+estimatedMinutes: 60
+experiment: "比较病态问题的前向与后向误差"
 title: 条件数：问题对误差有多敏感
 description: 用相对误差、矩阵条件数和前向/后向误差区分病态问题与不稳定算法。
 ---

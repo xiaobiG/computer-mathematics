@@ -1,4 +1,8 @@
 ---
+courseLevel: "2–3（推导与安全工程）"
+prerequisites: "模逆元、欧拉函数与快速幂"
+estimatedMinutes: 65
+experiment: "运行教学 RSA 并观察裸 RSA 的失败模式"
 title: RSA：公开加密为何可行，以及裸 RSA 为何不安全
 description: 从模逆元和欧拉定理推导 RSA 正确性，理解快速幂、填充与侧信道边界。
 ---

@@ -1,4 +1,8 @@
 ---
+courseLevel: "2–3（算法与工程）"
+prerequisites: "矩阵、线性方程组与浮点数基础"
+estimatedMinutes: 60
+experiment: "实现带选主元的消元与回代"
 title: 高斯消元：解线性方程组
 description: 用保持解集不变的行变换、选主元和回代求解线性系统。
 ---

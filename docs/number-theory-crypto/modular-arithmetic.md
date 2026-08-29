@@ -1,4 +1,8 @@
 ---
+courseLevel: "1–2（核心概念与算法）"
+prerequisites: "整除、余数与二进制"
+estimatedMinutes: 50
+experiment: "实现快速幂并统计乘法次数"
 title: 模运算与快速幂：为什么大指数不必先算出来
 description: 从同余封闭性推导重复平方，证明循环不变量并理解复杂度与侧信道边界。
 ---

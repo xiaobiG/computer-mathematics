@@ -1,4 +1,8 @@
 ---
+courseLevel: "2（推导与算法）"
+prerequisites: "最大公约数、整除与同余"
+estimatedMinutes: 50
+experiment: "实现贝祖系数并验证模逆元存在条件"
 title: 扩展欧几里得与模逆元：模运算中何时可以“除法”
 description: 从贝祖等式推导模逆元，证明扩展欧几里得算法并处理逆元不存在的边界。
 ---

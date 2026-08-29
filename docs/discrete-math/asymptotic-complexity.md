@@ -1,4 +1,8 @@
 ---
+courseLevel: "1–2（核心概念与推导）"
+prerequisites: "函数增长、对数与求和"
+estimatedMinutes: 45
+experiment: "测量不同规模输入的增长趋势"
 title: 渐进复杂度：算法规模如何影响时间
 description: 用增长率而非单次运行时间比较算法。
 ---

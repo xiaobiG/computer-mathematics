@@ -1,4 +1,8 @@
 ---
+courseLevel: "2–3（算法与工程）"
+prerequisites: "高斯消元与矩阵乘法"
+estimatedMinutes: 55
+experiment: "实现 PA=LU 并比较重复求解成本"
 title: LU 分解与主元选择：把消元变成可复用的求解器
 description: 从高斯消元推导 PA=LU，理解重复求解、部分选主元和数值边界。
 ---

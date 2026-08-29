@@ -1,4 +1,8 @@
 ---
+courseLevel: "2（算法与证明）"
+prerequisites: "图、队列与渐进复杂度"
+estimatedMinutes: 55
+experiment: "实现 BFS 路径还原与边界图测试"
 title: BFS：无权图最短路为什么按层出现
 description: 用队列分层不变量证明 BFS 的最短步数，并实现路径还原与边界测试。
 ---

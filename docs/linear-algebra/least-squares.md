@@ -1,4 +1,8 @@
 ---
+courseLevel: "2–3（推导与工程）"
+prerequisites: "投影、转置与线性方程组"
+estimatedMinutes: 60
+experiment: "比较正规方程、QR 与 SVD 拟合"
 title: 最小二乘：没有精确解怎么办
 description: 从正交投影推导正规方程，并理解 QR 与 SVD 的数值边界。
 ---

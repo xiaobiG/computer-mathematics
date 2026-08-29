@@ -1,4 +1,8 @@
 ---
+courseLevel: "2（推导与算法）"
+prerequisites: "矩阵、消元、线性组合"
+estimatedMinutes: 55
+experiment: "计算列空间、零空间与秩—零化度"
 title: 矩阵的四个基本子空间：秩、约束与可表示性
 description: 用列空间、零空间、行空间和左零空间统一解释方程可解性、最小二乘与数据冗余。
 ---

@@ -1,4 +1,8 @@
 ---
+courseLevel: "2–3（算法与证明）"
+prerequisites: "图、堆与循环不变量"
+estimatedMinutes: 60
+experiment: "实现最短路并构造负权反例"
 title: Dijkstra：带权图最短路为何能贪心
 description: 以松弛、不变式和负权反例证明非负边权图的最短路径算法。
 ---

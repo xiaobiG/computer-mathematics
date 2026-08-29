@@ -1,4 +1,8 @@
 ---
+courseLevel: "2–3（算法稳定性）"
+prerequisites: "浮点表示、循环与求和"
+estimatedMinutes: 50
+experiment: "比较普通、Kahan 与 pairwise 求和"
 title: Kahan 与 pairwise 求和：怎样不让低位悄悄消失
 description: 从舍入误差推导补偿求和和分治求和，比较稳定性、复杂度与适用边界。
 ---
