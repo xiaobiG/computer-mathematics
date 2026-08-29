@@ -37,25 +37,22 @@ $$ax+by=\gcd(a,b).$$
 ## 算法实现与正确性
 
 ```python
-def extended_gcd(a, b):
-    if b == 0:
-        return a, 1, 0
-    divisor, x1, y1 = extended_gcd(b, a % b)
-    return divisor, y1, x1 - (a // b) * y1
+from projects.crypto_toybox.main import (
+    extended_gcd_trace,
+    extended_gcd_trace_certificate,
+    modular_inverse,
+)
 
-
-def inverse_mod(value, modulus):
-    divisor, coefficient, _ = extended_gcd(value, modulus)
-    if divisor != 1:
-        raise ValueError("inverse does not exist")
-    return coefficient % modulus
-
-
-assert inverse_mod(7, 26) == 15
-assert (7 * inverse_mod(7, 26)) % 26 == 1
+result, trace = extended_gcd_trace(240, 46)
+gcd, x, y = result
+assert gcd == 2 and 240 * x + 46 * y == gcd
+assert [event.remainder for event in trace] == [10, 6, 4, 2, 0]
+assert extended_gcd_trace_certificate(240, 46, result, trace)
+assert modular_inverse(7, 26) == 15
+assert (7 * modular_inverse(7, 26)) % 26 == 1
 ```
 
-递归调用中的 $(x_1,y_1)$ 满足 $bx_1+(a\bmod b)y_1=g$。代入 $a\bmod b=a-\lfloor a/b\rfloor b$，整理得 $a y_1+b(x_1-\lfloor a/b\rfloor y_1)=g$，正是返回系数。每轮余数严格变小，时间为 $O(\log\min(a,b))$。
+递归调用中的 $(x_1,y_1)$ 满足 $bx_1+(a\bmod b)y_1=g$。代入 $a\bmod b=a-\lfloor a/b\rfloor b$，整理得 $a y_1+b(x_1-\lfloor a/b\rfloor y_1)=g$，正是返回系数。`extended_gcd_trace` 公开每次除法的被除数、除数、商和余数；证书重放该链，检查每个余数确实满足 $0\le r<b$，终点为最大公约数，并独立核对 $ax+by=g$。篡改任一余数或贝祖系数都会使证书失败。每轮余数严格变小，时间为 $O(\log\min(a,b))$。
 
 ## 失败案例与工程边界
 

@@ -3,6 +3,8 @@ import unittest
 from projects.crypto_toybox.main import (
     decrypt,
     encrypt,
+    extended_gcd_trace,
+    extended_gcd_trace_certificate,
     mod_pow,
     mod_pow_trace,
     mod_pow_trace_certificate,
@@ -34,6 +36,24 @@ class CryptoToyboxTests(unittest.TestCase):
     def test_modular_inverse(self):
         inverse = modular_inverse(17, 3120)
         self.assertEqual((17 * inverse) % 3120, 1)
+
+    def test_extended_gcd_trace_certifies_remainders_and_bezout_identity(self):
+        result, events = extended_gcd_trace(240, 46)
+        self.assertEqual(result[0], 2)
+        self.assertEqual([event.remainder for event in events], [10, 6, 4, 2, 0])
+        self.assertTrue(extended_gcd_trace_certificate(240, 46, result, events))
+        tampered = list(events)
+        event = tampered[1]
+        tampered[1] = event.__class__(
+            event.iteration, event.dividend, event.divisor, event.quotient, event.remainder + 1,
+        )
+        self.assertFalse(extended_gcd_trace_certificate(240, 46, result, tampered))
+
+    def test_extended_gcd_trace_rejects_invalid_teaching_contract(self):
+        with self.assertRaises(ValueError):
+            extended_gcd_trace(0, 0)
+        with self.assertRaises(ValueError):
+            extended_gcd_trace(-3, 5)
 
     def test_toy_rsa_round_trip(self):
         key = toy_rsa_keypair(61, 53, 17)

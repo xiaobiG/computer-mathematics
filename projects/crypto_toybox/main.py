@@ -27,6 +27,17 @@ class ModPowEvent:
     exponent_after: int
 
 
+@dataclass(frozen=True)
+class EuclidEvent:
+    """One division step in the nonnegative Euclidean algorithm."""
+
+    iteration: int
+    dividend: int
+    divisor: int
+    quotient: int
+    remainder: int
+
+
 def mod_pow_trace(base: int, exponent: int, modulus: int) -> tuple[int, list[ModPowEvent]]:
     """Compute a modular power while exposing the teaching loop invariant.
 
@@ -85,6 +96,48 @@ def extended_gcd(a: int, b: int) -> tuple[int, int, int]:
         return a, 1, 0
     divisor, x1, y1 = extended_gcd(b, a % b)
     return divisor, y1, x1 - (a // b) * y1
+
+
+def extended_gcd_trace(a: int, b: int) -> tuple[tuple[int, int, int], list[EuclidEvent]]:
+    """Return Bézout coefficients plus the decreasing remainder chain.
+
+    The trace intentionally accepts only nonnegative classroom inputs, so each
+    event has the familiar ``0 <= remainder < divisor`` termination argument.
+    """
+    if (any(not isinstance(value, int) or isinstance(value, bool) for value in (a, b))
+            or a < 0 or b < 0 or (a == 0 and b == 0)):
+        raise ValueError("Euclid trace needs nonnegative integers that are not both zero")
+    left, right = a, b
+    events: list[EuclidEvent] = []
+    iteration = 0
+    while right:
+        iteration += 1
+        quotient, remainder = divmod(left, right)
+        events.append(EuclidEvent(iteration, left, right, quotient, remainder))
+        left, right = right, remainder
+    return extended_gcd(a, b), events
+
+
+def extended_gcd_trace_certificate(
+    a: int, b: int, result: tuple[int, int, int], events: list[EuclidEvent],
+) -> bool:
+    """Replay Euclidean divisions and independently check Bézout's identity."""
+    if (any(not isinstance(value, int) or isinstance(value, bool) for value in (a, b))
+            or a < 0 or b < 0 or (a == 0 and b == 0)
+            or not isinstance(result, tuple) or len(result) != 3):
+        return False
+    divisor, coefficient_a, coefficient_b = result
+    if any(not isinstance(value, int) or isinstance(value, bool) for value in result):
+        return False
+    left, right = a, b
+    for iteration, event in enumerate(events, start=1):
+        if right == 0:
+            return False
+        quotient, remainder = divmod(left, right)
+        if event != EuclidEvent(iteration, left, right, quotient, remainder):
+            return False
+        left, right = right, remainder
+    return right == 0 and divisor == left and a * coefficient_a + b * coefficient_b == divisor
 
 
 def modular_inverse(value: int, modulus: int) -> int:
