@@ -120,18 +120,55 @@ def norm(vector):
     return sqrt(sum(value * value for value in vector))
 
 
+def _validate_least_squares_input(matrix, target, epsilon):
+    if (not matrix or not matrix[0] or len(target) != len(matrix)
+            or any(len(row) != len(matrix[0]) for row in matrix)):
+        raise ValueError("matrix must be non-empty rectangular and match target")
+    if epsilon <= 0 or not isfinite(epsilon):
+        raise ValueError("epsilon must be finite and positive")
+    if any(not isfinite(value) for row in matrix for value in row) or any(not isfinite(value) for value in target):
+        raise ValueError("matrix and target must be finite")
+    rows, columns = len(matrix), len(matrix[0])
+    if rows < columns:
+        raise ValueError("least squares requires at least as many rows as columns")
+    return rows, columns
+
+
+def _least_squares_residual(matrix, target, solution):
+    return [float(target[row]) - sum(matrix[row][column] * solution[column]
+                                     for column in range(len(solution)))
+            for row in range(len(matrix))]
+
+
+def _normal_equation_residual(matrix, residual):
+    """Return A^T r, which vanishes at a least-squares optimum."""
+    return [sum(matrix[row][column] * residual[row] for row in range(len(matrix)))
+            for column in range(len(matrix[0]))]
+
+
+def least_squares_normal_equations(matrix, target, epsilon=EPSILON):
+    """Solve min ||Ax-b||_2 through A^T A x=A^T b for comparison only.
+
+    Forming the normal equations is useful to expose the derivation, but may
+    square conditioning. Prefer :func:`least_squares_qr` in numerical code.
+    """
+    rows, columns = _validate_least_squares_input(matrix, target, epsilon)
+    normal_matrix = [[sum(matrix[row][left] * matrix[row][right] for row in range(rows))
+                      for right in range(columns)]
+                     for left in range(columns)]
+    normal_target = [sum(matrix[row][column] * target[row] for row in range(rows))
+                     for column in range(columns)]
+    solution = solve(normal_matrix, normal_target, epsilon)
+    return solution, _least_squares_residual(matrix, target, solution)
+
+
 def least_squares_qr(matrix, target, epsilon=EPSILON):
     """Solve min ||Ax-b||_2 with modified Gram--Schmidt and back substitution.
 
     This small dense teaching implementation requires full column rank.  It
     avoids forming A^T A, whose condition number is roughly squared.
     """
-    if (not matrix or not matrix[0] or len(target) != len(matrix)
-            or any(len(row) != len(matrix[0]) for row in matrix)):
-        raise ValueError("matrix must be non-empty rectangular and match target")
-    rows, columns = len(matrix), len(matrix[0])
-    if rows < columns:
-        raise ValueError("least squares QR requires at least as many rows as columns")
+    rows, columns = _validate_least_squares_input(matrix, target, epsilon)
     work_columns = [[float(matrix[row][column]) for row in range(rows)] for column in range(columns)]
     orthonormal, upper = [], [[0.0] * columns for _ in range(columns)]
     for column, work in enumerate(work_columns):
@@ -147,9 +184,22 @@ def least_squares_qr(matrix, target, epsilon=EPSILON):
     for row in range(columns - 1, -1, -1):
         solution[row] = (projected[row] - sum(upper[row][column] * solution[column]
                                                for column in range(row + 1, columns))) / upper[row][row]
-    residual = [float(target[row]) - sum(matrix[row][column] * solution[column] for column in range(columns))
-                for row in range(rows)]
-    return solution, residual
+    return solution, _least_squares_residual(matrix, target, solution)
+
+
+def least_squares_comparison_report(matrix, target, epsilon=EPSILON):
+    """Compare normal equations and QR using the same residual certificate."""
+    normal_solution, normal_residual = least_squares_normal_equations(matrix, target, epsilon)
+    qr_solution, qr_residual = least_squares_qr(matrix, target, epsilon)
+    return {
+        "normal_solution": normal_solution,
+        "qr_solution": qr_solution,
+        "normal_residual_norm": norm(normal_residual),
+        "qr_residual_norm": norm(qr_residual),
+        "normal_normal_equation_residual": _normal_equation_residual(matrix, normal_residual),
+        "qr_normal_equation_residual": _normal_equation_residual(matrix, qr_residual),
+        "solution_distance": norm([left - right for left, right in zip(normal_solution, qr_solution)]),
+    }
 
 
 def dominant_right_singular_vector(matrix, iterations=80, epsilon=EPSILON):

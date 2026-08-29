@@ -2,7 +2,7 @@
 courseLevel: "2–3（推导与工程）"
 prerequisites: "投影、转置与线性方程组"
 estimatedMinutes: 60
-experiment: "比较正规方程、QR 与 SVD 拟合"
+experiment: "以同一拟合题比较正规方程与 QR，并验证 A^Tr=0"
 title: 最小二乘：没有精确解怎么办
 description: 从正交投影推导正规方程，并理解 QR 与 SVD 的数值边界。
 ---
@@ -33,29 +33,26 @@ $$A^T(b-A\hat x)=0\quad\Longrightarrow\quad A^TA\hat x=A^Tb.$$
 
 ## 把公式实现为代码
 
-```python
-def residual_sum_squares(a, b, x):
-    residual = [sum(row[j] * x[j] for j in range(len(x))) - target
-                for row, target in zip(a, b)]
-    return sum(value * value for value in residual)
-
-assert residual_sum_squares([[1]], [3], [3]) == 0
-```
-
-实验室同时提供不显式形成 $A^TA$ 的 QR 路径：
+实验室提供一条用于对照推导的正规方程路径，以及不显式形成 $A^TA$ 的 QR 路径：
 
 ```python
-from projects.linear_algebra_lab.main import least_squares_qr
+from projects.linear_algebra_lab.main import least_squares_comparison_report
 
 A = [[0.0, 1.0], [1.0, 1.0], [2.0, 1.0]]
-x, residual = least_squares_qr(A, [1.0, 2.0, 2.0])
-assert abs(sum(A[row][0] * residual[row] for row in range(3))) < 1e-12
-assert abs(sum(A[row][1] * residual[row] for row in range(3))) < 1e-12
+report = least_squares_comparison_report(A, [1.0, 2.0, 2.0])
+
+assert report["solution_distance"] < 1e-12
+assert max(abs(value) for value in report["normal_normal_equation_residual"]) < 1e-12
+assert max(abs(value) for value in report["qr_normal_equation_residual"]) < 1e-12
 ```
 
-`least_squares_qr` 以改进 Gram–Schmidt 得到 $A=QR$，计算 $Q^Tb$ 后对上三角 $R$ 回代。上述两个断言正是最优性条件 $A^Tr=0$，而不只是“画出来看起来像拟合”。运行 `python -m unittest projects.linear_algebra_lab.test_main` 可验证小例解、正交残差、秩亏列和宽矩阵边界。
+报告的两组 `*_normal_equation_residual` 都是 $A^Tr$：它们接近零，才说明相应路径确实达到最小二乘的一阶最优性条件。`least_squares_normal_equations` 有意调用带选主元的方程求解器，便于核对推导；`least_squares_qr` 以改进 Gram–Schmidt 得到 $A=QR$，计算 $Q^Tb$ 后对上三角 $R$ 回代，才是默认应选的数值路径。运行 `python -m unittest projects.linear_algebra_lab.test_main` 可验证小例解、两条路径的一致性、正交残差、秩亏列和宽矩阵边界。
 
 构造正规方程或 QR 的密集成本都约为 $O(mn^2)$；随后求解 $n\times n$ 系统为 $O(n^3)$。QR 避免了正规方程将条件数近似平方的额外放大。
+
+## 正确性证据与数值选择
+
+对列满秩的 $A$，凸二次目标只有一个驻点；$A^Tr=0$ 因而既是正规方程的残差，也是最小解的证书。示例报告同时检查正规方程与 QR 的该证书，并报告两组系数的距离。这个小而良态的例子中两条路径应相同；若特征近似共线，二者的数值结果可能开始分离，这正是应该选择 QR 或 SVD 的信号，而不是把差异平均掉。
 
 ## 失败案例与工程边界
 

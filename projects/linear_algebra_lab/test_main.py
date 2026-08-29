@@ -3,7 +3,8 @@ from math import sqrt
 
 from projects.linear_algebra_lab.main import (
     classify_linear_system, compress_grayscale, dominant_right_singular_vector, frobenius_error, image_cosine_similarity,
-    compressed_image_search, low_rank_parameter_report, matmul, norm, project, least_squares_qr, rank_k_approximation, rank_one_approximation,
+    compressed_image_search, least_squares_comparison_report, least_squares_normal_equations, low_rank_parameter_report,
+    matmul, norm, project, least_squares_qr, rank_k_approximation, rank_one_approximation,
     solve, solve_with_pivot_trace, truncated_svd_frobenius_error,
 )
 
@@ -60,11 +61,35 @@ class LinearAlgebraLabTests(unittest.TestCase):
         self.assertAlmostEqual(sum(matrix[row][0] * residual[row] for row in range(3)), 0.0, places=12)
         self.assertAlmostEqual(sum(matrix[row][1] * residual[row] for row in range(3)), 0.0, places=12)
 
+    def test_normal_equations_match_qr_on_a_well_conditioned_fit(self):
+        matrix = [[0.0, 1.0], [1.0, 1.0], [2.0, 1.0]]
+        normal_solution, normal_residual = least_squares_normal_equations(matrix, [1.0, 2.0, 2.0])
+        qr_solution, _ = least_squares_qr(matrix, [1.0, 2.0, 2.0])
+        self.assertAlmostEqual(normal_solution[0], qr_solution[0], places=12)
+        self.assertAlmostEqual(normal_solution[1], qr_solution[1], places=12)
+        self.assertAlmostEqual(sum(matrix[row][0] * normal_residual[row] for row in range(3)), 0.0, places=12)
+        self.assertAlmostEqual(sum(matrix[row][1] * normal_residual[row] for row in range(3)), 0.0, places=12)
+
+    def test_least_squares_report_certifies_both_paths(self):
+        matrix = [[0.0, 1.0], [1.0, 1.0], [2.0, 1.0]]
+        report = least_squares_comparison_report(matrix, [1.0, 2.0, 2.0])
+        self.assertLess(report["solution_distance"], 1e-12)
+        self.assertLess(report["normal_residual_norm"], 1.0)
+        self.assertLess(report["qr_residual_norm"], 1.0)
+        self.assertTrue(all(abs(value) < 1e-12 for value in report["normal_normal_equation_residual"]))
+        self.assertTrue(all(abs(value) < 1e-12 for value in report["qr_normal_equation_residual"]))
+
     def test_qr_least_squares_rejects_rank_deficiency_and_wide_matrix(self):
         with self.assertRaises(ValueError):
             least_squares_qr([[1.0, 1.0], [2.0, 2.0]], [1.0, 2.0])
         with self.assertRaises(ValueError):
             least_squares_qr([[1.0, 2.0]], [1.0])
+
+    def test_normal_equations_reject_rank_deficiency_and_nonfinite_input(self):
+        with self.assertRaises(ValueError):
+            least_squares_normal_equations([[1.0, 1.0], [2.0, 2.0]], [1.0, 2.0])
+        with self.assertRaises(ValueError):
+            least_squares_normal_equations([[float("nan")]], [1.0])
 
     def test_rank_one_matrix_is_reconstructed(self):
         matrix = [[3.0, 6.0], [4.0, 8.0]]
