@@ -44,23 +44,17 @@ $$\frac{d\ell}{dp}=\frac{h}{p}-\frac{t}{1-p}=0
 ## 算法实现与复杂度
 
 ```python
-from math import log
+from projects.naive_bayes_spam.bernoulli_estimation import (
+    bernoulli_log_likelihood, bernoulli_map, bernoulli_mle,
+)
 
-
-def bernoulli_mle(observations):
-    if not observations or any(value not in (0, 1) for value in observations):
-        raise ValueError("observations must be non-empty zeros and ones")
-    return sum(observations) / len(observations)
-
-
-def bernoulli_log_likelihood(observations, probability):
-    if not 0 < probability < 1:
-        return float("-inf")
-    return sum(log(probability) if value else log(1 - probability) for value in observations)
-
-
-assert bernoulli_mle([1] * 8 + [0] * 2) == 0.8
+observations = [1] * 8 + [0] * 2
+assert bernoulli_mle(observations) == 0.8
+assert bernoulli_log_likelihood(observations, 0.8) > bernoulli_log_likelihood(observations, 0.6)
+assert bernoulli_map([1, 1, 0], alpha=2.0, beta=2.0) == 3 / 5
 ```
+
+运行 `python -m unittest projects.naive_bayes_spam.test_bernoulli_estimation`。实现将 $p=0$ 和 $p=1$ 的端点区分为“与观测一致时对数似然为 0”与“观察到不可能事件时为 $-\infty$”，不再把数学边界静默混为同一错误。测试验证 MLE 是样本均值、它优于邻近候选、MAP 的先验平滑，以及空样本/非法概率的失败契约。
 
 扫描 $n$ 条观测的时间为 $O(n)$、额外空间为 $O(1)$。实际分类器会最小化平均负对数似然，也就是交叉熵；用 `logsumexp` 等技巧处理极小概率，避免下溢。
 
