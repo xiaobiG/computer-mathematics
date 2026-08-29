@@ -20,6 +20,7 @@
 - [RSA](/number-theory-crypto/rsa)：模逆元、欧拉/CRT 正确性、快速幂与裸 RSA 的失败模式；
 - [Diffie–Hellman](/number-theory-crypto/diffie-hellman)：共享秘密的推导、离散对数假设与中间人攻击；
 - [哈希与密码存储](/number-theory-crypto/hashing-passwords)：KDF、盐、成本参数与在线/离线猜测边界；
+- [消息认证码：HMAC](/number-theory-crypto/message-authentication-codes)：带密钥完整性、篡改检测与重放边界；
 - [素性测试](/number-theory-crypto/primality-testing)：Miller–Rabin、Carmichael 数与概率性证书；
 - [椭圆曲线密码学预备](/number-theory-crypto/elliptic-curve-prelude)：有限域点群、标量乘法与安全实现边界；
 - [密码学与数论深度版路线](/number-theory-crypto/rewrite-plan)：原语、协议和攻击面之间的学习路径；

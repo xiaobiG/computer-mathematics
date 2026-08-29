@@ -11,7 +11,7 @@ description: 用快速幂、模逆元、小参数 RSA 与有限域椭圆曲线�
 
 ## 目标
 
-实现并测试四块数学积木：模幂、扩展欧几里得算法、教学 RSA 和有限域椭圆曲线点群。重点是看到这些函数在加密、解密或标量乘法流程中如何连接，而非尝试自制密码系统。
+实现并测试五块数学积木：模幂、扩展欧几里得算法、教学 RSA、有限域椭圆曲线点群和标准库 HMAC 验证。重点是看到这些函数在加密、解密、标量乘法或消息认证中如何连接，而非尝试自制密码系统。
 
 ## 数学连接
 
@@ -20,6 +20,7 @@ description: 用快速幂、模逆元、小参数 RSA 与有限域椭圆曲线�
 - [RSA](/number-theory-crypto/rsa)
 - [中国剩余定理](/number-theory-crypto/chinese-remainder-theorem)
 - [椭圆曲线密码学预备](/number-theory-crypto/elliptic-curve-prelude)
+- [消息认证码](/number-theory-crypto/message-authentication-codes)
 
 ## 运行
 
@@ -27,6 +28,7 @@ description: 用快速幂、模逆元、小参数 RSA 与有限域椭圆曲线�
 python projects/crypto_toybox/main.py
 python -m unittest projects.crypto_toybox.test_main
 python -m unittest projects.crypto_toybox.test_elliptic_curve
+python -m unittest projects.crypto_toybox.test_message_auth
 ```
 
 ## 实验问题
