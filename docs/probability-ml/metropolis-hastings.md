@@ -36,15 +36,20 @@ $$\alpha(x,y)=\min\left(1,\frac{\pi(y)q(x\mid y)}{\pi(x)q(y\mid x)}\right)$$
 ## 可运行实现
 
 ```python
-from projects.naive_bayes_spam.metropolis_hastings import metropolis_hastings, empirical_probabilities
+from projects.naive_bayes_spam.metropolis_hastings import (
+    empirical_probabilities,
+    metropolis_hastings,
+    metropolis_hastings_trace_certificate,
+)
 
 target = {0: 1.0, 1: 3.0}
 proposal = {0: {1: 1.0}, 1: {0: 1.0}}
 samples, trace = metropolis_hastings(target, proposal, initial=0, steps=10_000, seed=2026)
 print(empirical_probabilities(samples[500:]))  # state 1 接近 0.75
+assert metropolis_hastings_trace_certificate(target, proposal, 0, samples, trace, seed=2026)
 ```
 
-运行 `python -m unittest projects.naive_bayes_spam.test_metropolis_hastings`。实现允许未归一化目标权重与非对称提议，并显式计算 $q(x\mid y)/q(y\mid x)$；每轮记录候选、接受率和实际状态。测试验证长期频率、非对称修正、提议行和为一、反向概率存在、初值合法和空样本边界。
+运行 `python -m unittest projects.naive_bayes_spam.test_metropolis_hastings`。实现允许未归一化目标权重与非对称提议，并显式计算 $q(x\mid y)/q(y\mid x)$；每轮记录候选、接受率和实际状态。`metropolis_hastings_trace_certificate` 从公开种子重放两次伪随机抽取，再独立计算 Hastings 比值并逐项核对轨迹；测试会篡改一项接受率，确认重放器拒绝。它验证一段程序运行遵循实现契约，并不证明链已经混合。测试还验证长期频率、非对称修正、提议行和为一、反向概率存在、初值合法和空样本边界。
 
 有限状态、显式提议表的一步成本为 $O(d)$（$d$ 为当前候选数）；真实高维模型通常只计算局部对数密度差，不能把整个状态空间写成字典。
 

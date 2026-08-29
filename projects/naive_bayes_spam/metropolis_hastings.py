@@ -60,6 +60,39 @@ def metropolis_hastings(
     return samples, trace
 
 
+def metropolis_hastings_trace_certificate(
+    target: dict[State, float], proposal: dict[State, dict[State, float]], initial: State,
+    samples: list[State], trace: list[McmcEvent], *, seed: int = 0,
+) -> bool:
+    """Replay an MH run from its public seed and verify every recorded update.
+
+    The verifier intentionally reproduces both pseudorandom draws, then checks
+    the asymmetric Hastings correction before comparing the full event. It is
+    a reproducibility certificate for a finite classroom run, not evidence
+    that the chain has mixed or that its Monte Carlo estimate is accurate.
+    """
+    try:
+        _validate(target, proposal)
+        if initial not in target or len(samples) != len(trace) or not isinstance(seed, int):
+            return False
+        rng, current = Random(seed), initial
+        for sample, event in zip(samples, trace):
+            choices, probabilities = zip(*proposal[current].items())
+            proposed = rng.choices(choices, weights=probabilities, k=1)[0]
+            ratio = target[proposed] * proposal[proposed][current] / (target[current] * proposal[current][proposed])
+            acceptance_probability = min(1.0, ratio)
+            previous = current
+            accepted = rng.random() < acceptance_probability
+            if accepted:
+                current = proposed
+            expected = McmcEvent(previous, proposed, current, accepted, acceptance_probability)
+            if event != expected or sample != current:
+                return False
+        return True
+    except (ArithmeticError, TypeError, ValueError):
+        return False
+
+
 def empirical_probabilities(samples: list[State]) -> dict[State, float]:
     """Return observed state frequencies; burn-in/thinning decisions stay explicit."""
     if not samples:
