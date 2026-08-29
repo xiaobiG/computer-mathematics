@@ -16,6 +16,7 @@
 ## 当前深度版
 
 - [条件概率与贝叶斯更新](/probability-ml/bayes)：全概率、低基率与校准边界；
+- [联合、边缘与条件分布](/probability-ml/joint-marginal-conditional)：有限联合表、边缘化、条件化与独立性证书；
 - [协方差、相关性与特征](/probability-ml/covariance-correlation)：共同变化、协方差矩阵、PCA 与因果边界；
 - [抽样误差、置信区间与覆盖率](/probability-ml/confidence-intervals-sampling)：标准误、覆盖率、bootstrap 与实验设计边界；
 - [最大似然](/probability-ml/maximum-likelihood)：对数似然、MAP 与交叉熵；
