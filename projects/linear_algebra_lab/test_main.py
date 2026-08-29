@@ -1,8 +1,8 @@
 import unittest
 
 from projects.linear_algebra_lab.main import (
-    compress_grayscale, dominant_right_singular_vector, frobenius_error, image_cosine_similarity, matmul, norm, project,
-    least_squares_qr, rank_k_approximation, rank_one_approximation, solve,
+    classify_linear_system, compress_grayscale, dominant_right_singular_vector, frobenius_error, image_cosine_similarity,
+    matmul, norm, project, least_squares_qr, rank_k_approximation, rank_one_approximation, solve, solve_with_pivot_trace,
 )
 
 
@@ -25,6 +25,23 @@ class LinearAlgebraLabTests(unittest.TestCase):
     def test_singular_system_is_explicit(self):
         with self.assertRaises(ValueError):
             solve([[1, 1], [2, 2]], [2, 4])
+
+    def test_pivot_trace_records_a_row_swap_and_triangular_invariant(self):
+        solution, trace = solve_with_pivot_trace([[1e-16, 1.0], [1.0, 1.0]], [1.0, 2.0])
+        self.assertTrue(trace[0]["swapped"])
+        self.assertEqual(trace[0]["pivot_row"], 1)
+        self.assertAlmostEqual(trace[-1]["upper"][1][0], 0.0, places=12)
+        self.assertTrue(all(abs(sum(a * x for a, x in zip(row, solution)) - target) < 1e-10
+                            for row, target in zip([[1e-16, 1.0], [1.0, 1.0]], [1.0, 2.0])))
+
+    def test_classifies_consistent_and_inconsistent_singular_systems(self):
+        self.assertEqual(classify_linear_system([[1.0, 1.0], [2.0, 2.0]], [2.0, 4.0]), "infinitely_many")
+        self.assertEqual(classify_linear_system([[1.0, 1.0], [2.0, 2.0]], [2.0, 5.0]), "none")
+        self.assertEqual(classify_linear_system([[2.0, 1.0], [1.0, -1.0]], [5.0, 1.0]), "unique")
+
+    def test_elimination_rejects_nonfinite_inputs(self):
+        with self.assertRaises(ValueError):
+            solve([[float("nan")]], [1.0])
 
     def test_projection_has_orthogonal_residual(self):
         projected = project([3, 4], [1, 0])

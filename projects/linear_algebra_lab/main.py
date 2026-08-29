@@ -1,6 +1,6 @@
 """Teaching implementations for matrix multiplication, elimination and projection."""
 
-from math import sqrt
+from math import isfinite, sqrt
 
 
 EPSILON = 1e-12
@@ -23,28 +23,86 @@ def matmul(left, right):
     ]
 
 
-def solve(matrix, target, epsilon=EPSILON):
-    """Solve a square dense system using Gaussian elimination with pivoting."""
+def _validate_linear_system(matrix, target, epsilon):
     size = len(matrix)
     if size == 0 or len(target) != size or any(len(row) != size for row in matrix):
         raise ValueError("matrix must be square and match target")
+    if epsilon <= 0 or not isfinite(epsilon):
+        raise ValueError("epsilon must be finite and positive")
+    if any(not isfinite(value) for row in matrix for value in row) or any(not isfinite(value) for value in target):
+        raise ValueError("matrix and target must be finite")
+    return size
+
+
+def solve_with_pivot_trace(matrix, target, epsilon=EPSILON):
+    """Solve Ax=b and record each partial-pivot choice and elimination multiplier.
+
+    ``upper`` is the augmented matrix after each column has been cleared below
+    its pivot, making the invariant "same solution set, more triangular form"
+    directly inspectable.
+    """
+    size = _validate_linear_system(matrix, target, epsilon)
     augmented = [list(map(float, row)) + [float(target[i])] for i, row in enumerate(matrix)]
+    trace = []
     for column in range(size):
         pivot = max(range(column, size), key=lambda row: abs(augmented[row][column]))
         if abs(augmented[pivot][column]) <= epsilon:
             raise ValueError("system does not have a unique solution")
+        swapped = pivot != column
         augmented[column], augmented[pivot] = augmented[pivot], augmented[column]
         pivot_value = augmented[column][column]
+        multipliers = []
         for row in range(column + 1, size):
             factor = augmented[row][column] / pivot_value
+            multipliers.append(factor)
             for item in range(column, size + 1):
                 augmented[row][item] -= factor * augmented[column][item]
+        trace.append({"column": column, "pivot_row": pivot, "swapped": swapped,
+                      "multipliers": multipliers, "upper": [row.copy() for row in augmented]})
     result = [0.0] * size
     for row in range(size - 1, -1, -1):
         result[row] = (augmented[row][size] - sum(
             augmented[row][column] * result[column] for column in range(row + 1, size)
         )) / augmented[row][row]
+    return result, trace
+
+
+def solve(matrix, target, epsilon=EPSILON):
+    """Solve a square dense system using Gaussian elimination with pivoting."""
+    result, _ = solve_with_pivot_trace(matrix, target, epsilon)
     return result
+
+
+def classify_linear_system(matrix, target, epsilon=EPSILON):
+    """Classify a finite rectangular Ax=b as unique, none, or infinitely_many.
+
+    This is a classification aid for small teaching inputs, not a rank-revealing
+    production routine for ill-conditioned data.
+    """
+    if not matrix or len(target) != len(matrix) or not matrix[0] or any(len(row) != len(matrix[0]) for row in matrix):
+        raise ValueError("matrix must be non-empty rectangular and match target")
+    if epsilon <= 0 or not isfinite(epsilon):
+        raise ValueError("epsilon must be finite and positive")
+    if any(not isfinite(value) for row in matrix for value in row) or any(not isfinite(value) for value in target):
+        raise ValueError("matrix and target must be finite")
+    rows, columns = len(matrix), len(matrix[0])
+    augmented = [list(map(float, row)) + [float(target[index])] for index, row in enumerate(matrix)]
+    pivot_row = 0
+    for column in range(columns):
+        if pivot_row == rows:
+            break
+        pivot = max(range(pivot_row, rows), key=lambda row: abs(augmented[row][column]))
+        if abs(augmented[pivot][column]) <= epsilon:
+            continue
+        augmented[pivot_row], augmented[pivot] = augmented[pivot], augmented[pivot_row]
+        for row in range(pivot_row + 1, rows):
+            factor = augmented[row][column] / augmented[pivot_row][column]
+            for item in range(column, columns + 1):
+                augmented[row][item] -= factor * augmented[pivot_row][item]
+        pivot_row += 1
+    if any(all(abs(value) <= epsilon for value in row[:columns]) and abs(row[columns]) > epsilon for row in augmented):
+        return "none"
+    return "unique" if pivot_row == columns else "infinitely_many"
 
 
 def project(vector, direction):
