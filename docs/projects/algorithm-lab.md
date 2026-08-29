@@ -1,18 +1,19 @@
 ---
 title: 项目：算法可视化实验室
-description: 用 BFS 的状态轨迹连接队列、层级访问、循环不变量和最短路径。
+description: 用 BFS 与拓扑排序的状态轨迹连接队列、不变量、最短路径和依赖环检测。
 ---
 
 # 项目：算法可视化实验室
 
 ## 目标
 
-这个最小实验室不是绘制动画，而是输出每次从队列取出节点时的状态。读者可以把每一行轨迹与 BFS 的层级不变量对应起来，观察最短路为何成立。
+这个最小实验室不是绘制动画，而是输出算法每次推进后的状态。读者可以把每一行轨迹与 BFS 的层级不变量、或 Kahn 算法的入度不变量对应起来，观察最短路和依赖排序为何成立。
 
 ## 数学连接
 
 - [循环不变量](/discrete-math/loop-invariants)：每轮循环前后保持的结论；
 - [BFS](/discrete-math/breadth-first-search)：无权图中最短步数；
+- [图、树、二分图与拓扑排序](/discrete-math/graph-foundations-topological-sort)：依赖解除、拓扑序与有向环；
 - [渐进复杂度](/discrete-math/asymptotic-complexity)：为何邻接表下为 $O(V+E)$。
 
 ## 运行

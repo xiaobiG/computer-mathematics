@@ -18,7 +18,7 @@ description: 计算机数学站点的当前内容规模、实践项目与发布�
 
 ## 可运行项目
 
-- [算法可视化实验室](/projects/algorithm-lab)：BFS 队列轨迹与最短路径；
+- [算法可视化实验室](/projects/algorithm-lab)：BFS 队列轨迹、拓扑排序与依赖环检测；
 - [最小文本相似度检索器](/projects/text-similarity)：词频向量与余弦相似度；
 - [浮点数错误博物馆](/projects/floating-point-museum)：舍入、累计误差与消去误差；
 - [密码学玩具箱](/projects/crypto-toybox)：快速幂、模逆元与教学 RSA。
