@@ -28,18 +28,22 @@ const files = (await filesIn(docsRoot)).filter((path) => {
 const errors = []
 for (const path of files) {
   const source = await readFile(path, 'utf8')
+  // Structural Markdown headings must be read outside fenced code examples.
+  // Otherwise a Python/shell comment such as `# example output` is mistaken
+  // for a second H1 and blocks a valid lesson from publishing.
+  const prose = source.replace(/^```[^\n]*\r?\n[\s\S]*?^```\s*$/gm, '')
   const label = relative(docsRoot, path)
   const [folder] = label.split(/[/\\]/)
   if (!/^---\r?\n(?=[\s\S]*?^title:\s*.+$)(?=[\s\S]*?^description:\s*.+$)[\s\S]*?^---\s*$/m.test(source)) {
     errors.push(`${label}: 缺少 title 与 description frontmatter`)
   }
-  if ((source.match(/^#\s+/gm) ?? []).length !== 1) {
+  if ((prose.match(/^#\s+/gm) ?? []).length !== 1) {
     errors.push(`${label}: 应当且只能包含一个一级标题`)
   }
-  if (!/^##\s+练习\s*$/m.test(source)) {
+  if (!/^##\s+练习\s*$/m.test(prose)) {
     errors.push(`${label}: 缺少“练习”章节`)
   }
-  if (!/^##\s+/m.test(source)) {
+  if (!/^##\s+/m.test(prose)) {
     errors.push(`${label}: 缺少至少一个二级章节`)
   }
   if (!label.endsWith('rewrite-plan.md')) {
@@ -58,11 +62,11 @@ for (const path of files) {
       '练习',
     ]
     for (const section of requiredSections) {
-      if (!new RegExp(`^##\\s+${section}\\s*$`, 'm').test(source)) {
+      if (!new RegExp(`^##\\s+${section}\\s*$`, 'm').test(prose)) {
         errors.push(`${label}: v0.2 深度文章缺少“${section}”章节`)
       }
     }
-    if (!/^##\s+.*(?:失败案例|工程边界).*$/m.test(source)) {
+    if (!/^##\s+.*(?:失败案例|工程边界).*$/m.test(prose)) {
       errors.push(`${label}: v0.2 深度文章缺少失败案例或工程边界`)
     }
     if (!/```(?:python)?\r?\n[\s\S]*?```/.test(source)) {
