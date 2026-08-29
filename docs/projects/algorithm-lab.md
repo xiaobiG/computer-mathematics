@@ -16,12 +16,14 @@ description: 用 BFS、拓扑排序状态轨迹和 3-SAT 验证器连接不变�
 - [图、树、二分图与拓扑排序](/discrete-math/graph-foundations-topological-sort)：依赖解除、拓扑序与有向环；
 - [渐进复杂度](/discrete-math/asymptotic-complexity)：为何邻接表下为 $O(V+E)$。
 - [P、NP 与多项式归约](/discrete-math/p-np-reductions)：候选解验证为何不等于快速搜索。
+- [Floyd–Warshall](/discrete-math/floyd-warshall)：用中间点集合做全源最短路动态规划。
 
 ## 运行
 
 ```bash
 python projects/algorithm_lab/bfs_trace.py
 python projects/algorithm_lab/sat_verifier.py
+python -m unittest projects.algorithm_lab.test_floyd_warshall
 python -m unittest discover -s projects/algorithm_lab -p "test_*.py"
 ```
 
@@ -60,6 +62,7 @@ assert witness is not None and verify_assignment(formula, witness)
 3. 将边加上不同权重，解释为什么此算法不再适用，并转向 [Dijkstra](/discrete-math/dijkstra)。
 4. 为一张依赖图加入环，观察拓扑序变为 `None`；删除一条环边后，解释哪一个入度变为零；
 5. 写出一个不可满足公式，观察穷举搜索返回 `None`；再说明这不是 3-SAT 没有更好算法的证明。
+6. 为一张含负边但无负环的图计算全源距离；加入负环后，解释为什么结果应被拒绝。
 
 ## 工程边界
 
