@@ -7,13 +7,14 @@ description: 用可测试的教学实现串起矩阵乘法、消元、投影和�
 
 ## 目标
 
-本项目把线性代数专题的关键操作做成小型、可测试的 Python 模块：矩阵乘法、带部分选主元的方程求解、向量投影、低秩压缩，以及把灰度矩阵展平后的余弦相似度检索。它们用于核对数学定义，不取代 NumPy/SciPy 的生产实现。
+本项目把线性代数专题的关键操作做成小型、可测试的 Python 模块：矩阵乘法、带部分选主元的方程求解、向量投影、幂迭代、低秩压缩，以及把灰度矩阵展平后的余弦相似度检索。它们用于核对数学定义，不取代 NumPy/SciPy 的生产实现。
 
 ## 数学连接
 
 - [矩阵乘法](/linear-algebra/matrix-multiplication)：复合线性变换；
 - [高斯消元](/linear-algebra/gaussian-elimination)：保持解集的行变换；
 - [最小二乘](/linear-algebra/least-squares)：投影与残差的基本构件。
+- [幂迭代](/linear-algebra/power-iteration)：以 Rayleigh 商和残差审查主特征方向。
 - [SVD](/linear-algebra/svd)：通过 $A^TA$ 的幂迭代获得主奇异方向，并重建秩一近似。
 - [低秩图像压缩](/linear-algebra/low-rank-image-compression)：以逐次秩一近似比较保留秩与重构误差。
 - [向量与点积](/linear-algebra/vectors-dot-product)：以余弦相似度对同形图像向量排序。
@@ -22,9 +23,10 @@ description: 用可测试的教学实现串起矩阵乘法、消元、投影和�
 
 ```bash
 python -m unittest projects.linear_algebra_lab.test_main
+python -m unittest projects.linear_algebra_lab.test_power_iteration
 ```
 
-测试覆盖矩阵形状错误、非交换变换、选主元、奇异系统、正交投影、秩一矩阵重建、更高保留秩不增加小例重构误差，以及同形图像的余弦检索。完整项目测试仍可通过 `npm run projects:test` 运行。
+测试覆盖矩阵形状错误、非交换变换、选主元、奇异系统、正交投影、幂迭代残差与失败边界、秩一矩阵重建、更高保留秩不增加小例重构误差，以及同形图像的余弦检索。完整项目测试仍可通过 `npm run projects:test` 运行。
 
 ## 挑战
 

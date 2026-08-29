@@ -18,9 +18,10 @@
 | 6 | [正交投影、Gram–Schmidt 与 QR](/linear-algebra/orthogonal-projection-qr) | 如何稳定地求最近解？ | 深度正文 · 70 分钟 |
 | 7 | [最小二乘](/linear-algebra/least-squares) | 没有精确解时如何拟合？ | 深度正文 · 50 分钟 |
 | 8 | [特征值与 PCA](/linear-algebra/eigenvalues-pca) | 如何保留数据最重要方向？ | 深度正文 · 55 分钟 |
-| 9 | [SVD](/linear-algebra/svd) | 如何用低秩近似压缩矩阵？ | 深度正文 · 55 分钟 |
-| 10 | [低秩图像压缩](/linear-algebra/low-rank-image-compression) | 保留多少模式才能以可测误差压缩图像？ | 深度正文 · 70 分钟 |
-| 11 | [Jacobian、Hessian 与自动微分](/linear-algebra/jacobian-hessian-autodiff) | 梯度如何成为可计算的线性代数？ | 深度正文 · 65 分钟 |
+| 9 | [幂迭代](/linear-algebra/power-iteration) | 如何只用矩阵—向量乘法找到主方向？ | 深度正文 · 55 分钟 |
+| 10 | [SVD](/linear-algebra/svd) | 如何用低秩近似压缩矩阵？ | 深度正文 · 55 分钟 |
+| 11 | [低秩图像压缩](/linear-algebra/low-rank-image-compression) | 保留多少模式才能以可测误差压缩图像？ | 深度正文 · 70 分钟 |
+| 12 | [Jacobian、Hessian 与自动微分](/linear-algebra/jacobian-hessian-autodiff) | 梯度如何成为可计算的线性代数？ | 深度正文 · 65 分钟 |
 
 ## 版本资源
 

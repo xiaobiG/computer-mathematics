@@ -21,6 +21,7 @@ v0.2 已将“概念导读”升级为能支撑编程实践的学习闭环。每
 | 4 | [高斯消元](/linear-algebra/gaussian-elimination) · 完成 | 行变换、选主元与解的分类 | 带部分选主元的求解器；奇异系统案例 |
 | 5 | [最小二乘](/linear-algebra/least-squares) · 完成 | 正交投影、正规方程、QR 的动机 | 线性拟合残差与病态反例 |
 | 6 | [特征值与 PCA](/linear-algebra/eigenvalues-pca) · 完成 | 特征方向、中心化与解释方差 | 主方向和重构误差比较 |
+| 6.5 | [幂迭代](/linear-algebra/power-iteration) · 完成 | 谱隙、归一化、Rayleigh 商与残差 | 主特征对与收敛/失败轨迹 |
 | 7 | [SVD](/linear-algebra/svd) · 完成 | 奇异值、低秩近似与截断误差 | 秩一重构与压缩误差 |
 | 7.5 | [低秩图像压缩](/linear-algebra/low-rank-image-compression) · 完成 | 残差提取、参数量与重构误差 | 灰度矩阵的秩 $k$ 近似 |
 | 8 | [Jacobian、Hessian 与自动微分](/linear-algebra/jacobian-hessian-autodiff) · 完成 | 局部线性化、链式法则与梯度检查 | 解析梯度与中心差分对照 |
@@ -52,7 +53,7 @@ v0.2 已补齐“点积”与“矩阵变换”之间的[线性组合、基与�
       ↓
 线性组合、基与维度 ──→ 矩阵乘法与线性变换 ──→ 高斯消元
       ↓                                      ↓
-最小二乘与投影 ───────────────────────────→ 特征值与 PCA ──→ SVD
+最小二乘与投影 ───────────────────────────→ 特征值与 PCA ──→ 幂迭代 ──→ SVD
 ```
 
 ## 发布核对
