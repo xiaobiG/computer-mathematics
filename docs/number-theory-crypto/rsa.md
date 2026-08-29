@@ -51,15 +51,22 @@ $$c=7^3\bmod55=13,\qquad m'=13^{27}\bmod55=7.$$
 ## 算法实现与复杂度
 
 ```python
-from projects.crypto_toybox.main import decrypt, encrypt, raw_rsa_properties, toy_rsa_keypair
+from projects.crypto_toybox.main import (
+    decrypt, encrypt, raw_rsa_properties, rsa_round_trip_report, toy_rsa_keypair,
+)
 
 key = toy_rsa_keypair(5, 11, 3)
 assert encrypt(7, key) == 13
 assert decrypt(13, key) == 7
 assert raw_rsa_properties(2, 3, key) == {"deterministic": True, "multiplicative": True}
+
+# 5、11、50 都不与 n=55 互素；仍须正确恢复。
+report = rsa_round_trip_report([0, 5, 7, 11, 50], key)
+assert report["all_recovered"]
+assert report["non_coprime_messages"] == [0, 5, 11, 50]
 ```
 
-运行 `python -m unittest projects.crypto_toybox.test_main`。`raw_rsa_properties` 不产生攻击载荷或自制填充，它只核对同一明文总产生同一密文，以及 $E(m_1m_2\bmod n)=E(m_1)E(m_2)\bmod n$。这两个为真的断言就是“数学可解密”并不足以构成安全加密的可执行证据。
+运行 `python -m unittest projects.crypto_toybox.test_main`。`toy_rsa_keypair` 会先拒绝非质数因子和不满足 $1<e<\varphi(n)$、互素条件的指数，避免把证明前提静默留给调用者。`rsa_round_trip_report` 还明确包含 $m=5,11,50$ 等与 $n$ 不互素的代表元：它把 CRT 覆盖的那部分正确性变成有限样例审计。`raw_rsa_properties` 不产生攻击载荷或自制填充，它只核对同一明文总产生同一密文，以及 $E(m_1m_2\bmod n)=E(m_1)E(m_2)\bmod n$。这些为真的断言正是“数学可解密”并不足以构成安全加密的可执行证据。
 
 重复平方需要 $O(\log e)$ 次模乘；大整数模乘本身有成本。真实 RSA 使用经过审计的库和 CRT 等优化，但优化也需要防止故障攻击与计时泄漏。
 

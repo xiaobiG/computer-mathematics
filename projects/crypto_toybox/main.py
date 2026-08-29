@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from math import gcd
 
+from projects.crypto_toybox.finite_group import is_prime
+
 
 def mod_pow(base: int, exponent: int, modulus: int) -> int:
     if modulus <= 1 or exponent < 0:
@@ -41,12 +43,20 @@ class RsaKeyPair:
 
 
 def toy_rsa_keypair(p: int, q: int, public_exponent: int) -> RsaKeyPair:
-    """由已知的小质数构造教学密钥；不生成也不验证生产级密钥。"""
+    """Construct a tiny RSA key after checking the mathematical preconditions.
+
+    Trial division is deliberately limited to user-supplied classroom primes;
+    this function never generates keys and is not cryptographic key validation.
+    """
+    if any(not isinstance(value, int) or isinstance(value, bool) for value in (p, q, public_exponent)):
+        raise ValueError("教学 RSA 参数必须是整数")
     if p == q:
         raise ValueError("教学参数中的两个质数必须不同")
+    if not is_prime(p) or not is_prime(q):
+        raise ValueError("教学 RSA 参数中的 p 和 q 必须是质数")
     phi = (p - 1) * (q - 1)
-    if gcd(public_exponent, phi) != 1:
-        raise ValueError("公开指数必须与 phi 互素")
+    if not 1 < public_exponent < phi or gcd(public_exponent, phi) != 1:
+        raise ValueError("公开指数必须位于 (1, phi) 且与 phi 互素")
     return RsaKeyPair(p * q, public_exponent, modular_inverse(public_exponent, phi))
 
 
@@ -74,6 +84,26 @@ def raw_rsa_properties(left: int, right: int, key: RsaKeyPair) -> dict[str, bool
     return {
         "deterministic": first == encrypt(left, key),
         "multiplicative": encrypt((left * right) % key.modulus, key) == (first * second) % key.modulus,
+    }
+
+
+def rsa_round_trip_report(messages: list[int], key: RsaKeyPair) -> dict[str, object]:
+    """Audit raw-RSA recovery on selected classroom messages.
+
+    The report intentionally includes representatives sharing a factor with
+    ``n`` so the CRT part of the correctness argument is checked in code too.
+    It is a finite example audit, not a proof or a security test.
+    """
+    if not messages:
+        raise ValueError("至少提供一个教学明文")
+    checks = [
+        (message, encrypt(message, key), decrypt(encrypt(message, key), key))
+        for message in messages
+    ]
+    return {
+        "all_recovered": all(original == recovered for original, _, recovered in checks),
+        "non_coprime_messages": [original for original, _, _ in checks if gcd(original, key.modulus) != 1],
+        "checks": checks,
     }
 
 
