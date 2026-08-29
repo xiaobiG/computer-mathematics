@@ -20,16 +20,30 @@ description: 用 BFS 与拓扑排序的状态轨迹连接队列、不变量、�
 
 ```bash
 python projects/algorithm_lab/bfs_trace.py
-python -m unittest projects.algorithm_lab.test_bfs_trace
+python -m unittest discover -s projects/algorithm_lab -p "test_*.py"
 ```
 
 输出中的 `distance` 表示当前节点与起点相差的边数，`queue` 表示本轮扩展后待处理的边界。
+
+拓扑排序模块可在 Python 中直接观察：
+
+```python
+from projects.algorithm_lab.topological_trace import topological_trace
+
+order, events = topological_trace({"build": ["compile"], "compile": []})
+print(order)          # ['build', 'compile']
+print(events[-1])     # 最后一次移除后的顺序与就绪队列
+assert topological_trace({"a": ["b"], "b": ["a"]})[0] is None
+```
+
+`None` 不是“没有找到一个恰好顺序”，而是 Kahn 算法已证明剩余顶点构成有向环：没有入度为零的下一步可执行任务。
 
 ## 可观察的实验
 
 1. 改变邻居顺序，观察路径可能变化但最短距离不变；
 2. 给图加入一条边，检查轨迹在哪一层提前到达目标；
 3. 将边加上不同权重，解释为什么此算法不再适用，并转向 [Dijkstra](/discrete-math/dijkstra)。
+4. 为一张依赖图加入环，观察拓扑序变为 `None`；删除一条环边后，解释哪一个入度变为零；
 
 ## 工程边界
 
