@@ -30,30 +30,17 @@ $$d_k(v)=\min\bigl(d_{k-1}(v),\;d_{k-1}(u)+w\bigr).$$
 ## 可运行实现
 
 ```python
-from math import inf
+from projects.algorithm_lab.bellman_ford_trace import bellman_ford_trace, reconstruct_path
 
-def bellman_ford(vertex_count, edges, source):
-    if not 0 <= source < vertex_count:
-        raise ValueError("source 越界")
-    if any(not (0 <= u < vertex_count and 0 <= v < vertex_count) for u, v, _ in edges):
-        raise ValueError("边端点越界")
-    distance, parent = [inf] * vertex_count, [None] * vertex_count
-    distance[source] = 0
-    for _ in range(vertex_count - 1):
-        changed = False
-        for u, v, weight in edges:
-            if distance[u] != inf and distance[u] + weight < distance[v]:
-                distance[v], parent[v], changed = distance[u] + weight, u, True
-        if not changed:
-            break
-    negative_cycle = any(distance[u] != inf and distance[u] + w < distance[v]
-                         for u, v, w in edges)
-    if negative_cycle:
-        raise ValueError("源点可达负环，最短距离无定义")
-    return distance, parent
+edges = [(0, 1, 2.0), (0, 2, 5.0), (2, 1, -10.0), (1, 3, 4.0)]
+distances, parents, events = bellman_ford_trace(5, edges, source=0)
+
+assert distances[3] == -1.0
+assert reconstruct_path(parents, 0, 3) == [0, 2, 1, 3]
+assert (2, 1, -5.0) in events[1].relaxed
 ```
 
-提前停止不改变正确性：若一整轮没有更新，所有可用“再加一条边”的路径也不能改善，之后不会再改变。`parent` 仅在更新时写入，回溯可恢复一条最短路；路径恢复必须限制长度以防输入或代码错误产生环。
+运行 `python -m unittest projects.algorithm_lab.test_bellman_ford_trace`。实现每轮先冻结前一轮的距离，再构造下一轮，因此第 $k$ 个事件直接对应“至多 $k$ 条边”的状态定义，而不是依赖边遍历顺序的就地更新。事件记录每轮成功松弛的边及候选距离；测试核对负边路径、逐轮不变量、不可达负环和可达负环拒绝。提前停止不改变正确性：若一整轮没有更新，所有可用“再加一条边”的路径也不能改善，之后不会再改变。`parent` 仅在更新时写入，回溯有长度上限以防输入或代码错误产生环。
 
 ## 正确性与复杂度
 
