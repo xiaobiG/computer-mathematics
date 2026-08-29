@@ -22,6 +22,7 @@ export default defineConfig({
     nav: [
       { text: '学习路线', link: '/roadmap' },
       { text: '课程架构', link: '/curriculum-architecture' },
+      { text: '成熟度看板', link: '/course-maturity' },
       { text: '12 周计划', link: '/study-plan' },
       { text: '专题系列', items: series },
       { text: '综合项目', link: '/projects/' },
