@@ -1,0 +1,100 @@
+---
+courseLevel: "0–2（离散结构预备）"
+prerequisites: "命题逻辑、集合符号与 Python 基础"
+estimatedMinutes: 55
+experiment: "实现并验证等价关系划分与偏序上的拓扑排序"
+title: 集合、关系、等价类与偏序
+description: 用集合与二元关系描述程序状态，推导等价类划分、偏序和拓扑排序的共同结构。
+---
+
+# 集合、关系、等价类与偏序
+
+> 并查集维护的不是“很多数组”，而是一个集合的划分；包依赖也不是“很多箭头”，而是一个偏序。先看清关系的性质，才能选择正确的数据结构和算法。
+
+## 学习目标
+
+- 使用集合、笛卡尔积与二元关系精确描述程序对象；
+- 判断关系的自反、对称、反对称与传递性质；
+- 从等价关系推导不相交的等价类划分；
+- 区分等价关系与偏序，并理解拓扑序为何是偏序的线性扩展；
+- 用小程序验证关系性质与依赖约束。
+
+## 从“用户是否同一群组”开始
+
+社交网络的“互相可达”关系满足：每个用户与自己可达；若 \(u\) 到 \(v\)，则 \(v\) 到 \(u\)；若 \(u\) 到 \(v\)、\(v\) 到 \(w\)，则 \(u\) 到 \(w\)。这三项使它成为等价关系。它把所有用户分成互不重叠的连通分量，正是并查集所维护的对象。
+
+而“课程 A 是课程 B 的先修”不应对称：A 先于 B 不代表 B 先于 A。它更接近偏序；若出现两门不同课程互为先修，就有环，偏序条件被破坏。
+
+## 定义：关系是笛卡尔积的子集
+
+对集合 \(S\)，二元关系 \(R\) 是 \(S\times S\) 的一个子集。记 \(aRb\) 表示 \((a,b)\in R\)。
+
+- 自反：\(\forall a\in S,aRa\)；
+- 对称：\(aRb\Rightarrow bRa\)；
+- 反对称：\(aRb\land bRa\Rightarrow a=b\)；
+- 传递：\(aRb\land bRc\Rightarrow aRc\)。
+
+**等价关系**满足自反、对称、传递。\(a\) 的等价类是 \([a]=\{b\in S\mid aRb\}\)。任意两个等价类要么相同，要么不相交：若 \(c\in[a]\cap[b]\)，传递性可推出 \([a]=[c]=[b]\)。因此等价关系与集合划分一一对应。
+
+**偏序**满足自反、反对称、传递。偏序元素不必都可比较：两个独立任务既非 \(a\preceq b\)，也非 \(b\preceq a\)，这正是可以并行的空间。
+
+## 从偏序到拓扑排序
+
+有限偏序可看成 DAG 的可达关系。拓扑排序给出一个线性序，使 \(a\prec b\) 时 \(a\) 一定出现在 \(b\) 之前；它称为偏序的线性扩展。独立元素的相对位置可以不同，所以拓扑序通常不唯一。
+
+若依赖图有环，则存在 \(a\prec b\prec\cdots\prec a\)，违反反对称性；这解释了为什么 [拓扑排序](/discrete-math/graph-foundations-topological-sort) 能把“无输出顺序”作为环的证据。
+
+## 可运行验证
+
+```python
+def is_equivalence_relation(items, relation):
+    for a in items:
+        if (a, a) not in relation:
+            return False
+        for b in items:
+            if (a, b) in relation and (b, a) not in relation:
+                return False
+            for c in items:
+                if (a, b) in relation and (b, c) in relation and (a, c) not in relation:
+                    return False
+    return True
+
+
+def equivalence_classes(items, relation):
+    if not is_equivalence_relation(items, relation):
+        raise ValueError("relation 必须是等价关系")
+    unseen, classes = set(items), []
+    while unseen:
+        a = next(iter(unseen))
+        group = {b for b in items if (a, b) in relation}
+        classes.append(group)
+        unseen -= group
+    return classes
+
+
+items = {1, 2, 3, 4, 5, 6}
+same_parity = {(a, b) for a in items for b in items if a % 2 == b % 2}
+print(equivalence_classes(items, same_parity))  # [{1,3,5}, {2,4,6}]，顺序可不同
+```
+
+代码用 \(O(|S|^3)\) 直接检查定义，适合教学和小输入；真实的“同组”关系常由图连通性或 DSU 增量维护，而不显式存储所有有序对。
+
+## 常见误区与边界
+
+- **反对称不是“不对称”。** \(\le\) 既允许 \(a\le a\)，也允许不同元素单向比较；它只禁止不同元素双向比较。
+- **传递闭包不等于原始边。** 依赖图可只保存直接依赖，关系语义通常包含所有可达路径。
+- **相等关系不是唯一等价关系。** “同余”“同一连通分量”“相同哈希桶”（在定义合适时）都可能形成等价类。
+- **偏序不是总序。** 强行给独立任务排序会引入实现细节，不是数学依赖。
+- **关系由数据推断时要注意误差。** “相似度超过阈值”常不传递，不能直接当等价关系用于分组。
+
+## 练习
+
+1. 判断“整数相差不超过 1”是否为等价关系，给出违反性质的最小反例。
+2. 证明等价类形成集合划分。
+3. 写函数检查有限关系是否为偏序，并对课程先修关系测试一个环。
+4. 用并查集维护动态加边图的等价类，说明删除边为何困难。
+5. 对一个带独立任务的 DAG 找出两个不同拓扑序，解释两者为何都合法。
+
+## 下一步
+
+将等价类连接到[并查集](/discrete-math/union-find)，将偏序连接到[图、树、二分图与拓扑排序](/discrete-math/graph-foundations-topological-sort)。这两条线分别处理“哪些对象可合并”和“哪些任务必须先后”。
