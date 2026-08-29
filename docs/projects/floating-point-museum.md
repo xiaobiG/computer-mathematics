@@ -37,7 +37,7 @@ python -m unittest projects.floating_point_museum.test_conditioning
 
 ## 三个案例
 
-1. binary64 字段、相邻值与 ULP：查看 `0.1` 的表示类别，并验证 `1e16` 附近间距为 2，因此加 1 会丢失；
+1. binary64 字段、十进制转换、相邻值与 ULP：将源文本 `"0.1"` 作为精确分数与实际存储值相减，核对误差方向和半 ULP 上界；再验证 `1e16` 附近间距为 2，因此加 1 会丢失；
 2. `0.1 + 0.2`：说明二进制近似与容差比较；
 3. `1e16 + 1 + 1 - 1e16`：比较普通累加、Kahan 与固定归约树的 pairwise 求和；观察 pairwise 改善误差层数，却不保证修复每个抵消顺序。
 4. $\sqrt{x+1}-\sqrt{x}$：通过有理化避免消去误差。

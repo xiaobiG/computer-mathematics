@@ -20,9 +20,13 @@ description: 从 IEEE 754 的有限二进制表示、舍入到尺度相关的稳
 
 支付、传感器和机器学习程序都要比较计算结果。为什么 JavaScript/Python 中 `0.1 + 0.2 == 0.3` 常为假？若把它简单修成“保留两位小数”，又会在哪些极大或极小的数上重新出错？
 
-## 直觉与严格定义
+## 直觉模型：有限格点不是实数轴
 
 二进制有限小数只能精确表示约分后分母为 $2^k$ 的有理数。$0.1=1/10$ 的分母含因子 5，因此二进制展开无限循环，存储时必须选择附近的有限值。
+
+把 binary64 想成一条不均匀的格点轴：数越大，格点越稀；靠近零时还有次正规数区域。程序看到的 `0.1` 是某个格点，而源文件中的字符 `"0.1"` 表示精确分数 $1/10$。区分这两者，才能精确谈“误差”。
+
+## 严格定义：从字段到一次舍入
 
 IEEE 754 二进制浮点数可抽象为
 
@@ -30,16 +34,33 @@ $$(-1)^s\times(1.f)_2\times2^{e-\text{bias}},$$
 
 其中符号位 $s$、有限位数的尾数 $f$ 与有限指数 $e$ 决定可表示集合。一次运算的真实结果通常不在集合中，硬件按舍入规则映射到附近值；加法再舍入一次，所以两个“最接近”的近似相加不必等于第三个近似。
 
-## 手算与代码实验
+对一个有限十进制字面量 $x$，设 $\operatorname{fl}(x)$ 是转换后的 binary64 值，局部格距为 $\operatorname{ulp}(\operatorname{fl}(x))$。在默认的“最近值、偶数舍入”模式下（非恰好平分的情形），转换误差满足
+
+$$
+|\operatorname{fl}(x)-x|\leq \frac12\operatorname{ulp}(\operatorname{fl}(x)).
+$$
+
+这不是“所有计算的总误差界”：后续每个运算仍会继续舍入；它只是验证**一次文本到 binary64 转换**的局部证据。
+
+## 分步实验：把字面量、存储值与 ULP 对齐
 
 $1/2=0.1_2$ 可以有限表示，$1/10=0.000110011\ldots_2$ 则不断重复。以下比较使用绝对容差与相对容差的较大者，而不是固定的小数位：
 
 ```python
 from projects.floating_point_museum.examples import nearly_equal
-from projects.floating_point_museum.representation import adjacent_values, float64_parts, spacing_at
+from projects.floating_point_museum.representation import (
+    adjacent_values,
+    decimal_rounding_report,
+    float64_parts,
+    spacing_at,
+)
 
 parts = float64_parts(0.1)
 assert parts.classification == "normal"
+report = decimal_rounding_report("0.1")
+assert report.exact_value.numerator == 1 and report.exact_value.denominator == 10
+assert report.rounding_direction == "up"
+assert report.certificate["rounding_error_is_within_half_ulp"]
 assert 0.1 + 0.2 != 0.3
 assert nearly_equal(0.1 + 0.2, 0.3)
 
@@ -50,11 +71,11 @@ assert spacing_at(1e16) == 2.0
 assert 1e16 + 1.0 == 1e16
 ```
 
-`float64_parts` 让符号、11 位有偏指数和 52 位尾数字段可见；`adjacent_values` 与 `spacing_at` 则显示浮点数不是均匀网格。`1e16` 附近两个相邻可表示数相差 2，所以加 1 会在舍入后回到原数。所有这些检查为 $O(1)$。相对项适合大尺度，绝对项保证接近零时仍有合理阈值；两者参数必须源自量纲、测量精度和业务容忍度。
+`decimal_rounding_report` 用精确分数解析源字符串，再与 `Fraction.from_float` 得到的存储分数相减；因此不会用一个已被舍入的 Python 浮点数“验证”它自己。它报告误差的方向和以 ULP 为单位的大小，并证实其不超过半个 ULP。`float64_parts` 让符号、11 位有偏指数和 52 位尾数字段可见；`adjacent_values` 与 `spacing_at` 则显示浮点数不是均匀网格。`1e16` 附近两个相邻可表示数相差 2，所以加 1 会在舍入后回到原数。所有这些检查为 $O(1)$。相对项适合大尺度，绝对项保证接近零时仍有合理阈值；两者参数必须源自量纲、测量精度和业务容忍度。
 
 ## 正确性与工程边界
 
-若差值不超过 `tolerance * max(1, |x|, |y|)`，函数明确实现“在允许绝对或相对误差内相等”的业务定义；它并不恢复数学上的相等。NaN 与任何数（包括自身）都不相等，应显式检测；无穷值、正负零、次正规数、上溢和下溢也有独立语义。表示实验专门拒绝非有限数的“相邻值”请求，避免把特殊值混进普通数的网格直觉。金额宜用最小货币单位整数或十进制定点类型，不能依赖 epsilon。
+若差值不超过 `tolerance * max(1, |x|, |y|)`，函数明确实现“在允许绝对或相对误差内相等”的业务定义；它并不恢复数学上的相等。NaN 与任何数（包括自身）都不相等，应显式检测；无穷值、正负零、次正规数、上溢和下溢也有独立语义。表示实验专门拒绝非有限字面量、相邻值请求，避免把特殊值混进普通数的网格直觉。金额宜用最小货币单位整数或十进制定点类型，不能依赖 epsilon。
 
 ## 常见误区
 
