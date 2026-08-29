@@ -19,12 +19,14 @@ description: 用图搜索、拓扑排序、最大流轨迹和 3-SAT 验证器连
 - [Floyd–Warshall](/discrete-math/floyd-warshall)：用中间点集合做全源最短路动态规划。
 - [Dijkstra](/discrete-math/dijkstra)：用堆的确定顺序与松弛轨迹验证非负最短路。
 - [最大流最小割](/discrete-math/max-flow-min-cut)：增广路和残量可达集如何构成最优证书。
+- [动态规划](/discrete-math/dynamic-programming-dag)：前缀 DAG 的最长路、回溯方案与小规模穷举对拍。
 
 ## 运行
 
 ```bash
 python projects/algorithm_lab/bfs_trace.py
 python -m unittest projects.algorithm_lab.test_binary_search_trace
+python -m unittest projects.algorithm_lab.test_weighted_activity
 python -m unittest projects.algorithm_lab.test_dfs_trace
 python -m unittest projects.algorithm_lab.test_strongly_connected
 python projects/algorithm_lab/sat_verifier.py
@@ -75,6 +77,7 @@ assert witness is not None and verify_assignment(formula, witness)
 9. 对一个容量网络列出每条增广路，并计算最终残量可达集合的割容量，核对其等于总流量。
 10. 对一张带非负边权的图检查 Dijkstra 轨迹中的确定距离单调；再加入一条负边，确认实现拒绝该前提。
 11. 对含重复值的小数组穷举运行二分查找，检查每步候选区间保留目标且未命中时严格缩小；再传入未排序数组，确认前提被显式拒绝。
+12. 对不超过 18 个加权活动比较 DP 与穷举最优值；构造“最早结束但价值极低”的反例，并核对回溯活动彼此兼容。
 
 ## 工程边界
 

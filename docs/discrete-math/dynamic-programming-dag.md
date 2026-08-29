@@ -35,33 +35,21 @@ $$OPT(j)=\max\{OPT(j-1),\;w_j+OPT(p(j))\},\qquad OPT(0)=0.$$
 ## 可运行实现与回溯
 
 ```python
-from bisect import bisect_right
+from projects.algorithm_lab.weighted_activity import (
+    brute_force_best_value,
+    compatible_schedule,
+    weighted_activity_selection,
+)
 
-def weighted_activity_selection(activities):
-    """Return (best_value, chosen activities) for (start, finish, value, name)."""
-    if any(start > finish or value < 0 for start, finish, value, _ in activities):
-        raise ValueError("时间区间无效或价值为负")
-    ordered = sorted(activities, key=lambda item: (item[1], item[0]))
-    finishes = [item[1] for item in ordered]
-    previous = [bisect_right(finishes, item[0], hi=index) - 1
-                for index, item in enumerate(ordered)]
-    best = [0] * (len(ordered) + 1)
-    for j, (_, _, value, _) in enumerate(ordered, start=1):
-        best[j] = max(best[j - 1], value + best[previous[j - 1] + 1])
+activities = [(0.0, 2.0, 1.0, "short"), (0.0, 4.0, 100.0, "valuable")]
+value, chosen = weighted_activity_selection(activities)
 
-    chosen, j = [], len(ordered)
-    while j:
-        start, finish, value, name = ordered[j - 1]
-        include = value + best[previous[j - 1] + 1]
-        if include > best[j - 1]:
-            chosen.append((start, finish, value, name))
-            j = previous[j - 1] + 1
-        else:
-            j -= 1
-    return best[-1], list(reversed(chosen))
+assert value == 100.0                     # 最早结束贪心会选错 short
+assert compatible_schedule(chosen)
+assert value == brute_force_best_value(activities)
 ```
 
-二分搜索每个 $p(j)$ 需 $O(\log n)$，总时间 $O(n\log n)$（排序也相同），状态数组和回溯空间 $O(n)$。若只需最优值且能流式计算兼容关系，可讨论空间压缩；若要重建方案，必须保留足够决策信息。
+实验室的 `brute_force_best_value` 明确限制在 18 个活动以内，作为 DP 的测试 oracle 而非算法替代；它验证回溯出的活动两两兼容，且价值确实达到小规模全局最优。二分搜索每个 $p(j)$ 需 $O(\log n)$，总时间 $O(n\log n)$（排序也相同），状态数组和回溯空间 $O(n)$。若只需最优值且能流式计算兼容关系，可讨论空间压缩；若要重建方案，必须保留足够决策信息。
 
 ## DAG 视角与正确性
 
