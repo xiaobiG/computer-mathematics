@@ -42,24 +42,18 @@ $$K_A=B^a=(g^b)^a=g^{ab}=(g^a)^b=A^b=K_B.$$
 ## 可运行实验：数学正确不代表安全
 
 ```python
-def dh_public(g: int, private: int, p: int) -> int:
-    if not (1 < g < p and 0 < private < p - 1):
-        raise ValueError("参数不在教学群的范围内")
-    return pow(g, private, p)
+from projects.crypto_toybox.diffie_hellman import honest_exchange, mitm_exchange
 
-def dh_shared(peer_public: int, private: int, p: int) -> int:
-    # 真实协议还必须做子群/曲线点验证并经 KDF 导出密钥。
-    if not 1 < peer_public < p - 1:
-        raise ValueError("拒绝平凡或范围外的对端公钥")
-    return pow(peer_public, private, p)
+honest = honest_exchange(5, 23, 6, 15)  # 极小参数：仅用于手算和测试
+assert honest.alice_shared == honest.bob_shared
 
-p, g = 23, 5                 # 极小参数：只用于手算和测试
-a, b = 6, 15
-A, B = dh_public(g, a, p), dh_public(g, b, p)
-assert dh_shared(B, a, p) == dh_shared(A, b, p)
+intercepted = mitm_exchange(5, 23, 6, 15, 7, 8)
+assert intercepted.alice_shared_with_mallory == intercepted.mallory_with_alice
+assert intercepted.bob_shared_with_mallory == intercepted.mallory_with_bob
+assert intercepted.alice_shared_with_mallory != intercepted.bob_shared_with_mallory
 ```
 
-`pow` 的重复平方复杂度为 $O(\log q)$ 次群乘法。安全私钥不是“任取一个整数”：必须来自密码学安全随机源，长度和群阶必须满足目标安全级别，且私钥应是一次性的临时值以获得前向保密。
+转录测试验证两件不同的事：诚实交换的两个幂结果相同；中间人替换后，攻击者分别与两端拥有相同的会话值，而 Alice/Bob 没有共同会话值。这是代数模型，不包含任何消息加密、KDF 或身份认证。`pow` 的重复平方复杂度为 $O(\log q)$ 次群乘法。安全私钥不是“任取一个整数”：必须来自密码学安全随机源，长度和群阶必须满足目标安全级别，且私钥应是一次性的临时值以获得前向保密。
 
 ## 中间人攻击的逐步推演
 

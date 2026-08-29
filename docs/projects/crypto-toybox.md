@@ -11,7 +11,7 @@ description: 用快速幂、模逆元、小参数 RSA、教学签名验签与有
 
 ## 目标
 
-实现并测试六块数学积木：模幂、扩展欧几里得算法、教学 RSA、教学签名验签等式、有限域椭圆曲线点群和标准库 HMAC 验证。重点是看到这些函数在加密、验签、标量乘法或消息认证中如何连接，而非尝试自制密码系统。
+实现并测试七块数学积木：模幂、扩展欧几里得算法、教学 RSA、教学签名验签等式、有限域乘法群与小参数 DH 转录、有限域椭圆曲线点群和标准库 HMAC 验证。重点是看到这些函数在加密、验签、密钥协商、标量乘法或消息认证中如何连接，而非尝试自制密码系统。
 
 ## 数学连接
 
@@ -19,6 +19,7 @@ description: 用快速幂、模逆元、小参数 RSA、教学签名验签与有
 - [最大公约数与模逆元](/number-theory-crypto/extended-euclid)
 - [RSA](/number-theory-crypto/rsa)
 - [数字签名](/number-theory-crypto/digital-signatures)
+- [Diffie–Hellman 密钥交换](/number-theory-crypto/diffie-hellman)
 - [中国剩余定理](/number-theory-crypto/chinese-remainder-theorem)
 - [椭圆曲线密码学预备](/number-theory-crypto/elliptic-curve-prelude)
 - [消息认证码](/number-theory-crypto/message-authentication-codes)
@@ -28,6 +29,7 @@ description: 用快速幂、模逆元、小参数 RSA、教学签名验签与有
 ```bash
 python projects/crypto_toybox/main.py
 python -m unittest projects.crypto_toybox.test_main
+python -m unittest projects.crypto_toybox.test_diffie_hellman
 python -m unittest projects.crypto_toybox.test_elliptic_curve
 python -m unittest projects.crypto_toybox.test_message_auth
 python -m unittest projects.crypto_toybox.test_signatures
@@ -39,6 +41,7 @@ python -m unittest projects.crypto_toybox.test_signatures
 2. 用扩展欧几里得算法验证公开指数和私钥指数互为模逆元；
 3. 思考：为什么知道 $n=pq$ 但不知道 $p,q$ 会使计算私钥变困难？
 4. 在小素域上验证 $P+(-P)=\mathcal O$，并解释为何这不构成真实椭圆曲线密码实现。
+5. 对比诚实 DH 和中间人转录：前者的两端共享值相同，后者中攻击者分别与两端匹配而两端并未建立同一秘密。
 
 ## 从这里走向真实系统
 
