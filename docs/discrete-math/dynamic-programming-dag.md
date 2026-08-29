@@ -1,0 +1,101 @@
+---
+title: 动态规划：状态设计、最优子结构与 DAG 视角
+description: 以加权活动选择为例推导动态规划递推、回溯重建与 DAG 最长路视角，解释它为何取代错误贪心。
+courseLevel: "2（算法设计与证明）"
+prerequisites: "递推、排序、贪心反例与渐进复杂度"
+estimatedMinutes: 60
+experiment: "实现加权活动选择并与穷举、最早结束贪心对拍"
+---
+
+# 动态规划：状态设计、最优子结构与 DAG 视角
+
+## 学习目标
+
+读完后，你能从问题目标设计状态和转移；推导加权活动选择的递推；实现价值最优解与具体选择的回溯；用归纳证明正确性；并区分“重叠子问题”与仅仅写递归的区别。
+
+## 从贪心反例到状态
+
+在活动选择中，每个活动价值相同，最早结束贪心可选最多个。若活动附带收益，规则失效：一个结束很早但收益 1 的活动，可能挡住收益 100 的长活动。此时“先做哪一个”不能只看局部；需要保留多个可能过去的最优结果。
+
+将活动按结束时间排序为 $1,\ldots,n$。令 $p(j)$ 是活动 $j$ 之前最后一个与它兼容的活动下标（无则 0）；令 $w_j$ 是价值。状态 $OPT(j)$ 表示前 $j$ 个活动可取得的最大总价值。
+
+## 推导转移：选或不选，没有第三种
+
+最优解对活动 $j$ 只有两种情况：
+
+- 不选 $j$，价值至多 $OPT(j-1)$；
+- 选 $j$，此前只能从前 $p(j)$ 个活动选，价值为 $w_j+OPT(p(j))$。
+
+因此
+
+$$OPT(j)=\max\{OPT(j-1),\;w_j+OPT(p(j))\},\qquad OPT(0)=0.$$
+
+这不是猜公式：任何可行解都落在两种情况之一；各情况中的前缀若不是最优，可替换成更优前缀而不破坏兼容性，便与“原解最优”矛盾。这同时给出最优子结构的证明。
+
+## 可运行实现与回溯
+
+```python
+from bisect import bisect_right
+
+def weighted_activity_selection(activities):
+    """Return (best_value, chosen activities) for (start, finish, value, name)."""
+    if any(start > finish or value < 0 for start, finish, value, _ in activities):
+        raise ValueError("时间区间无效或价值为负")
+    ordered = sorted(activities, key=lambda item: (item[1], item[0]))
+    finishes = [item[1] for item in ordered]
+    previous = [bisect_right(finishes, item[0], hi=index) - 1
+                for index, item in enumerate(ordered)]
+    best = [0] * (len(ordered) + 1)
+    for j, (_, _, value, _) in enumerate(ordered, start=1):
+        best[j] = max(best[j - 1], value + best[previous[j - 1] + 1])
+
+    chosen, j = [], len(ordered)
+    while j:
+        start, finish, value, name = ordered[j - 1]
+        include = value + best[previous[j - 1] + 1]
+        if include > best[j - 1]:
+            chosen.append((start, finish, value, name))
+            j = previous[j - 1] + 1
+        else:
+            j -= 1
+    return best[-1], list(reversed(chosen))
+```
+
+二分搜索每个 $p(j)$ 需 $O(\log n)$，总时间 $O(n\log n)$（排序也相同），状态数组和回溯空间 $O(n)$。若只需最优值且能流式计算兼容关系，可讨论空间压缩；若要重建方案，必须保留足够决策信息。
+
+## DAG 视角与正确性
+
+将每个前缀状态 $0,1,\ldots,n$ 看成 DAG 顶点：有边 $j-1\to j$ 权重 0（不选），有边 $p(j)\to j$ 权重 $w_j$（选）。递推正是在拓扑序上求最长路。DAG 无环保证已依赖状态都先被计算。
+
+归纳证明也直接：假设 $OPT(0),\ldots,OPT(j-1)$ 正确。任一前 $j$ 活动的最优解要么不含 $j$，上界为 $OPT(j-1)$；要么含 $j$，剩余部分上界为 $OPT(p(j))$。算法取两上界较大者，并各自可由对应构造达到，所以 $OPT(j)$ 正确。
+
+## 可验证实验
+
+对不超过 12 个活动的随机小输入，枚举 $2^n$ 子集，过滤兼容集后比较价值与函数返回值。还应构造贪心失败例：`(0,2,1,'short'), (0,4,100,'valuable')`，最早结束规则会选价值 1，而 DP 应选价值 100。
+
+测试回溯时不要只比较活动名顺序：断言返回活动两两兼容、价值和等于 `best_value`、并与穷举最优值相同。
+
+## 失败案例与工程边界
+
+- **状态遗漏关键约束**：若活动有资源类别、冷却时间或多个会议室，只用“最后结束时间”状态可能不够。
+- **循环依赖**：一般图的最长路不是 DAG DP，可能有正环；先确认状态依赖图可拓扑排序。
+- **价值为负**：本实现拒绝它以保持“可选空集”语义清晰；允许负价值时应明确是否必须选择活动。
+- **规模爆炸**：多维背包的状态空间可能是参数乘积；递推正确不代表可承受。
+
+## 常见误区
+
+1. “动态规划就是递归加缓存。”不完整：关键是状态、转移、初值和无环依赖；递归只是实现方式。
+2. “有重叠子问题就一定值得 DP。”错误：状态空间过大时缓存可能更糟。
+3. “只求最大值，不必关心选择。”错误：业务常需要方案本身，回溯设计应从开始考虑。
+4. “DP 总比贪心慢。”错误：本题两者都可为 $O(n\log n)$；区别是适用目标与证明，不只是速度。
+
+## 练习
+
+1. **基础题**：手算三个活动的 $p(j)$ 和 `best` 数组。
+2. **推导题**：写出上面归纳证明的基例、归纳假设和归纳步。
+3. **编码题**：实现穷举对拍器，随机验证 `weighted_activity_selection`；加入相同结束时间的测试。
+4. **开放题**：将问题扩展为两间会议室，讨论状态是否仍是一维前缀，并提出可行算法方向。
+
+## 延伸
+
+本题把[贪心交换论证](/discrete-math/greedy-exchange-arguments)的失败目标转为 DP。继续学习编辑距离、背包和最长递增子序列；它们分别展示网格 DAG、容量维度和状态优化的不同设计模式。

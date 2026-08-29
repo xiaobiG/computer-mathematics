@@ -18,6 +18,7 @@
 - [BFS](/discrete-math/breadth-first-search)：队列分层不变量与无权图最短路；
 - [并查集](/discrete-math/union-find)：森林不变量、路径压缩与动态连通性边界；
 - [贪心算法](/discrete-math/greedy-exchange-arguments)：交换论证、活动选择与反例构造；
+- [动态规划](/discrete-math/dynamic-programming-dag)：状态设计、加权活动选择与 DAG 视角；
 - [离散数学深度版路线](/discrete-math/rewrite-plan)：后续文章、项目和验收标准。
 
 从“二分查找为什么不会漏掉答案”开始，建立证明算法的习惯。
