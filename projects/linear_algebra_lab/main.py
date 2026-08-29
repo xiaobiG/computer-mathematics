@@ -130,6 +130,26 @@ def compress_grayscale(matrix, rank, iterations=80, epsilon=EPSILON):
     return components, approximation, frobenius_error(matrix, approximation)
 
 
+def image_cosine_similarity(left, right):
+    """Compare same-shaped grayscale matrices as flattened vectors; zero images score 0."""
+    if (not left or not right or len(left) != len(right)
+            or any(len(row) != len(left[0]) for row in left)
+            or any(len(row) != len(right[0]) for row in right)
+            or len(left[0]) != len(right[0])):
+        raise ValueError("images must be non-empty matrices with identical shapes")
+    dot = sum(left[row][column] * right[row][column]
+              for row in range(len(left)) for column in range(len(left[0])))
+    left_length = sqrt(sum(value * value for row in left for value in row))
+    right_length = sqrt(sum(value * value for row in right for value in row))
+    return dot / (left_length * right_length) if left_length and right_length else 0.0
+
+
+def rank_images(query, images):
+    """Rank grayscale matrices by cosine similarity, preserving input order on ties."""
+    return sorted(enumerate(image_cosine_similarity(query, image) for image in images),
+                  key=lambda item: item[1], reverse=True)
+
+
 def frobenius_error(matrix, approximation):
     """Return ||matrix - approximation||_F after checking compatible shapes."""
     if (len(matrix) != len(approximation) or not matrix

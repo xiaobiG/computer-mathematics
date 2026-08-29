@@ -1,7 +1,7 @@
 import unittest
 
 from projects.linear_algebra_lab.main import (
-    compress_grayscale, dominant_right_singular_vector, frobenius_error, matmul, norm, project,
+    compress_grayscale, dominant_right_singular_vector, frobenius_error, image_cosine_similarity, matmul, norm, project,
     rank_k_approximation, rank_one_approximation, solve,
 )
 
@@ -60,6 +60,13 @@ class LinearAlgebraLabTests(unittest.TestCase):
     def test_rank_k_rejects_nonpositive_rank(self):
         with self.assertRaises(ValueError):
             rank_k_approximation([[1.0]], rank=0)
+
+    def test_flattened_image_cosine_similarity(self):
+        self.assertAlmostEqual(image_cosine_similarity([[1.0, 0.0]], [[2.0, 0.0]]), 1.0)
+        self.assertEqual(image_cosine_similarity([[1.0, 0.0]], [[0.0, 1.0]]), 0.0)
+        self.assertEqual(image_cosine_similarity([[0.0]], [[0.0]]), 0.0)
+        with self.assertRaises(ValueError):
+            image_cosine_similarity([[1.0]], [[1.0, 2.0]])
 
 
 if __name__ == "__main__":
