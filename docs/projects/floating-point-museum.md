@@ -18,6 +18,7 @@ description: 用可复现实验观察舍入、累计误差、消去误差与蒙�
 - [数值插值](/numerical-computing/interpolation)：用差商构造多项式，并观察外推与高阶节点的误差边界。
 - [随机模拟的误差与可复现性](/numerical-computing/stochastic-simulation-reproducibility)：抽样误差、固定种子与重复报告。
 - [牛顿法](/numerical-computing/newton-method)：以符号变化区间和迭代轨迹审查混合求根的收敛证据。
+- [割线法](/numerical-computing/secant-method)：以两点插值公式、事件连接和残差审计无导数迭代。
 
 ## 运行
 
@@ -39,7 +40,7 @@ python -m unittest projects.floating_point_museum.test_conditioning
 3. `1e16 + 1 + 1 - 1e16`：比较普通累加、Kahan 与固定归约树的 pairwise 求和；观察 pairwise 改善误差层数，却不保证修复每个抵消顺序。
 4. $\sqrt{x+1}-\sqrt{x}$：通过有理化避免消去误差。
 5. 单位圆蒙特卡洛：用多个固定 seed 估计 $\pi$，报告均值、样本标准差和标准误，而不是挑选一次结果。
-6. 割线法：不提供导数求解 $x^2-2=0$，并观察零割线斜率如何被拒绝。
+6. 割线法：不提供导数求解 $x^2-2=0$，逐轮检查两点插值公式、事件连接和残差，并观察零割线斜率如何被拒绝。
 7. 病态 $2\\times2$ 线性系统：保持残差接近零，同时观察微小右端扰动如何让解发生数量级更大的变化；这是条件数与后向误差不能混为一谈的反例。
 8. 数值积分：以 $\sin x$ 的精确积分为预言，比较梯形法和 Simpson 法网格加密时约为 4 与 16 的误差比，并拒绝奇数 Simpson 网格和非有限函数值。
 9. 受保护牛顿法：对每一步保留的符号变化区间做审计；当牛顿建议跳出区间时回退到二分，而不是把循环或越界伪装成收敛。

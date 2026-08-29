@@ -7,34 +7,90 @@ from math import isfinite
 from typing import Callable
 
 
-def secant_root(
+@dataclass(frozen=True)
+class SecantEvent:
+    """One secant update, with both inputs and the newly evaluated candidate."""
+
+    iteration: int
+    previous: float
+    current: float
+    previous_value: float
+    current_value: float
+    candidate: float
+    candidate_value: float
+
+
+def secant_trace(
     function: Callable[[float], float], left: float, right: float, *,
     residual_tol: float = 1e-12, step_tol: float = 1e-12, max_steps: int = 80,
-) -> float:
-    """Find a root from two distinct function values, or report a failed contract."""
+) -> tuple[float, list[SecantEvent]]:
+    """Find a root and record every finite-difference update for audit."""
     if max_steps <= 0 or residual_tol <= 0 or step_tol <= 0:
         raise ValueError("tolerances and max_steps must be positive")
     f_left, f_right = function(left), function(right)
     if not isfinite(f_left) or not isfinite(f_right):
         raise ValueError("initial function values must be finite")
-    for _ in range(max_steps):
+    events: list[SecantEvent] = []
+    for iteration in range(1, max_steps + 1):
         if abs(f_right) <= residual_tol:
-            return right
+            return right, events
         denominator = f_right - f_left
         if denominator == 0:
             raise RuntimeError("secant slope vanished")
         candidate = right - f_right * (right - left) / denominator
         if not isfinite(candidate):
             raise RuntimeError("secant step became non-finite")
+        candidate_value = function(candidate)
+        if not isfinite(candidate_value):
+            raise RuntimeError("function became non-finite during iteration")
+        events.append(SecantEvent(iteration, left, right, f_left, f_right, candidate, candidate_value))
+        if abs(candidate_value) <= residual_tol:
+            return candidate, events
         if abs(candidate - right) <= step_tol * max(1.0, abs(candidate)):
-            if abs(function(candidate)) <= residual_tol:
-                return candidate
             raise RuntimeError("secant iteration stagnated away from a root")
         left, f_left = right, f_right
-        right, f_right = candidate, function(candidate)
-        if not isfinite(f_right):
-            raise RuntimeError("function became non-finite during iteration")
+        right, f_right = candidate, candidate_value
     raise RuntimeError("secant method did not converge within max_steps")
+
+
+def secant_trace_certificate(
+    function: Callable[[float], float], events: list[SecantEvent], *, tolerance: float = 1e-12,
+) -> bool:
+    """Independently check secant interpolation and consecutive-event linkage."""
+    if tolerance <= 0 or not isfinite(tolerance):
+        raise ValueError("tolerance must be finite and positive")
+    previous_event: SecantEvent | None = None
+    for event in events:
+        if not all(isfinite(value) for value in (
+            event.previous, event.current, event.previous_value, event.current_value,
+            event.candidate, event.candidate_value,
+        )):
+            return False
+        denominator = event.current_value - event.previous_value
+        if denominator == 0:
+            return False
+        expected = event.current - event.current_value * (event.current - event.previous) / denominator
+        scale = max(1.0, abs(expected), abs(event.candidate))
+        if abs(event.candidate - expected) > tolerance * scale:
+            return False
+        if (abs(function(event.previous) - event.previous_value) > tolerance
+                or abs(function(event.current) - event.current_value) > tolerance
+                or abs(function(event.candidate) - event.candidate_value) > tolerance):
+            return False
+        if previous_event and (event.previous != previous_event.current or event.current != previous_event.candidate):
+            return False
+        previous_event = event
+    return True
+
+
+def secant_root(
+    function: Callable[[float], float], left: float, right: float, *,
+    residual_tol: float = 1e-12, step_tol: float = 1e-12, max_steps: int = 80,
+) -> float:
+    """Return only the root from :func:`secant_trace` for a compact API."""
+    root, _ = secant_trace(function, left, right, residual_tol=residual_tol,
+                           step_tol=step_tol, max_steps=max_steps)
+    return root
 
 
 @dataclass(frozen=True)

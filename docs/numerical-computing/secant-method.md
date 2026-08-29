@@ -32,17 +32,20 @@ $$x_{k+1}=x_k-f(x_k)\frac{x_k-x_{k-1}}{f(x_k)-f(x_{k-1})}.$$
 ## 可运行实现
 
 ```python
-from projects.floating_point_museum.root_finding import secant_root
+from projects.floating_point_museum.root_finding import secant_trace, secant_trace_certificate
 
-root = secant_root(lambda value: value * value - 2, 1.0, 2.0)
+function = lambda value: value * value - 2.0
+root, events = secant_trace(function, 1.0, 2.0)
 assert abs(root * root - 2) <= 1e-12
+assert secant_trace_certificate(function, events)
+assert abs(events[-1].candidate_value) <= 1e-12
 ```
 
 ```bash
 python -m unittest projects.floating_point_museum.test_root_finding
 ```
 
-实现每轮只计算一个新函数值，时间为 $O(k)$ 次函数评估、额外空间 $O(1)$。它检查初值函数值是否有限、分母是否为零、候选值是否有限、步长停滞时残差是否也已满足，以及最大迭代次数。
+每个 `SecantEvent` 都保存两次插值输入、函数值和新候选点。`secant_trace_certificate` 独立重算割线公式、函数值和相邻事件的连接关系，因此可发现“最终根看起来正确、但某一轮更新公式被改错”的回归。求根实现每轮只计算一个新函数值，时间为 $O(k)$ 次函数评估、额外空间 $O(k)$ 用于保留轨迹（只调用 `secant_root` 时仍只保留 $O(1)$ 状态）。它检查初值函数值是否有限、分母是否为零、候选值是否有限、步长停滞时残差是否也已满足，以及最大迭代次数。
 
 ## 收敛与正确性边界
 

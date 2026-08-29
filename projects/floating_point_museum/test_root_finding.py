@@ -1,7 +1,9 @@
 import unittest
 from math import sqrt
 
-from projects.floating_point_museum.root_finding import safeguarded_newton_trace, secant_root
+from projects.floating_point_museum.root_finding import (
+    safeguarded_newton_trace, secant_root, secant_trace, secant_trace_certificate,
+)
 
 
 class SecantRootTests(unittest.TestCase):
@@ -11,6 +13,21 @@ class SecantRootTests(unittest.TestCase):
 
     def test_accepts_root_at_initial_right_endpoint(self):
         self.assertEqual(secant_root(lambda value: value - 3, 1.0, 3.0), 3.0)
+
+    def test_secant_trace_certifies_interpolation_formula_and_event_linkage(self):
+        function = lambda value: value * value - 2.0
+        root, events = secant_trace(function, 1.0, 2.0)
+        self.assertAlmostEqual(root, sqrt(2.0), places=10)
+        self.assertTrue(events)
+        self.assertLess(abs(events[-1].candidate_value), 1e-12)
+        self.assertTrue(secant_trace_certificate(function, events))
+        tampered = list(events)
+        tampered[0] = tampered[0].__class__(
+            tampered[0].iteration, tampered[0].previous, tampered[0].current,
+            tampered[0].previous_value, tampered[0].current_value,
+            tampered[0].candidate + 0.1, tampered[0].candidate_value,
+        )
+        self.assertFalse(secant_trace_certificate(function, tampered))
 
     def test_rejects_vanishing_slope_and_invalid_contract(self):
         with self.assertRaises(RuntimeError):
