@@ -42,39 +42,19 @@ $$x,x^2,x^{2^2},\ldots,x^{2^{s-1}}$$
 ## 可运行教学实现
 
 ```python
-from random import Random
+from projects.crypto_toybox.primality import miller_rabin_report
 
-def is_probable_prime(n, rounds=16, seed=0):
-    if n < 2:
-        return False
-    small_primes = (2, 3, 5, 7, 11, 13, 17, 19, 23, 29)
-    if n in small_primes:
-        return True
-    if n % 2 == 0:
-        return False
-    d, s = n - 1, 0
-    while d % 2 == 0:
-        d //= 2
-        s += 1
-    rng = Random(seed)
-    for _ in range(rounds):
-        a = rng.randrange(2, n - 1)
-        x = pow(a, d, n)
-        if x in (1, n - 1):
-            continue
-        for _ in range(s - 1):
-            x = (x * x) % n
-            if x == n - 1:
-                break
-        else:
-            return False  # 已找到确定的合数见证者
-    return True  # 只能称为 probable prime
+composite = miller_rabin_report(561, [2, 3, 5])
+assert not composite["probably_prime"]
+assert composite["witnesses"]
+assert composite["certificate"]["all_rounds_replay"]
 
-assert not is_probable_prime(561)
-assert is_probable_prime(1_000_000_007)
+prime = miller_rabin_report(1_000_000_007, [2, 3, 5])
+assert prime["probably_prime"]
+assert prime["certificate"]["valid"]
 ```
 
-每轮由一次 $O(\log n)$ 次模乘的快速幂主导；对大整数，实际成本取决于乘法算法和运行时。固定种子只为复现教程；生成密钥候选时，底数与候选数必须来自密码学安全随机源。
+运行 `python -m unittest projects.crypto_toybox.test_primality`。每一轮保留 $n-1=2^sd$、底数和完整平方链；`miller_rabin_round_certificate` 可逐项重放它。报告只接受调用者明确传入的教学底数，并把发现的见证者单独列出：因此 `probably_prime=False` 带有可复算的合数证据，`True` 始终只是这些轮次下的“可能素数”。每轮由一次 $O(\log n)$ 次模乘的快速幂主导；对大整数，实际成本取决于乘法算法和运行时。真实密钥候选的底数与候选数必须来自密码学安全随机源和经审计库策略。
 
 ## 正确性与可验证实验
 
