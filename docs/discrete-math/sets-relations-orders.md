@@ -47,37 +47,17 @@ description: 用集合与二元关系描述程序状态，推导等价类划分�
 ## 可运行验证
 
 ```python
-def is_equivalence_relation(items, relation):
-    for a in items:
-        if (a, a) not in relation:
-            return False
-        for b in items:
-            if (a, b) in relation and (b, a) not in relation:
-                return False
-            for c in items:
-                if (a, b) in relation and (b, c) in relation and (a, c) not in relation:
-                    return False
-    return True
-
-
-def equivalence_classes(items, relation):
-    if not is_equivalence_relation(items, relation):
-        raise ValueError("relation 必须是等价关系")
-    unseen, classes = set(items), []
-    while unseen:
-        a = next(iter(unseen))
-        group = {b for b in items if (a, b) in relation}
-        classes.append(group)
-        unseen -= group
-    return classes
-
+from projects.algorithm_lab.relations import equivalence_classes, relation_report
 
 items = {1, 2, 3, 4, 5, 6}
 same_parity = {(a, b) for a in items for b in items if a % 2 == b % 2}
-print(equivalence_classes(items, same_parity))  # [{1,3,5}, {2,4,6}]，顺序可不同
+assert relation_report(items, same_parity)["equivalence"]
+assert {frozenset(group) for group in equivalence_classes(items, same_parity)} == {
+    frozenset({1, 3, 5}), frozenset({2, 4, 6}),
+}
 ```
 
-代码用 \(O(|S|^3)\) 直接检查定义，适合教学和小输入；真实的“同组”关系常由图连通性或 DSU 增量维护，而不显式存储所有有序对。
+运行 `python -m unittest projects.algorithm_lab.test_relations`。`relation_report` 分别返回自反、对称、反对称、传递、等价和偏序六项布尔证据；测试将奇偶关系验证为等价关系，将 $\le$ 验证为偏序而非等价关系，并拒绝引用集合外元素的关系。代码用 \(O(|S|^3)\) 直接检查定义，适合教学和小输入；真实的“同组”关系常由图连通性或 DSU 增量维护，而不显式存储所有有序对。
 
 ## 常见误区与边界
 
