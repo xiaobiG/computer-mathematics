@@ -75,6 +75,20 @@ for (const path of files) {
   }
 }
 
+// These public progress numbers are intentionally checked against the source
+// tree.  Otherwise adding a lesson can silently leave the dashboard claiming
+// an older course count, which makes a learning roadmap look more complete or
+// less complete than the material readers can actually open.
+const actualCourses = files.filter((path) => !path.endsWith('rewrite-plan.md')).length
+const about = await readFile(join(docsRoot, 'about.md'), 'utf8')
+const maturity = await readFile(join(docsRoot, 'course-maturity.md'), 'utf8')
+if (!about.includes(`课程正文 | ${files.length} 篇`) || !about.includes(`${actualCourses} 篇实际课程`)) {
+  errors.push(`about.md: 课程规模应为 ${files.length} 篇正文、${actualCourses} 篇实际课程`)
+}
+if (!maturity.includes(`所有 ${actualCourses} 篇实际课程文章`)) {
+  errors.push(`course-maturity.md: 实际课程数应为 ${actualCourses}`)
+}
+
 if (errors.length) {
   console.error('内容校验失败：\n' + errors.map((error) => `- ${error}`).join('\n'))
   process.exit(1)
