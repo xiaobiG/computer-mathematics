@@ -29,6 +29,7 @@ export default defineConfig({
       { text: '综合项目', link: '/projects/' },
       { text: '术语表', link: '/glossary' },
       { text: '编辑流程', link: '/editorial-workflow' },
+      { text: '练习提示', link: '/exercise-hints' },
       { text: '项目状态', link: '/about' },
       { text: '写作规范', link: '/contributing' },
     ],
