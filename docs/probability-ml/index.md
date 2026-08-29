@@ -10,7 +10,8 @@
 4. 抽样、估计与置信区间
 5. 最大似然与交叉熵
 6. 生成模型、朴素贝叶斯与逻辑回归
-7. 朴素贝叶斯、EM 与模型不确定性
+7. 蒙特卡洛、MCMC 与模型不确定性
+8. 朴素贝叶斯、EM 与模型不确定性
 
 ## 当前深度版
 
@@ -23,6 +24,7 @@
 - [常见分布](/probability-ml/common-distributions)：从生成机制选择伯努利、泊松、指数与正态模型；
 - [假设检验与 p 值](/probability-ml/hypothesis-testing)：置换检验、错误率与实验决策边界；
 - [蒙特卡洛与重要性采样](/probability-ml/monte-carlo-importance-sampling)：随机积分、权重与有效样本量；
+- [Metropolis–Hastings](/probability-ml/metropolis-hastings)：详细平衡、接受率、相关样本与混合边界；
 - [概率校准与可靠性曲线](/probability-ml/calibration-reliability)：把分类分数变为可审计的概率承诺；
 - [概率论深度版路线](/probability-ml/rewrite-plan)：分层学习和垃圾邮件分类项目。
 

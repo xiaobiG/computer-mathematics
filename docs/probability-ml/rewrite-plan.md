@@ -16,11 +16,11 @@ description: 从不确定性建模到统计推断与机器学习损失函数的�
 | 0 | 集合、事件、计数、条件化 | 计划补齐 |
 | 1 | 条件概率、随机变量、期望、方差、协方差与分布 | [贝叶斯更新](/probability-ml/bayes)、[协方差与相关性](/probability-ml/covariance-correlation) 已深化 |
 | 2 | 全概率、抽样误差、置信区间、MLE/MAP、交叉熵、假设检验 | [抽样误差与置信区间](/probability-ml/confidence-intervals-sampling)、[共轭先验与后验预测](/probability-ml/conjugate-priors-predictive)、最大似然与假设检验已深化 |
-| 3 | 校准、蒙特卡洛、重要性采样、生成模型 | [校准与可靠性曲线](/probability-ml/calibration-reliability)、[生成模型与逻辑回归](/probability-ml/generative-discriminative-logistic)、蒙特卡洛与重要性采样已深化；下一缺口是再校准与数据漂移 |
+| 3 | 校准、蒙特卡洛、重要性采样、MCMC、生成模型 | [校准与可靠性曲线](/probability-ml/calibration-reliability)、[生成模型与逻辑回归](/probability-ml/generative-discriminative-logistic)、[Metropolis–Hastings](/probability-ml/metropolis-hastings)、蒙特卡洛与重要性采样已深化；下一缺口是再校准与数据漂移 |
 
 ## 项目连接
 
-已提供[词袋朴素贝叶斯垃圾邮件分类器](/projects/naive-bayes-spam)：训练时以拉普拉斯平滑估计似然，预测时在对数域相加并稳定地转为后验，以混淆矩阵、Brier 分数与可靠性分箱审查结果。配套的最小逻辑回归实现以伯努利似然和批量梯度下降直接学习后验。它们共同验证“后验高”与“模型校准良好”并非同一件事；下一步应在独立验证集上加入再校准与漂移监控。
+已提供[词袋朴素贝叶斯垃圾邮件分类器](/projects/naive-bayes-spam)：训练时以拉普拉斯平滑估计似然，预测时在对数域相加并稳定地转为后验，以混淆矩阵、Brier 分数与可靠性分箱审查结果。配套的最小逻辑回归实现以伯努利似然和批量梯度下降直接学习后验；有限状态 MH 实验则验证未归一化后验也能通过接受/拒绝采样。它们共同验证“后验高”与“模型校准良好”并非同一件事；下一步应在独立验证集上加入再校准与漂移监控。
 
 ## 练习
 
