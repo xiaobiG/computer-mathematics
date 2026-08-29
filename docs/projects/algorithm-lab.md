@@ -1,13 +1,13 @@
 ---
 title: 项目：算法可视化实验室
-description: 用 BFS、拓扑排序状态轨迹和 3-SAT 验证器连接不变量、依赖环与复杂度。
+description: 用图搜索、拓扑排序、最大流轨迹和 3-SAT 验证器连接不变量、最优证书与复杂度。
 ---
 
 # 项目：算法可视化实验室
 
 ## 目标
 
-这个最小实验室不是绘制动画，而是输出算法每次推进后的状态和候选解验证结果。读者可以把每一行轨迹与 BFS 的层级不变量、或 Kahn 算法的入度不变量对应起来，也可对比 3-SAT 的线性验证与指数搜索。
+这个最小实验室不是绘制动画，而是输出算法每次推进后的状态和候选解验证结果。读者可以把每一行轨迹与 BFS 的层级不变量、Kahn 算法的入度不变量或最大流的残量网络对应起来，也可对比 3-SAT 的线性验证与指数搜索。
 
 ## 数学连接
 
@@ -17,6 +17,7 @@ description: 用 BFS、拓扑排序状态轨迹和 3-SAT 验证器连接不变�
 - [渐进复杂度](/discrete-math/asymptotic-complexity)：为何邻接表下为 $O(V+E)$。
 - [P、NP 与多项式归约](/discrete-math/p-np-reductions)：候选解验证为何不等于快速搜索。
 - [Floyd–Warshall](/discrete-math/floyd-warshall)：用中间点集合做全源最短路动态规划。
+- [最大流最小割](/discrete-math/max-flow-min-cut)：增广路和残量可达集如何构成最优证书。
 
 ## 运行
 
@@ -26,6 +27,7 @@ python -m unittest projects.algorithm_lab.test_dfs_trace
 python -m unittest projects.algorithm_lab.test_strongly_connected
 python projects/algorithm_lab/sat_verifier.py
 python -m unittest projects.algorithm_lab.test_floyd_warshall
+python -m unittest projects.algorithm_lab.test_max_flow
 python -m unittest discover -s projects/algorithm_lab -p "test_*.py"
 ```
 
@@ -67,6 +69,7 @@ assert witness is not None and verify_assignment(formula, witness)
 6. 为一张含负边但无负环的图计算全源距离；加入负环后，解释为什么结果应被拒绝。
 7. 对含环图检查 DFS 每个顶点只发现、完成一次；比较其路径与 BFS 最短路为何不同。
 8. 将有向依赖图压缩为强连通分量，先报告循环组件，再对凝聚图做拓扑排序。
+9. 对一个容量网络列出每条增广路，并计算最终残量可达集合的割容量，核对其等于总流量。
 
 ## 工程边界
 
