@@ -12,11 +12,12 @@
 | --- | --- | --- | --- |
 | 1 | [向量与点积](/linear-algebra/vectors-dot-product) | 两个对象的方向是否相近？ | 深度正文 · 45 分钟 |
 | 2 | [线性组合、基与维度](/linear-algebra/linear-combinations-basis) | 哪些特征是冗余的？ | 深度正文 · 40 分钟 |
-| 3 | [矩阵乘法与线性变换](/linear-algebra/matrix-multiplication) | 多个变换如何合成为一步？ | 深度正文 · 45 分钟 |
-| 4 | [高斯消元](/linear-algebra/gaussian-elimination) | 方程组有哪一种解？ | 深度正文 · 50 分钟 |
-| 5 | [最小二乘](/linear-algebra/least-squares) | 没有精确解时如何拟合？ | 深度正文 · 50 分钟 |
-| 6 | [特征值与 PCA](/linear-algebra/eigenvalues-pca) | 如何保留数据最重要方向？ | 深度正文 · 55 分钟 |
-| 7 | [SVD](/linear-algebra/svd) | 如何用低秩近似压缩矩阵？ | 深度正文 · 55 分钟 |
+| 3 | [矩阵的四个基本子空间](/linear-algebra/four-fundamental-subspaces) | 哪些输出可达、哪些信息丢失？ | 深度正文 · 60 分钟 |
+| 4 | [矩阵乘法与线性变换](/linear-algebra/matrix-multiplication) | 多个变换如何合成为一步？ | 深度正文 · 45 分钟 |
+| 5 | [高斯消元](/linear-algebra/gaussian-elimination) | 方程组有哪一种解？ | 深度正文 · 50 分钟 |
+| 6 | [最小二乘](/linear-algebra/least-squares) | 没有精确解时如何拟合？ | 深度正文 · 50 分钟 |
+| 7 | [特征值与 PCA](/linear-algebra/eigenvalues-pca) | 如何保留数据最重要方向？ | 深度正文 · 55 分钟 |
+| 8 | [SVD](/linear-algebra/svd) | 如何用低秩近似压缩矩阵？ | 深度正文 · 55 分钟 |
 
 ## 版本资源
 
