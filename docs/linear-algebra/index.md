@@ -1,20 +1,25 @@
 # 程序员的线性代数
 
-矩阵不是表格，而是一种可组合的线性变换；向量也不只是坐标，它可以表示方向、特征和状态。
+**v0.2 已完成。** 本专题把线性代数讲成一条可执行的链：用向量表示对象，用矩阵表示变换，用消元或投影求解问题，最后以 PCA、SVD 压缩数据。
+
+## 学习方式
+
+每篇正文含有前置知识、推导、手算、代码、工程边界和三级练习。建议每周完成一篇，并在最后用[线性代数实验室](/projects/linear-algebra-lab)复现矩阵乘法、消元与投影。
 
 ## 课程地图
 
-1. 向量、点积、范数与相似度
-2. 线性组合、基与维度
-3. 矩阵与线性变换
-4. 线性方程组与高斯消元
-5. 最小二乘、投影与 QR 分解
-6. 特征值、SVD 与 PCA
+| 顺序 | 主题 | 你将解决的问题 | 状态 |
+| --- | --- | --- | --- |
+| 1 | [向量与点积](/linear-algebra/vectors-dot-product) | 两个对象的方向是否相近？ | 深度正文 · 45 分钟 |
+| 2 | [线性组合、基与维度](/linear-algebra/linear-combinations-basis) | 哪些特征是冗余的？ | 深度正文 · 40 分钟 |
+| 3 | [矩阵乘法与线性变换](/linear-algebra/matrix-multiplication) | 多个变换如何合成为一步？ | 深度正文 · 45 分钟 |
+| 4 | [高斯消元](/linear-algebra/gaussian-elimination) | 方程组有哪一种解？ | 深度正文 · 50 分钟 |
+| 5 | [最小二乘](/linear-algebra/least-squares) | 没有精确解时如何拟合？ | 深度正文 · 50 分钟 |
+| 6 | [特征值与 PCA](/linear-algebra/eigenvalues-pca) | 如何保留数据最重要方向？ | 深度正文 · 55 分钟 |
+| 7 | [SVD](/linear-algebra/svd) | 如何用低秩近似压缩矩阵？ | 深度正文 · 55 分钟 |
 
-## 第一个问题
+## 版本资源
 
-为什么余弦相似度可以衡量两个文本向量是否相近？它忽略向量长度，只比较方向：
-
-$$\cos\theta = \frac{\mathbf{x}\cdot\mathbf{y}}{\lVert\mathbf{x}\rVert\lVert\mathbf{y}\rVert}$$
-
-下一篇将从点积的几何意义开始。
+- [v0.2 重写清单](/linear-algebra/rewrite-plan)：每篇的深化重点和发布节拍。
+- [深度文章模板](/templates/deep-lesson)：后续专题写作的统一完成标准。
+- [线性代数实验室](/projects/linear-algebra-lab)：可运行、可测试的教学实现。

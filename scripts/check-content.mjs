@@ -29,6 +29,7 @@ const errors = []
 for (const path of files) {
   const source = await readFile(path, 'utf8')
   const label = relative(docsRoot, path)
+  const [folder] = label.split(/[/\\]/)
   if (!/^---\r?\ntitle:\s*.+\r?\ndescription:\s*.+\r?\n---/m.test(source)) {
     errors.push(`${label}: 缺少 title 与 description frontmatter`)
   }
@@ -40,6 +41,25 @@ for (const path of files) {
   }
   if (!/^##\s+/m.test(source)) {
     errors.push(`${label}: 缺少至少一个二级章节`)
+  }
+  if (folder === 'linear-algebra' && !label.endsWith('rewrite-plan.md')) {
+    const requiredSections = [
+      '学习目标',
+      '从一个计算问题开始',
+      '常见误区',
+      '练习',
+    ]
+    for (const section of requiredSections) {
+      if (!new RegExp(`^##\\s+${section}\\s*$`, 'm').test(source)) {
+        errors.push(`${label}: v0.2 深度文章缺少“${section}”章节`)
+      }
+    }
+    if (!/^##\s+.*(?:失败案例|工程边界).*$/m.test(source)) {
+      errors.push(`${label}: v0.2 深度文章缺少失败案例或工程边界`)
+    }
+    if (!/```(?:python)?\r?\n[\s\S]*?```/.test(source)) {
+      errors.push(`${label}: v0.2 深度文章缺少可运行代码块`)
+    }
   }
 }
 
