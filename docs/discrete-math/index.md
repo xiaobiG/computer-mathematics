@@ -15,6 +15,8 @@
 
 - [循环不变量](/discrete-math/loop-invariants)：二分查找为何不会漏掉答案；
 - [Dijkstra](/discrete-math/dijkstra)：非负边权为何能贪心，以及负权边为何失败；
+- [BFS](/discrete-math/breadth-first-search)：队列分层不变量与无权图最短路；
+- [并查集](/discrete-math/union-find)：森林不变量、路径压缩与动态连通性边界；
 - [离散数学深度版路线](/discrete-math/rewrite-plan)：后续文章、项目和验收标准。
 
 从“二分查找为什么不会漏掉答案”开始，建立证明算法的习惯。
