@@ -171,6 +171,23 @@ print(topological_sort({"a": ["b"], "b": ["a"]}))  # None
 
 注意最后的顺序方向：示例边是“依赖者 → 被依赖者”，因此先出现 `app`。若构建系统想先编译依赖，需要反转边，或反转得到的序列。算法没有替你决定业务语义。
 
+实验室还提供对轨迹的独立重放检查：
+
+```python
+from projects.algorithm_lab.topological_trace import topological_trace, topological_trace_certificate
+
+graph = {"compile": ["build"], "build": []}
+order, events = topological_trace(graph)
+assert topological_trace_certificate(graph, order, events)["valid"]
+
+cyclic = {"a": ["b"], "b": ["a"]}
+order, events = topological_trace(cyclic)
+assert order is None
+assert topological_trace_certificate(cyclic, order, events)["residual_nodes_have_positive_indegree"]
+```
+
+证书逐轮重算入度和就绪队列，检查输出序是否让每条边从前指向后。若没有拓扑序，证书要求 Kahn 队列耗尽时每个剩余顶点的入度都大于零；沿任意剩余顶点的入边倒走必形成有向环。这使 `None` 不再只是一个空结果，而是可检查的失败原因。
+
 ## 工程边界与常见误区
 
 - **递归 DFS 栈溢出。** 深链图在 Python 中会触及递归深度限制；生产实现常使用显式栈。
