@@ -171,3 +171,71 @@ def safeguarded_newton_trace(
             raise RuntimeError("hybrid Newton iteration stagnated away from a root")
         current = candidate
     raise RuntimeError("hybrid Newton iteration did not converge within max_steps")
+
+
+def safeguarded_newton_trace_certificate(
+    function: Callable[[float], float], derivative: Callable[[float], float],
+    left: float, right: float, initial: float, root: float, events: list[NewtonEvent], *,
+    residual_tol: float = 1e-12, derivative_tol: float = 1e-14,
+) -> bool:
+    """Replay a successful hybrid Newton trace without trusting its events.
+
+    For each recorded round the verifier recomputes the Newton proposal, checks
+    why bisection was selected when necessary, and re-applies the sign-change
+    bracket update. It certifies this finite execution; continuity and the
+    intermediate-value theorem are still the mathematical reason a bracketed
+    sign change contains a root.
+    """
+    if (not all(isfinite(value) for value in (
+        left, right, initial, root, residual_tol, derivative_tol,
+    )) or left >= right or not left <= initial <= right
+            or residual_tol <= 0 or derivative_tol <= 0):
+        return False
+    try:
+        left_value, right_value = function(left), function(right)
+        if not isfinite(left_value) or not isfinite(right_value):
+            return False
+        if abs(left_value) <= residual_tol:
+            return not events and root == left
+        if abs(right_value) <= residual_tol:
+            return not events and root == right
+        if left_value * right_value >= 0:
+            return False
+
+        current = initial
+        for iteration, event in enumerate(events, start=1):
+            current_value = function(current)
+            if not isfinite(current_value) or abs(current_value) <= residual_tol:
+                return False
+            slope = derivative(current)
+            expected_method = "bisection"
+            candidate = (left + right) / 2.0
+            if isfinite(slope) and abs(slope) > derivative_tol:
+                proposal = current - current_value / slope
+                if isfinite(proposal) and left < proposal < right:
+                    candidate = proposal
+                    expected_method = "newton"
+            candidate_value = function(candidate)
+            if not isfinite(candidate_value):
+                return False
+            if candidate_value == 0.0:
+                next_left = next_right = candidate
+                next_left_value = next_right_value = candidate_value
+            elif (left_value < 0 < candidate_value) or (candidate_value < 0 < left_value):
+                next_left, next_left_value = left, left_value
+                next_right, next_right_value = candidate, candidate_value
+            else:
+                next_left, next_left_value = candidate, candidate_value
+                next_right, next_right_value = right, right_value
+            expected = NewtonEvent(
+                iteration, expected_method, candidate, candidate_value,
+                next_left, next_right, next_left_value, next_right_value,
+            )
+            if event != expected:
+                return False
+            left, right = next_left, next_right
+            left_value, right_value = next_left_value, next_right_value
+            current = candidate
+        return root == current and abs(function(root)) <= residual_tol
+    except (ArithmeticError, ValueError, ZeroDivisionError):
+        return False

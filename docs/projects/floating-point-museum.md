@@ -17,7 +17,7 @@ description: 用可复现实验观察舍入、累计误差、消去误差与蒙�
 - [迭代解线性方程组](/numerical-computing/iterative-linear-systems)：用残差和步长一起审查 Jacobi/Gauss–Seidel 的收敛。
 - [数值插值](/numerical-computing/interpolation)：用差商构造多项式，并观察外推与高阶节点的误差边界。
 - [随机模拟的误差与可复现性](/numerical-computing/stochastic-simulation-reproducibility)：抽样误差、固定种子与重复报告。
-- [牛顿法](/numerical-computing/newton-method)：以符号变化区间和迭代轨迹审查混合求根的收敛证据。
+- [牛顿法](/numerical-computing/newton-method)：重放每步 Newton/二分决策与符号变化区间，审查混合求根的收敛证据。
 - [割线法](/numerical-computing/secant-method)：以两点插值公式、事件连接和残差审计无导数迭代。
 - [数值微分](/numerical-computing/numerical-differentiation)：扫描中心差分步长，审查二阶截断趋势与极小步长的误差反弹。
 

@@ -68,7 +68,10 @@ $$e_{k+1}=\frac{f''(r)}{2f'(r)}e_k^2+O(e_k^3).$$
 ## 可运行实现：受保护的牛顿法
 
 ```python
-from projects.floating_point_museum.root_finding import safeguarded_newton_trace
+from projects.floating_point_museum.root_finding import (
+    safeguarded_newton_trace,
+    safeguarded_newton_trace_certificate,
+)
 
 root, events = safeguarded_newton_trace(
     lambda x: x * x - 2.0, lambda x: 2.0 * x,
@@ -76,9 +79,13 @@ root, events = safeguarded_newton_trace(
 )
 assert abs(root * root - 2.0) <= 1e-12
 assert all(event.left_value * event.right_value <= 0.0 for event in events)
+assert safeguarded_newton_trace_certificate(
+    lambda x: x * x - 2.0, lambda x: 2.0 * x,
+    0.0, 2.0, 1.0, root, events,
+)
 ```
 
-运行 `python -m unittest projects.floating_point_museum.test_root_finding`。`safeguarded_newton_trace` 返回每一步的方法、候选值、残差和更新后的区间端点/函数值。测试不只检查 $\sqrt2$ 的近似值，还验证每个事件仍保留符号变化；对 $x^3-2x+2$ 从 $0$ 出发，首次越界的牛顿建议会被替换为二分步。每轮计算量为 $O(1)$（不计函数本身），总成本为 $O(k)$ 次函数/导数评估。局部二次收敛能显著减小 $k$，但昂贵导数、自动微分图和区间回退都会改变实际成本。
+运行 `python -m unittest projects.floating_point_museum.test_root_finding`。`safeguarded_newton_trace` 返回每一步的方法、候选值、残差和更新后的区间端点/函数值；`safeguarded_newton_trace_certificate` 不信任这些记录，而是独立重算 Newton 建议、越界/小导数时的二分决策及符号区间更新。测试不只检查 $\sqrt2$ 的近似值，还验证每个事件仍保留符号变化，并篡改方法字段确认验证器拒绝；对 $x^3-2x+2$ 从 $0$ 出发，首次越界的牛顿建议会被替换为二分步。每轮计算量为 $O(1)$（不计函数本身），总成本为 $O(k)$ 次函数/导数评估。局部二次收敛能显著减小 $k$，但昂贵导数、自动微分图和区间回退都会改变实际成本。
 
 ## 正确性与可验证实验
 

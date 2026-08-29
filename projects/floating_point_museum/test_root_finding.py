@@ -2,7 +2,8 @@ import unittest
 from math import sqrt
 
 from projects.floating_point_museum.root_finding import (
-    safeguarded_newton_trace, secant_root, secant_trace, secant_trace_certificate,
+    NewtonEvent, safeguarded_newton_trace, safeguarded_newton_trace_certificate,
+    secant_root, secant_trace, secant_trace_certificate,
 )
 
 
@@ -36,8 +37,10 @@ class SecantRootTests(unittest.TestCase):
             secant_root(lambda value: value, 0.0, 1.0, max_steps=0)
 
     def test_safeguarded_newton_returns_a_sign_change_certificate(self):
+        function = lambda value: value * value - 2.0
+        derivative = lambda value: 2.0 * value
         root, events = safeguarded_newton_trace(
-            lambda value: value * value - 2.0, lambda value: 2.0 * value,
+            function, derivative,
             0.0, 2.0, initial=1.0,
         )
         self.assertAlmostEqual(root, sqrt(2.0), places=10)
@@ -46,6 +49,28 @@ class SecantRootTests(unittest.TestCase):
             self.assertLessEqual(event.left, root)
             self.assertLessEqual(root, event.right)
             self.assertLessEqual(event.left_value * event.right_value, 0.0)
+        self.assertTrue(safeguarded_newton_trace_certificate(
+            function, derivative, 0.0, 2.0, 1.0, root, events,
+        ))
+
+        tampered = list(events)
+        event = tampered[0]
+        tampered[0] = NewtonEvent(
+            event.iteration, "bisection", event.candidate, event.residual,
+            event.left, event.right, event.left_value, event.right_value,
+        )
+        self.assertFalse(safeguarded_newton_trace_certificate(
+            function, derivative, 0.0, 2.0, 1.0, root, tampered,
+        ))
+
+    def test_newton_certificate_handles_a_root_at_a_bracket_endpoint(self):
+        function = lambda value: value - 2.0
+        root, events = safeguarded_newton_trace(function, lambda _: 1.0, 2.0, 4.0, initial=3.0)
+        self.assertEqual(root, 2.0)
+        self.assertEqual(events, [])
+        self.assertTrue(safeguarded_newton_trace_certificate(
+            function, lambda _: 1.0, 2.0, 4.0, 3.0, root, events,
+        ))
 
     def test_safeguard_falls_back_when_newton_step_leaves_the_bracket(self):
         root, events = safeguarded_newton_trace(
