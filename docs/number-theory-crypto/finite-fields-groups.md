@@ -60,33 +60,24 @@ g^{p-1}\equiv1\pmod p
 ## 可运行实验：看见一个小循环群
 
 ```python
-from math import gcd
-
-
-def order(g, p):
-    if not (1 < g < p) or gcd(g, p) != 1:
-        raise ValueError("g 必须是模 p 的非零可逆元素")
-    value = 1
-    for k in range(1, p):
-        value = (value * g) % p
-        if value == 1:
-            return k
-    raise AssertionError("有限群中必应返回")
-
-
-def powers(g, p):
-    k = order(g, p)
-    return [pow(g, exponent, p) for exponent in range(k)]
-
+from projects.crypto_toybox.finite_group import (
+    discrete_log_toy,
+    multiplicative_order,
+    primitive_generators,
+    subgroup_elements,
+)
 
 p = 23
-for g in range(2, p):
-    if order(g, p) == p - 1:
-        print(g, powers(g, p))
-        break
+assert multiplicative_order(2, p) == 11
+assert len(subgroup_elements(2, p)) == 11  # 一个真子群
+generator = primitive_generators(p)[0]
+assert set(subgroup_elements(generator, p)) == set(range(1, p))
+
+# 小群中可直接枚举；模块明确限制在 p <= 1000。
+assert discrete_log_toy(generator, pow(generator, 7, p), p) == 7
 ```
 
-该程序在教学规模枚举阶；真实系统绝不能用它生成参数或实现密钥交换。真实参数应由成熟协议/库固定选择，并使用密码学安全随机数。
+该程序在教学规模枚举阶、生成元与离散对数，且拒绝复合模数和超过 1000 的枚举请求：它的作用正是让读者观察小群为何不安全，而不是生成参数或实现密钥交换。真实参数应由成熟协议/库固定选择，并使用密码学安全随机数。
 
 ## Diffie–Hellman 如何使用这些结构
 
