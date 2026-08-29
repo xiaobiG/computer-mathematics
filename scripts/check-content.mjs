@@ -30,7 +30,7 @@ for (const path of files) {
   const source = await readFile(path, 'utf8')
   const label = relative(docsRoot, path)
   const [folder] = label.split(/[/\\]/)
-  if (!/^---\r?\ntitle:\s*.+\r?\ndescription:\s*.+\r?\n---/m.test(source)) {
+  if (!/^---\r?\n(?=[\s\S]*?^title:\s*.+$)(?=[\s\S]*?^description:\s*.+$)[\s\S]*?^---\s*$/m.test(source)) {
     errors.push(`${label}: 缺少 title 与 description frontmatter`)
   }
   if ((source.match(/^#\s+/gm) ?? []).length !== 1) {
