@@ -28,6 +28,17 @@ class ModPowEvent:
 
 
 @dataclass(frozen=True)
+class ModPowOperationProfile:
+    """Public teaching summary of square-and-multiply control flow."""
+
+    bit_length: int
+    one_bits: int
+    squares: int
+    conditional_multiplies: int
+    total_modular_multiplications: int
+
+
+@dataclass(frozen=True)
 class EuclidEvent:
     """One division step in the nonnegative Euclidean algorithm."""
 
@@ -89,6 +100,25 @@ def mod_pow(base: int, exponent: int, modulus: int) -> int:
     """Return the teaching modular power without retaining a bit-level trace."""
     result, _ = mod_pow_trace(base, exponent, modulus)
     return result
+
+
+def mod_pow_operation_profile(exponent: int) -> ModPowOperationProfile:
+    """Expose the public operation-count dependence on an exponent's bit pattern.
+
+    This is a classroom leakage model, not a timing measurement or an attack.
+    It must never be called with a secret exponent in a real cryptosystem.
+    """
+    if not isinstance(exponent, int) or isinstance(exponent, bool) or exponent < 0:
+        raise ValueError("exponent must be a non-negative integer")
+    bit_length = exponent.bit_length()
+    one_bits = exponent.bit_count()
+    return ModPowOperationProfile(
+        bit_length=bit_length,
+        one_bits=one_bits,
+        squares=bit_length,
+        conditional_multiplies=one_bits,
+        total_modular_multiplications=bit_length + one_bits,
+    )
 
 
 def extended_gcd(a: int, b: int) -> tuple[int, int, int]:

@@ -47,6 +47,21 @@ assert mod_pow_trace_certificate(3, 13, 7, result, events)
 
 `ModPowEvent` 记录每轮处理前的剩余指数、当前位、更新后的 `result`/`base` 和右移结果。`mod_pow_trace_certificate` 从原始输入独立重放每次模乘，因此能发现“最终答案偶然正确、某一位的更新却写错”的问题。不变量是：初始指数为 $E$ 时，$result\cdot base^{exponent}\equiv a^E\pmod n$。若最低位为 1，将一个 `base` 移到 `result`；平方 `base` 且指数右移保持等价。指数归零时不变量给出结果正确。时间为 $O(\log e)$ 次模乘，保留教学轨迹为 $O(\log e)$ 额外空间；普通 `mod_pow` 不保留轨迹，仍为 $O(1)$（忽略大整数位数）。
 
+### 控制流为何泄露信息
+
+对非零指数，循环总会做 `bit_length(e)` 次平方，却只在位为 1 时做额外乘法。因此总模乘数为
+
+$$\operatorname{bit\_length}(e)+\operatorname{popcount}(e).$$
+
+```python
+from projects.crypto_toybox.main import mod_pow_operation_profile
+
+assert mod_pow_operation_profile(8).total_modular_multiplications == 5   # 1000
+assert mod_pow_operation_profile(15).total_modular_multiplications == 8  # 1111
+```
+
+这个函数只把**公开教学输入**的控制流依赖变成可检查数值；它不是计时器、攻击工具或常量时间实现。真实设备的可观察性还受编译器、缓存、分支预测和大整数算法影响，但只要秘密位决定分支，设计就不应把“平均运行快”误当作安全。
+
 ## 失败案例与工程边界
 
 普通实现的 `if exponent & 1` 和运行时间可能泄漏指数位；本课的 `mod_pow_trace` 更是有意将每一位公开，绝不能用于私钥。生产密码只能使用经审计库中的常量时间实现，还需要安全随机数、填充、协议验证和密钥管理。负指数意味着模逆元，只有底数与模数互素时才有定义。

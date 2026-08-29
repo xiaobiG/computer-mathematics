@@ -16,7 +16,7 @@ description: 从同余和模逆元走向安全协议、攻击面与教学实验�
 | 0 | 整除、贝祖等式、最大公约数、模运算 | 既有文章待深化 |
 | 1 | 模逆元、快速幂、CRT、素数与群论直觉 | 素性测试、模逆元、快速幂、CRT 与[有限域、群与离散对数](/number-theory-crypto/finite-fields-groups)已深化 |
 | 2 | RSA 正确性、数字签名、Diffie–Hellman、概率性素性测试 | RSA、[数字签名与公开验证](/number-theory-crypto/digital-signatures)、Diffie–Hellman 与概率性素性测试已深化 |
-| 3 | 填充、侧信道、哈希/MAC、密码存储、椭圆曲线预备 | 密码存储、[消息认证码](/number-theory-crypto/message-authentication-codes)、[椭圆曲线预备](/number-theory-crypto/elliptic-curve-prelude)与数字签名的裸 RSA 反例已深化；标准签名填充与侧信道由后续文章补齐 |
+| 3 | 填充、侧信道、哈希/MAC、密码存储、椭圆曲线预备 | 密码存储、[消息认证码](/number-theory-crypto/message-authentication-codes)、[椭圆曲线预备](/number-theory-crypto/elliptic-curve-prelude)、快速幂的公开控制流泄露模型与数字签名的裸 RSA 反例已深化；标准签名填充仍由后续文章补齐 |
 
 ## 项目连接
 

@@ -6,6 +6,7 @@ from projects.crypto_toybox.main import (
     extended_gcd_trace,
     extended_gcd_trace_certificate,
     mod_pow,
+    mod_pow_operation_profile,
     mod_pow_trace,
     mod_pow_trace_certificate,
     modular_inverse,
@@ -32,6 +33,14 @@ class CryptoToyboxTests(unittest.TestCase):
             (tampered[1].result_after + 1) % 7, tampered[1].base_after, tampered[1].exponent_after,
         )
         self.assertFalse(mod_pow_trace_certificate(3, 13, 7, result, tampered))
+
+    def test_public_operation_profile_exposes_data_dependent_branch_count(self):
+        sparse = mod_pow_operation_profile(8)   # 1000
+        dense = mod_pow_operation_profile(15)   # 1111
+        self.assertEqual((sparse.bit_length, sparse.one_bits, sparse.total_modular_multiplications), (4, 1, 5))
+        self.assertEqual((dense.bit_length, dense.one_bits, dense.total_modular_multiplications), (4, 4, 8))
+        with self.assertRaises(ValueError):
+            mod_pow_operation_profile(-1)
 
     def test_modular_inverse(self):
         inverse = modular_inverse(17, 3120)
