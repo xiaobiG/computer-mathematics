@@ -19,6 +19,7 @@
 | 7 | [最小二乘](/linear-algebra/least-squares) | 没有精确解时如何拟合？ | 深度正文 · 50 分钟 |
 | 8 | [特征值与 PCA](/linear-algebra/eigenvalues-pca) | 如何保留数据最重要方向？ | 深度正文 · 55 分钟 |
 | 9 | [SVD](/linear-algebra/svd) | 如何用低秩近似压缩矩阵？ | 深度正文 · 55 分钟 |
+| 10 | [Jacobian、Hessian 与自动微分](/linear-algebra/jacobian-hessian-autodiff) | 梯度如何成为可计算的线性代数？ | 深度正文 · 65 分钟 |
 
 ## 版本资源
 
