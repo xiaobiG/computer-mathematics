@@ -17,6 +17,7 @@
 - [条件数](/numerical-computing/condition-number)：病态问题、前向/后向误差与稳定算法；
 - [浮点比较、容差与属性测试](/numerical-computing/tolerances-property-testing)：尺度相关契约、残差与可复现实验；
 - [牛顿法](/numerical-computing/newton-method)：二次收敛、停止准则与区间保护；
+- [割线法](/numerical-computing/secant-method)：用两点函数值替代导数的快速求根；
 - [数值微分](/numerical-computing/numerical-differentiation)：截断误差、舍入误差与步长选择；
 - [数值积分](/numerical-computing/numerical-integration)：梯形法、Simpson 法与自适应切分边界；
 - [随机模拟的误差与可复现性](/numerical-computing/stochastic-simulation-reproducibility)：抽样波动、固定种子与可复核报告；
