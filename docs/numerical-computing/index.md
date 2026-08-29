@@ -15,6 +15,8 @@
 
 - [浮点数表示](/numerical-computing/floating-point)：IEEE 754、舍入、NaN 与尺度相关比较；
 - [条件数](/numerical-computing/condition-number)：病态问题、前向/后向误差与稳定算法；
+- [牛顿法](/numerical-computing/newton-method)：二次收敛、停止准则与区间保护；
+- [数值微分](/numerical-computing/numerical-differentiation)：截断误差、舍入误差与步长选择；
 - [数值计算深度版路线](/numerical-computing/rewrite-plan)：稳定求和、数值线性代数与工程实验。
 
 第一个实验：复现并解释 `0.1 + 0.2 !== 0.3`。
