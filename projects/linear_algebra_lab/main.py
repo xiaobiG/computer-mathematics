@@ -339,6 +339,7 @@ def compressed_image_search(query, images, rank, iterations=80, epsilon=EPSILON)
     """
     if not images:
         raise ValueError("images must be a non-empty list")
+    original_ranking = rank_images(query, images)
     query_components, compressed_query, query_error = compress_grayscale(query, rank, iterations, epsilon)
     compressed_images = []
     image_errors = []
@@ -348,12 +349,23 @@ def compressed_image_search(query, images, rank, iterations=80, epsilon=EPSILON)
         compressed_images.append(compressed)
         image_errors.append(error)
         component_counts.append(len(components))
+    compressed_ranking = rank_images(compressed_query, compressed_images)
+    original_order = [index for index, _ in original_ranking]
+    compressed_order = [index for index, _ in compressed_ranking]
     return {
         "query_component_count": len(query_components),
         "query_error": query_error,
         "image_component_counts": component_counts,
         "image_errors": image_errors,
-        "ranking": rank_images(compressed_query, compressed_images),
+        "original_ranking": original_ranking,
+        "compressed_ranking": compressed_ranking,
+        "ranking": compressed_ranking,
+        "certificate": {
+            "original_ranking_is_a_permutation": sorted(original_order) == list(range(len(images))),
+            "compressed_ranking_is_a_permutation": sorted(compressed_order) == list(range(len(images))),
+            "top_match_is_preserved": original_order[0] == compressed_order[0],
+            "full_ranking_is_preserved": original_order == compressed_order,
+        },
     }
 
 

@@ -148,6 +148,12 @@ class LinearAlgebraLabTests(unittest.TestCase):
         self.assertTrue(all(error < 1e-9 for error in report["image_errors"]))
         self.assertEqual(report["ranking"][0][0], 0)
         self.assertAlmostEqual(report["ranking"][0][1], 1.0)
+        self.assertEqual(report["original_ranking"][0][0], 0)
+        self.assertEqual(report["compressed_ranking"][0][0], 0)
+        self.assertTrue(report["certificate"]["original_ranking_is_a_permutation"])
+        self.assertTrue(report["certificate"]["compressed_ranking_is_a_permutation"])
+        self.assertTrue(report["certificate"]["top_match_is_preserved"])
+        self.assertTrue(report["certificate"]["full_ranking_is_preserved"])
 
     def test_compressed_image_search_rejects_empty_gallery(self):
         with self.assertRaises(ValueError):
