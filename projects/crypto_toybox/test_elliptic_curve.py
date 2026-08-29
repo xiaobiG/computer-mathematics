@@ -1,6 +1,6 @@
 import unittest
 
-from projects.crypto_toybox.elliptic_curve import ToyCurve
+from projects.crypto_toybox.elliptic_curve import ScalarMultiplyEvent, ToyCurve
 
 
 class ToyCurveTests(unittest.TestCase):
@@ -25,6 +25,26 @@ class ToyCurveTests(unittest.TestCase):
         for _ in range(5):
             repeated = self.curve.add(repeated, self.generator)
         self.assertEqual(self.curve.scalar_multiply(5, self.generator), repeated)
+
+    def test_scalar_trace_replays_the_double_and_add_invariant(self):
+        result, trace = self.curve.scalar_multiply_trace(7, self.generator)
+        self.assertEqual(result, (0, 6))
+        self.assertEqual([event.bit for event in trace], [1, 1, 1])
+        self.assertTrue(self.curve.scalar_multiply_trace_certificate(7, self.generator, result, trace))
+
+        tampered = list(trace)
+        event = tampered[1]
+        tampered[1] = ScalarMultiplyEvent(
+            event.iteration, event.scalar_before, event.bit,
+            event.accumulator_after, event.addend_after, 0,
+        )
+        self.assertFalse(self.curve.scalar_multiply_trace_certificate(7, self.generator, result, tampered))
+
+    def test_zero_scalar_has_an_empty_but_valid_trace(self):
+        result, trace = self.curve.scalar_multiply_trace(0, self.generator)
+        self.assertIsNone(result)
+        self.assertEqual(trace, [])
+        self.assertTrue(self.curve.scalar_multiply_trace_certificate(0, self.generator, result, trace))
 
     def test_rejects_singular_curve_off_curve_point_and_negative_scalar(self):
         with self.assertRaises(ValueError):

@@ -10,6 +10,22 @@ from projects.crypto_toybox.main import modular_inverse
 Point = tuple[int, int] | None  # None 表示无穷远点 O。
 
 
+@dataclass(frozen=True)
+class ScalarMultiplyEvent:
+    """One public double-and-add round, recorded after its low bit is handled.
+
+    Keeping these events makes the scalar and branch pattern visible. It is
+    therefore strictly for classroom traces, never for a secret scalar.
+    """
+
+    iteration: int
+    scalar_before: int
+    bit: int
+    accumulator_after: Point
+    addend_after: Point
+    scalar_after: int
+
+
 def is_prime(value: int) -> bool:
     """足够检查小教学参数；生产系统应使用成熟的大整数与素性实现。"""
     if value < 2:
@@ -68,17 +84,68 @@ class ToyCurve:
 
     def scalar_multiply(self, scalar: int, point: Point) -> Point:
         """重复平方式的 double-and-add；运行时间为 O(log scalar)。"""
+        result, _ = self.scalar_multiply_trace(scalar, point)
+        return result
+
+    def scalar_multiply_trace(self, scalar: int, point: Point) -> tuple[Point, list[ScalarMultiplyEvent]]:
+        """Return ``scalar * point`` and a replayable public teaching trace."""
         if scalar < 0:
             raise ValueError("教学实现仅接受非负标量")
         self.require_point(point)
         result: Point = None
         addend = point
+        events: list[ScalarMultiplyEvent] = []
+        iteration = 0
         while scalar:
+            iteration += 1
+            scalar_before = scalar
+            bit = scalar & 1
             if scalar & 1:
                 result = self.add(result, addend)
             addend = self.add(addend, addend)
             scalar >>= 1
-        return result
+            events.append(ScalarMultiplyEvent(
+                iteration, scalar_before, bit, result, addend, scalar,
+            ))
+        return result, events
+
+    def scalar_multiply_trace_certificate(
+        self,
+        scalar: int,
+        point: Point,
+        result: Point,
+        events: list[ScalarMultiplyEvent],
+    ) -> bool:
+        """Replay every double-and-add update and verify the terminal value.
+
+        The replay witnesses the loop invariant: after processing the low
+        bits, ``accumulator + remaining * addend`` still equals ``scalar *
+        point``. It is evidence for one finite run, not a replacement for the
+        group-law proof.
+        """
+        if scalar < 0 or not self.contains(point) or not self.contains(result):
+            return False
+        accumulator: Point = None
+        addend = point
+        remaining = scalar
+        for iteration, event in enumerate(events, start=1):
+            if (
+                event.iteration != iteration
+                or event.scalar_before != remaining
+                or event.bit != remaining & 1
+            ):
+                return False
+            if event.bit:
+                accumulator = self.add(accumulator, addend)
+            addend = self.add(addend, addend)
+            remaining >>= 1
+            if (
+                event.accumulator_after != accumulator
+                or event.addend_after != addend
+                or event.scalar_after != remaining
+            ):
+                return False
+        return remaining == 0 and result == accumulator
 
 
 if __name__ == "__main__":

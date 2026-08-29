@@ -62,13 +62,16 @@ G = (5, 1)
 assert curve.add(G, (5, 16)) is None
 assert curve.scalar_multiply(2, G) == (6, 3)
 assert curve.scalar_multiply(7, G) == (0, 6)
+
+result, trace = curve.scalar_multiply_trace(7, G)
+assert curve.scalar_multiply_trace_certificate(7, G, result, trace)
 ```
 
 ```bash
 python -m unittest projects.crypto_toybox.test_elliptic_curve
 ```
 
-`scalar_multiply(k, P)` 与快速幂同构：扫描 $k$ 的二进制位，当前点倍增，位为 1 则累加。若 $k$ 有 $\lfloor\log_2 k\rfloor+1$ 位，点加次数为 $O(\log k)$。测试验证单位元、逆元、倍点、重复加法与 double-and-add 的一致性，并拒绝奇点、合数模数、曲线外点和负标量。
+`scalar_multiply(k, P)` 与快速幂同构：扫描 $k$ 的二进制位，当前点倍增，位为 1 则累加。`scalar_multiply_trace` 记录每轮的低位、累计点、倍点和剩余标量；独立证书会重放每一步，并拒绝被篡改的轨迹。若 $k$ 有 $\lfloor\log_2 k\rfloor+1$ 位，点加次数为 $O(\log k)$。测试验证单位元、逆元、倍点、重复加法与 double-and-add 的一致性，并拒绝奇点、合数模数、曲线外点和负标量。
 
 ## 从标量乘法到离散对数假设
 
@@ -78,7 +81,7 @@ python -m unittest projects.crypto_toybox.test_elliptic_curve
 
 ## 正确性、复杂度与工程边界
 
-非奇异曲线上的群律是代数定理；实现的每次 `add` 先验证曲线成员，保证公式输入满足前提。double-and-add 的循环不变量是：已处理低位的累加结果与当前倍点共同表示原 $kP$；每次位移和倍增保持该关系，因此结束时得到 $kP$。
+非奇异曲线上的群律是代数定理；实现的每次 `add` 先验证曲线成员，保证公式输入满足前提。double-and-add 的循环不变量是：已处理低位的累加结果与当前倍点共同表示原 $kP$；每次位移和倍增保持该关系，因此结束时得到 $kP$。轨迹证书逐轮重放这一更新，因此能发现一次有限运行中篡改的位、累计点、倍点或剩余标量；它仍不是群律证明，也不会把教学代码变成安全实现。
 
 但 Python 大整数、分支和模逆元的运行时间可能泄漏秘密标量。实现没有协因子/子群检查、标准点编码、安全随机数或恒定时间保证；不可用于 ECDH、签名、加密、钱包或任何真实秘密。
 
