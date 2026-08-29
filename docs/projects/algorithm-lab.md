@@ -23,6 +23,7 @@ description: 用 BFS、拓扑排序状态轨迹和 3-SAT 验证器连接不变�
 ```bash
 python projects/algorithm_lab/bfs_trace.py
 python -m unittest projects.algorithm_lab.test_dfs_trace
+python -m unittest projects.algorithm_lab.test_strongly_connected
 python projects/algorithm_lab/sat_verifier.py
 python -m unittest projects.algorithm_lab.test_floyd_warshall
 python -m unittest discover -s projects/algorithm_lab -p "test_*.py"
@@ -65,6 +66,7 @@ assert witness is not None and verify_assignment(formula, witness)
 5. 写出一个不可满足公式，观察穷举搜索返回 `None`；再说明这不是 3-SAT 没有更好算法的证明。
 6. 为一张含负边但无负环的图计算全源距离；加入负环后，解释为什么结果应被拒绝。
 7. 对含环图检查 DFS 每个顶点只发现、完成一次；比较其路径与 BFS 最短路为何不同。
+8. 将有向依赖图压缩为强连通分量，先报告循环组件，再对凝聚图做拓扑排序。
 
 ## 工程边界
 

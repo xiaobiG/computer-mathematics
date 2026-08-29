@@ -20,6 +20,7 @@
 - [Dijkstra](/discrete-math/dijkstra)：非负边权为何能贪心，以及负权边为何失败；
 - [BFS](/discrete-math/breadth-first-search)：队列分层不变量与无权图最短路；
 - [DFS](/discrete-math/depth-first-search)：发现/完成时间、显式栈与环检测边界；
+- [强连通分量](/discrete-math/strongly-connected-components)：互相可达等价类、Kosaraju 与凝聚 DAG；
 - [并查集](/discrete-math/union-find)：森林不变量、路径压缩与动态连通性边界；
 - [贪心算法](/discrete-math/greedy-exchange-arguments)：交换论证、活动选择与反例构造；
 - [动态规划](/discrete-math/dynamic-programming-dag)：状态设计、加权活动选择与 DAG 视角；
