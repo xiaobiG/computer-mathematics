@@ -60,3 +60,49 @@ def project(vector, direction):
 
 def norm(vector):
     return sqrt(sum(value * value for value in vector))
+
+
+def dominant_right_singular_vector(matrix, iterations=80, epsilon=EPSILON):
+    """Approximate the leading right singular vector by power iteration on A^T A.
+
+    Intended for small dense teaching examples, not a replacement for a robust SVD.
+    """
+    if not matrix or not matrix[0] or any(len(row) != len(matrix[0]) for row in matrix):
+        raise ValueError("matrix must be non-empty and rectangular")
+    if iterations <= 0:
+        raise ValueError("iterations must be positive")
+    width = len(matrix[0])
+    vector = [1.0 / sqrt(width)] * width
+    for _ in range(iterations):
+        av = [sum(value * vector[index] for index, value in enumerate(row)) for row in matrix]
+        atav = [sum(row[column] * av[row_index] for row_index, row in enumerate(matrix))
+                for column in range(width)]
+        length = norm(atav)
+        if length <= epsilon:
+            raise ValueError("matrix has no non-zero singular direction")
+        vector = [value / length for value in atav]
+    return vector
+
+
+def rank_one_approximation(matrix, iterations=80, epsilon=EPSILON):
+    """Return sigma, left, right and sigma * left * right^T for a small matrix."""
+    right = dominant_right_singular_vector(matrix, iterations, epsilon)
+    projected = [sum(value * right[index] for index, value in enumerate(row)) for row in matrix]
+    sigma = norm(projected)
+    if sigma <= epsilon:
+        raise ValueError("matrix has no non-zero singular value")
+    left = [value / sigma for value in projected]
+    approximation = [[sigma * left[row] * right[column]
+                      for column in range(len(right))]
+                     for row in range(len(left))]
+    return sigma, left, right, approximation
+
+
+def frobenius_error(matrix, approximation):
+    """Return ||matrix - approximation||_F after checking compatible shapes."""
+    if (len(matrix) != len(approximation) or not matrix
+            or any(len(row) != len(approximation[index]) for index, row in enumerate(matrix))):
+        raise ValueError("matrices must have the same non-empty shape")
+    return sqrt(sum((value - approximation[row][column]) ** 2
+                    for row, values in enumerate(matrix)
+                    for column, value in enumerate(values)))

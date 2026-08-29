@@ -1,6 +1,9 @@
 import unittest
 
-from projects.linear_algebra_lab.main import matmul, norm, project, solve
+from projects.linear_algebra_lab.main import (
+    dominant_right_singular_vector, frobenius_error, matmul, norm, project,
+    rank_one_approximation, solve,
+)
 
 
 class LinearAlgebraLabTests(unittest.TestCase):
@@ -29,6 +32,18 @@ class LinearAlgebraLabTests(unittest.TestCase):
         self.assertEqual(projected, [3.0, 0.0])
         self.assertEqual(sum(a * b for a, b in zip(residual, [1, 0])), 0.0)
         self.assertAlmostEqual(norm(residual), 4.0)
+
+    def test_rank_one_matrix_is_reconstructed(self):
+        matrix = [[3.0, 6.0], [4.0, 8.0]]
+        sigma, left, right, approximation = rank_one_approximation(matrix)
+        self.assertAlmostEqual(norm(left), 1.0, places=10)
+        self.assertAlmostEqual(norm(right), 1.0, places=10)
+        self.assertGreater(sigma, 0.0)
+        self.assertLess(frobenius_error(matrix, approximation), 1e-9)
+
+    def test_power_iteration_rejects_zero_matrix(self):
+        with self.assertRaises(ValueError):
+            dominant_right_singular_vector([[0.0, 0.0], [0.0, 0.0]])
 
 
 if __name__ == "__main__":
