@@ -49,18 +49,22 @@ $$L=\begin{bmatrix}1&0\\2&1\end{bmatrix},\quad U=\begin{bmatrix}2&1\\0&1\end{bma
 ## 算法实现与复杂度
 
 ```python
-def forward_substitute(lower, right_side):
-    result = []
-    for row, target in enumerate(right_side):
-        known = sum(lower[row][col] * result[col] for col in range(row))
-        result.append((target - known) / lower[row][row])
-    return result
+from projects.linear_algebra_lab.lu_factorization import (
+    lu_factorize,
+    permuted_rows,
+    solve_many_lu,
+)
+from projects.linear_algebra_lab.main import matmul
 
+matrix = [[0.0, 2.0], [1.0, 3.0]]
+factorization = lu_factorize(matrix)
 
-assert forward_substitute([[1, 0], [2, 1]], [5, 11]) == [5.0, 1.0]
+assert factorization.permutation == [1, 0]  # 第一列必须换行
+assert matmul(factorization.lower, factorization.upper) == permuted_rows(matrix, factorization.permutation)
+assert solve_many_lu(factorization, [[2.0, 4.0], [4.0, 8.0]]) == [[1.0, 1.0], [2.0, 2.0]]
 ```
 
-对 $n\times n$ 密集矩阵，分解耗时 $O(n^3)$、存储 $O(n^2)$；每个新右侧向量的前代和回代合计 $O(n^2)$。实际实现通常将 $L,U$ 覆盖存于同一数组并记录置换向量。
+这里的 `permuted_rows` 给出 $PA$，`matmul(L,U)` 则给出分解重构证书；两个结果相同才能说明记录的交换与乘子一致。对 $n\times n$ 密集矩阵，分解耗时 $O(n^3)$、存储 $O(n^2)$；每个新右侧向量的前代和回代合计 $O(n^2)$。实际实现通常将 $L,U$ 覆盖存于同一数组并记录置换向量。
 
 ## 正确性与工程边界
 
