@@ -31,13 +31,40 @@ $$C=\frac{1}{m-1}X^TX$$
 
 对每列减均值，再算 $C$；二维 $C$ 的最大特征向量给出一维投影方向。将中心化点投影为 $z=Xw$，重构为 $zw^T$ 并加回均值。保留方差比例为 $\sum_{i\le k}\lambda_i/\sum_i\lambda_i$。
 
-```python
-def center(rows):
-    means = [sum(row[j] for row in rows) / len(rows) for j in range(len(rows[0]))]
-    return [[value - means[j] for j, value in enumerate(row)] for row in rows], means
+伪代码将这个过程拆成可以逐项审计的步骤：
+
+```text
+mu <- 每一列的均值
+X <- rows - mu
+C <- X^T X / (m - 1)
+w, lambda <- C 的最大特征对
+score_i <- X_i · w
+reconstruction_i <- mu + score_i w
 ```
 
-中心化为 $O(md)$，形成密集协方差为 $O(md^2)$；高维数据常直接使用截断 SVD。
+## 可运行实验：从协方差到重构证书
+
+```python
+from projects.linear_algebra_lab.pca import pca_2d_report
+
+report = pca_2d_report([[0.0, 0.0], [1.0, 1.0], [2.0, 2.0]])
+assert report.mean == (1.0, 1.0)
+assert report.explained_variance_ratio == 1.0
+assert report.reconstruction_error_squared < 1e-18
+assert report.certificate["valid"]
+```
+
+实验只处理二维数据，以便把每个量都直接观察到：它调用幂迭代获得协方差的最大特征对，并检查四个证书：中心化列和为零、主方向单位长度、每个重构残差与主方向正交，以及重构平方误差等于被舍弃方差乘以 $m-1$。最后一个恒等式是 PCA “最大方差等于最小一维重构误差”的小样例证据，而不是只看散点图的直觉。
+
+中心化为 $O(md)$，形成密集协方差为 $O(md^2)$；二维幂迭代每轮为常数成本。高维数据常直接使用截断 SVD，避免显式形成 $d\times d$ 协方差矩阵。
+
+## 正确性与复杂度
+
+对单位向量 $w$，中心化数据投影后的样本方差为 $w^TCw$。拉格朗日乘子条件 $Cw=\lambda w$ 说明极值只能出现在特征方向；最大特征值对应最大方差。对每个中心化行 $x_i$，重构残差为 $x_i-(x_i^Tw)w$，它与 $w$ 的点积为零。把所有残差平方和相加，可得
+
+$$\sum_i\lVert x_i-(x_i^Tw)w\rVert^2=(m-1)(\operatorname{tr}(C)-\lambda_1).$$
+
+这正是实验检查的“舍弃方差”恒等式。若协方差没有唯一的最大特征值，主方向不唯一，任何落在主子空间的单位方向都可能合理；不要把符号或并列方向差异误判为程序错误。
 
 ## 失败案例与工程边界
 
@@ -51,9 +78,10 @@ PCA 对尺度敏感：以“元”和“毫秒”一起输入会让量纲较大�
 
 ## 练习
 
-1. 对三组二维点中心化并写出协方差矩阵。
-2. 比较标准化前后的第一主成分。
-3. 用保留方差比例决定保留一个还是两个方向，并报告重构误差。
+1. **基础**：对三组二维点中心化并写出协方差矩阵。
+2. **推导**：展开 $\lVert x-(x^Tw)w\rVert^2$，证明单位 $w$ 时最小重构误差等价于最大化 $w^TCw$。
+3. **编码**：为 `pca_2d_report` 加一组非共线点，检查残差正交与舍弃方差证书。
+4. **开放**：比较标准化前后的第一主成分；说明何时“方差最大”可能主要是在保留噪声或敏感属性。
 
 ## 下一步
 
