@@ -52,18 +52,21 @@ $$J_h(x)=J_g(f(x))J_f(x).$$
 $$\frac{\partial L}{\partial x}=2z(y+\cos x),\qquad\frac{\partial L}{\partial y}=2zx.$$
 
 ```python
-from projects.linear_algebra_lab.gradient_check import (
-    demo_loss,
-    demo_loss_gradient,
-    gradient_check,
-)
+from projects.linear_algebra_lab.forward_autodiff import demo_jvp_certificate
+from projects.linear_algebra_lab.gradient_check import demo_loss, demo_loss_gradient, gradient_check
 
-report = gradient_check(demo_loss, demo_loss_gradient, [0.4, -1.2])
+point = [0.4, -1.2]
+direction = [0.3, -0.4]
+
+# 前向模式在一次计算图遍历中给出 JVP；它应等于 grad(L)^T v。
+assert demo_jvp_certificate(point, direction)["matches"]
+
+# 中心差分只作为独立的、小规模梯度检查。
+report = gradient_check(demo_loss, demo_loss_gradient, point)
 assert all(item.absolute_error < 1e-6 for item in report)
-assert all(item.relative_error < 1e-6 for item in report)
 ```
 
-报告逐坐标记录解析值、数值值、绝对误差和尺度相关相对误差。测试还故意把第一个解析导数取反，确认只有该坐标的检查失败。中心差分用于**测试**而非训练：计算 $n$ 维梯度需约 $2n$ 次前向调用，步长还会遭受截断/舍入权衡。应只在小网络、小批量和固定随机种子下抽样检查若干参数。
+`Dual(value, tangent)` 将一个数与沿指定方向的导数一起传播；加法与乘法分别执行链式法则和乘积法则。`demo_jvp_certificate` 将前向模式的结果与解析梯度点积比较，直接验证 $Jv=\nabla L^Tv$（标量损失时）。报告逐坐标记录解析值、数值值、绝对误差和尺度相关相对误差；测试还故意把第一个解析导数取反，确认只有该坐标的检查失败。中心差分用于**测试**而非训练：计算 $n$ 维梯度需约 $2n$ 次前向调用，步长还会遭受截断/舍入权衡。应只在小网络、小批量和固定随机种子下抽样检查若干参数。
 
 ## 算法与复杂度
 
