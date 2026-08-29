@@ -16,11 +16,11 @@ description: 从有限精度表示到稳定算法、误差分析和工程容差�
 | 0 | 二进制、范数、绝对/相对误差 | 由浮点文章补齐 |
 | 1 | IEEE 754、NaN、无穷、溢出与下溢 | [浮点数表示](/numerical-computing/floating-point) 已深化 |
 | 2 | 条件数、前向/后向误差、稳定性、Kahan | [条件数](/numerical-computing/condition-number) 已深化 |
-| 3 | 主元、QR/SVD、属性测试、可复现模拟 | 牛顿法、数值微分与数值积分已深化；其余由错误博物馆和后续文章补齐 |
+| 3 | 主元、QR/SVD、属性测试、可复现模拟 | [浮点比较、容差与属性测试](/numerical-computing/tolerances-property-testing)、牛顿法、数值微分与数值积分已深化；主元与 QR/SVD 由线性代数专题连接 |
 
 ## 项目连接
 
-[浮点数错误博物馆](/projects/floating-point-museum)将展示相等比较、累计误差与消去误差。下一阶段将补充 pairwise summation、不同容差策略的属性测试，以及病态线性系统的可视化对比。
+[浮点数错误博物馆](/projects/floating-point-museum)将展示相等比较、累计误差与消去误差。下一阶段将补充 pairwise summation、病态线性系统的可视化对比，以及随机模拟的抽样误差实验。
 
 ## 练习
 
