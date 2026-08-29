@@ -13,6 +13,7 @@
 
 ## 当前深度版
 
+- [命题逻辑、量词与归纳法](/discrete-math/logic-induction-proofs)：规格、反例、终止性与循环不变量的证明语言；
 - [循环不变量](/discrete-math/loop-invariants)：二分查找为何不会漏掉答案；
 - [Dijkstra](/discrete-math/dijkstra)：非负边权为何能贪心，以及负权边为何失败；
 - [BFS](/discrete-math/breadth-first-search)：队列分层不变量与无权图最短路；
