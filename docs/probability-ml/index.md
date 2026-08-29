@@ -17,6 +17,7 @@
 - [最大似然](/probability-ml/maximum-likelihood)：对数似然、MAP 与交叉熵；
 - [常见分布](/probability-ml/common-distributions)：从生成机制选择伯努利、泊松、指数与正态模型；
 - [假设检验与 p 值](/probability-ml/hypothesis-testing)：置换检验、错误率与实验决策边界；
+- [蒙特卡洛与重要性采样](/probability-ml/monte-carlo-importance-sampling)：随机积分、权重与有效样本量；
 - [概率论深度版路线](/probability-ml/rewrite-plan)：分层学习和垃圾邮件分类项目。
 
 贯穿主线：模型给出的概率，究竟代表什么？
