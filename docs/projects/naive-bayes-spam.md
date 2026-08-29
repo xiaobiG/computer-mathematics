@@ -31,4 +31,5 @@ $$P(w\mid y)=\frac{\operatorname{count}(w,y)+1}{\sum_{w'}\operatorname{count}(w'
 
 1. 比较不平衡训练数据下的阈值与精确率/召回率；
 2. 为每个可靠性箱加入置信区间；
-3. 用独立验证集实现简单再校准，并审计测试集泄漏。
+3. 用 [Beta–Bernoulli 后验预测](/probability-ml/conjugate-priors-predictive)比较拉普拉斯平滑与显式先验；
+4. 用独立验证集实现简单再校准，并审计测试集泄漏。
