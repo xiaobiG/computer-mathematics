@@ -14,7 +14,7 @@ description: 从全概率公式推导后验概率，理解低基率、朴素贝�
 - **建议阅读层级**：1–3 · 核心概念、推导与工程应用
 - **前置知识**：集合、乘法法则、百分比
 - **预计学习时间**：55 分钟
-- **配套实验**：下一阶段的垃圾邮件贝叶斯分类器与校准评估
+- **配套实验**：[朴素贝叶斯垃圾邮件分类器](/projects/naive-bayes-spam)中的后验更新轨迹与校准评估
 
 ## 从一个计算问题开始
 
@@ -43,23 +43,23 @@ $$P(A\mid B)=\frac{P(B\mid A)P(A)}{P(B\mid A)P(A)+P(B\mid\neg A)P(\neg A)}.$$
 ## 算法实现与复杂度
 
 ```python
-def posterior(prior, sensitivity, false_positive):
-    """Return P(A|B) for a binary event and one binary observation."""
-    if not all(0 <= value <= 1 for value in (prior, sensitivity, false_positive)):
-        raise ValueError("probabilities must lie in [0, 1]")
-    evidence = sensitivity * prior + false_positive * (1 - prior)
-    if evidence == 0:
-        raise ValueError("observation has zero probability")
-    return sensitivity * prior / evidence
+from projects.naive_bayes_spam.bayes_update import posterior, posterior_trace
 
-assert round(posterior(0.01, 0.90, 0.05), 3) == 0.154
+first = posterior(0.01, likelihood_if_event=0.90, likelihood_if_not_event=0.05)
+assert round(first.evidence, 4) == 0.0585
+assert round(first.posterior, 3) == 0.154
+
+# 每个二元组是 (P(E_i|A), P(E_i|非 A))。
+final, trace = posterior_trace(0.10, [(0.8, 0.2), (0.8, 0.2)])
+assert trace[1].prior == trace[0].posterior
+assert final > trace[0].posterior > 0.10
 ```
 
-单个证据的计算为 $O(1)$。朴素贝叶斯对 $d$ 个特征在对数域累加 $\log P(x_i\mid y)$，预测成本为 $O(d\cdot\text{类别数})$；使用对数避免许多小概率连乘下溢。
+单个证据的计算为 $O(1)$，$k$ 个顺序更新为 $O(k)$ 并保留 $O(k)$ 条审计轨迹。轨迹显示 `evidence`（分母）而不仅是后验，避免把“灵敏度”误读为结论。朴素贝叶斯对 $d$ 个特征在对数域累加 $\log P(x_i\mid y)$，预测成本为 $O(d\cdot\text{类别数})$；使用对数避免许多小概率连乘下溢。
 
 ## 正确性与工程边界
 
-代码逐项实现全概率分母与贝叶斯分子，因此在输入是合法概率且证据概率非零时恰好返回定义的后验。朴素贝叶斯假设“给定类别后特征条件独立”，词语高度相关时该假设会重复计数证据。模型分数还必须校准：预测 0.8 的一组样本不一定真的有约 80% 为正类。
+代码逐项实现全概率分母与贝叶斯分子，因此在输入是合法概率且证据概率非零时恰好返回定义的后验。`posterior_trace` 还额外假定每一条新证据在给定类别后与此前证据条件独立；词语高度相关时朴素贝叶斯会重复计数证据，不能把连续更新当作无条件成立的规则。模型分数还必须校准：预测 0.8 的一组样本不一定真的有约 80% 为正类。
 
 ## 常见误区
 

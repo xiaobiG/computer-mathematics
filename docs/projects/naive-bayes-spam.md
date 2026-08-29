@@ -7,7 +7,7 @@ description: 从词袋、拉普拉斯平滑到稳定后验、混淆矩阵与校�
 
 ## 目标
 
-将[贝叶斯更新](/probability-ml/bayes)和[最大似然](/probability-ml/maximum-likelihood)落实为可测试分类器：从带标签文本估计先验和词条件概率，在对数域比较后验，再以混淆矩阵与[校准指标](/probability-ml/calibration-reliability)审查输出。另有[生成模型与逻辑回归](/probability-ml/generative-discriminative-logistic)的最小批量梯度下降实现，用于比较直接学习后验的路径；[Metropolis–Hastings](/probability-ml/metropolis-hastings)模块则演示仅知道未归一化权重时如何采样。
+将[贝叶斯更新](/probability-ml/bayes)和[最大似然](/probability-ml/maximum-likelihood)落实为可测试分类器：先用独立的二元后验轨迹审计先验、似然、证据概率与连续更新，再从带标签文本估计先验和词条件概率，在对数域比较后验，并以混淆矩阵与[校准指标](/probability-ml/calibration-reliability)审查输出。另有[生成模型与逻辑回归](/probability-ml/generative-discriminative-logistic)的最小批量梯度下降实现，用于比较直接学习后验的路径；[Metropolis–Hastings](/probability-ml/metropolis-hastings)模块则演示仅知道未归一化权重时如何采样。
 
 ## 运行
 
@@ -21,7 +21,7 @@ python -m unittest discover -s projects/naive_bayes_spam -p "test_*.py"
 
 $$P(w\mid y)=\frac{\operatorname{count}(w,y)+1}{\sum_{w'}\operatorname{count}(w',y)+|V|}.$$
 
-预测时累加 $\log P(y)+\sum_w\log P(w\mid y)$，避免小概率相乘下溢。两类分数的差经稳定 sigmoid 转为 $P(y=1\mid x)$；项目会计算精确率、召回率、F1、Brier 分数和可靠性分箱。配套伯努利模块验证 MLE、端点对数似然和 Beta 先验下的 MAP。测试覆盖两类训练前提、未见词平滑、概率归一化、混淆矩阵及分箱计数守恒。
+预测时累加 $\log P(y)+\sum_w\log P(w\mid y)$，避免小概率相乘下溢。两类分数的差经稳定 sigmoid 转为 $P(y=1\mid x)$；项目会计算精确率、召回率、F1、Brier 分数和可靠性分箱。二元后验模块验证低基率下的证据归一化、无信息证据和条件独立的连续更新；配套伯努利模块验证 MLE、端点对数似然和 Beta 先验下的 MAP。测试覆盖两类训练前提、未见词平滑、概率归一化、混淆矩阵及分箱计数守恒。
 
 ## 工程边界
 
