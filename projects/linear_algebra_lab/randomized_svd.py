@@ -1,10 +1,10 @@
 """A small, seeded randomized SVD report built on the teaching range finder."""
 
 from dataclasses import dataclass
-from math import isclose
+from math import isclose, sqrt
 
-import numpy as np
-
+from projects.linear_algebra_lab.main import rank_k_approximation
+from projects.linear_algebra_lab.randomized_range import _matmul, _transpose
 from projects.linear_algebra_lab.randomized_range import randomized_range_report
 
 
@@ -22,25 +22,26 @@ class RandomizedSVDReport:
 def randomized_svd_report(matrix, rank, oversampling=2, power_iterations=0, seed=0):
     """Build ``Q``, factor small ``B=Q^T A``, then retain ``rank`` terms.
 
-    The seeded range finder supplies Q.  NumPy is used only for the tiny dense
-    B decomposition in this teaching artifact; the report records all inputs
-    necessary to replay it and does not claim a high-probability error bound.
+    The seeded range finder supplies Q.  The tiny B decomposition reuses this
+    lab's finite-iteration deflation SVD; it records all inputs necessary to
+    replay it and does not claim a high-probability error bound.
     """
     range_report = randomized_range_report(matrix, rank, oversampling, power_iterations, seed)
-    array = np.asarray(matrix, dtype=float)
-    q = np.asarray(range_report.basis, dtype=float).T
-    b = q.T @ array
-    ub, singular_values, vt = np.linalg.svd(b, full_matrices=False)
-    kept = min(rank, len(singular_values))
-    approximation = (q @ ub[:, :kept]) @ np.diag(singular_values[:kept]) @ vt[:kept, :]
+    q = [list(column) for column in _transpose(range_report.basis)]
+    b = _matmul(_transpose(q), matrix)
+    components, b_approximation = rank_k_approximation(b, rank)
+    approximation = _matmul(q, b_approximation)
+    singular_values = [component[0] for component in components]
+    error = sqrt(sum((float(matrix[row][column]) - approximation[row][column]) ** 2
+                     for row in range(len(matrix)) for column in range(len(matrix[0]))))
     return RandomizedSVDReport(
         seed=seed,
         rank=rank,
         oversampling=oversampling,
         power_iterations=power_iterations,
-        singular_values=tuple(float(value) for value in singular_values[:kept]),
+        singular_values=tuple(float(value) for value in singular_values),
         approximation=tuple(tuple(float(value) for value in row) for row in approximation),
-        frobenius_error=float(np.linalg.norm(array - approximation, ord="fro")),
+        frobenius_error=error,
     )
 
 
@@ -50,7 +51,7 @@ def randomized_svd_certificate(matrix, report, tolerance=1e-10):
         return False
     try:
         expected = randomized_svd_report(matrix, report.rank, report.oversampling, report.power_iterations, report.seed)
-    except (ValueError, np.linalg.LinAlgError):
+    except ValueError:
         return False
     if report.singular_values != expected.singular_values or not isclose(report.frobenius_error, expected.frobenius_error, rel_tol=tolerance, abs_tol=tolerance):
         return False
