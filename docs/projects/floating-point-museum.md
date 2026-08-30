@@ -17,6 +17,12 @@ description: 用可复现实验观察舍入、累计误差、消去误差与蒙�
 
 该面板直接使用浏览器的 JavaScript `Number`（IEEE 754 binary64）并实时计算相邻数间距。它用于建立直觉；精确十进制财务运算仍应使用整数最小单位或十进制定点类型，完整的可复核报告与边界测试见下方 Python 实验。
 
+## 浏览器内病态系统实验
+
+<ConditioningExplorer />
+
+这个面板展示的是问题敏感性：保持近奇异矩阵不变，右端只作极小变化，精确解也可能发生数量级更大的移动。它与“无选主元消元”的算法不稳定是不同现象，详细推导见[条件数](/numerical-computing/condition-number)。
+
 ## 数学连接
 
 - [浮点数](/numerical-computing/floating-point)：为何十进制小数常被近似存储；

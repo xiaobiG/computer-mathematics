@@ -5,6 +5,7 @@ import './style.css'
 import BfsTraceExplorer from './components/BfsTraceExplorer.vue'
 import DijkstraTraceExplorer from './components/DijkstraTraceExplorer.vue'
 import FloatingPointExplorer from './components/FloatingPointExplorer.vue'
+import ConditioningExplorer from './components/ConditioningExplorer.vue'
 import LessonMeta from './components/LessonMeta.vue'
 
 export default {
@@ -16,5 +17,6 @@ export default {
     app.component('BfsTraceExplorer', BfsTraceExplorer)
     app.component('DijkstraTraceExplorer', DijkstraTraceExplorer)
     app.component('FloatingPointExplorer', FloatingPointExplorer)
+    app.component('ConditioningExplorer', ConditioningExplorer)
   },
 }
