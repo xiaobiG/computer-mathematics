@@ -23,6 +23,33 @@ description: 用增长率而非单次运行时间比较算法。
 
 忽略常数和低阶项不是说它们不重要，而是在大规模下先抓住决定性的增长趋势。例如 $3n^2+10n$ 是 $\Theta(n^2)$。
 
+## 从循环推导操作次数
+
+复杂度不是凭代码缩进猜出来的。先约定一次循环体的核心操作成本为 1，再把实际执行次数写成和式。
+
+```text
+for value in values:       # 恰好 n 次
+    inspect(value)
+
+for left in range(n):      # left 固定时，right 有 n-left-1 个选择
+    for right in range(left + 1, n):
+        inspect_pair(left, right)
+```
+
+第一段的次数是
+
+$$
+T_1(n)=\sum_{i=1}^{n}1=n.
+$$
+
+第二段不是简单的 $n\times n$：第一个元素有 $n-1$ 个后继，最后一个没有后继。因此
+
+$$
+T_2(n)=\sum_{i=0}^{n-1}(n-i-1)=1+2+\cdots+(n-1)=\frac{n(n-1)}2.
+$$
+
+它仍是 $\Theta(n^2)$，但精确计数告诉我们为何无序对没有被重复两次。枚举所有子集时，每个元素独立地“选或不选”，共有 $2\times2\times\cdots\times2=2^n$ 种位模式。这个乘法原理比“看到递归就写指数”更可靠。
+
 ## 常见增长率
 
 | 复杂度 | 典型例子 |
@@ -37,22 +64,49 @@ description: 用增长率而非单次运行时间比较算法。
 ## 算法实验：先计操作，再谈阶数
 
 ```python
-from projects.algorithm_lab.complexity_counts import operation_counts, two_sum_sorted_trace
+def operation_counts(size):
+    if not isinstance(size, int) or isinstance(size, bool) or size < 0:
+        raise ValueError("size must be a non-negative integer")
+    return {
+        "linear_scan": size,
+        "all_unordered_pairs": size * (size - 1) // 2,
+        "all_subsets": 2 ** size,
+    }
+
+
+def two_sum_sorted_trace(values, target):
+    """返回一对下标和比较次数；输入必须非降序。"""
+    if any(values[index] > values[index + 1] for index in range(len(values) - 1)):
+        raise ValueError("values must be sorted")
+    left, right, comparisons = 0, len(values) - 1, 0
+    while left < right:
+        comparisons += 1
+        total = values[left] + values[right]
+        if total == target:
+            return (left, right), comparisons
+        if total < target:
+            left += 1
+        else:
+            right -= 1
+    return None, comparisons
+
 
 assert operation_counts(4) == {
     "linear_scan": 4, "all_unordered_pairs": 6, "all_subsets": 16,
 }
-
+assert operation_counts(8)["all_subsets"] == 16 * operation_counts(4)["all_subsets"]
 pair, comparisons = two_sum_sorted_trace([1, 3, 4, 7, 11, 18], target=15)
 assert pair == (2, 4)
 assert comparisons <= 5
 ```
 
-运行 `python -m unittest projects.algorithm_lab.test_complexity_counts`。`operation_counts` 用精确公式展示规模从 4 翻倍到 8 时：线性扫描翻倍、子集枚举增至 16 倍；全对枚举为 $n(n-1)/2$，趋近四倍。它不是性能基准，而是防止把单次计时误当增长率的可复核模型。
+运行 `python -m unittest projects.algorithm_lab.test_complexity_counts` 可验证同一实现。`operation_counts` 用精确公式展示规模从 4 翻倍到 8 时：线性扫描翻倍、子集枚举增至 16 倍；全对枚举为 $n(n-1)/2$，趋近四倍。它不是性能基准，而是防止把单次计时误当增长率的可复核模型。
 
 ## 双指针为何只有线性次数
 
 有序数组中，若 `values[left] + values[right] < target`，任何以当前 `left` 为左端的更小右端只会更小，因此 `left` 可安全右移；和过大时同理右移 `right`。这个不变量既证明不会错过可行对，也说明每次失败比较至少让一个指针向内移动。两指针总移动不超过 $n-1$ 次，所以即使代码有一个 `while` 和两种分支，比较次数仍是 $O(n)$，而不是 $O(n^2)$。
+
+更精确地说，循环不变量是：若原数组中存在一个尚未排除的解对，它的两个下标都在闭区间 `[left, right]` 中。初始化时显然成立。若和过小，右端更小只会让和更小，故任何解都不能使用旧 `left`；反之若和过大，任何解都不能使用旧 `right`。因此每次移动都保持不变量。度量 `right-left` 初始至多为 $n-1$，每次失败严格减小，故最多作 $n-1$ 次比较后终止；找到相等和时返回的下标则直接满足规格。
 
 ## 复杂度、内存与工程边界
 
