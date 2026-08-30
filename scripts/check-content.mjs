@@ -37,7 +37,97 @@ const pageUrls = new Set(allMarkdownFiles.map((path) => {
   return `/${normalized.slice(0, -'.md'.length)}`
 }))
 
+// These anchors are the public contract for the five topic roadmaps.  They
+// correspond to the named concepts in the curriculum blueprint, not merely
+// to a topic's article count.  Keeping them explicit catches a broken route
+// or an accidental deletion before a reader discovers a gap halfway through
+// a learning path.
+const roadmapAnchors = {
+  '程序员的线性代数': [
+    '/linear-algebra/vectors-dot-product',
+    '/linear-algebra/linear-combinations-basis',
+    '/linear-algebra/four-fundamental-subspaces',
+    '/linear-algebra/orthogonal-projection-qr',
+    '/linear-algebra/gaussian-elimination',
+    '/linear-algebra/lu-factorization-pivoting',
+    '/linear-algebra/least-squares',
+    '/linear-algebra/eigenvalues-pca',
+    '/linear-algebra/svd',
+    '/linear-algebra/jacobian-hessian-autodiff',
+    '/projects/linear-algebra-lab',
+  ],
+  '算法背后的离散数学': [
+    '/discrete-math/logic-induction-proofs',
+    '/discrete-math/sets-relations-orders',
+    '/discrete-math/recurrences',
+    '/discrete-math/loop-invariants',
+    '/discrete-math/graph-foundations-topological-sort',
+    '/discrete-math/breadth-first-search',
+    '/discrete-math/depth-first-search',
+    '/discrete-math/union-find',
+    '/discrete-math/dijkstra',
+    '/discrete-math/bellman-ford',
+    '/discrete-math/floyd-warshall',
+    '/discrete-math/greedy-exchange-arguments',
+    '/discrete-math/dynamic-programming-dag',
+    '/discrete-math/p-np-reductions',
+    '/projects/algorithm-lab',
+  ],
+  '机器学习需要的概率论': [
+    '/probability-ml/probability-space-events',
+    '/probability-ml/joint-marginal-conditional',
+    '/probability-ml/expectation-variance',
+    '/probability-ml/common-distributions',
+    '/probability-ml/laws-of-large-numbers-clt',
+    '/probability-ml/bayes',
+    '/probability-ml/conjugate-priors-predictive',
+    '/probability-ml/maximum-likelihood',
+    '/probability-ml/cross-entropy-kl',
+    '/probability-ml/hypothesis-testing',
+    '/probability-ml/monte-carlo-importance-sampling',
+    '/probability-ml/metropolis-hastings',
+    '/probability-ml/generative-discriminative-logistic',
+    '/projects/naive-bayes-spam',
+  ],
+  '数值误差与浮点数': [
+    '/numerical-computing/floating-point',
+    '/numerical-computing/error-propagation',
+    '/numerical-computing/condition-number',
+    '/numerical-computing/algorithmic-stability',
+    '/numerical-computing/kahan-summation',
+    '/numerical-computing/iterative-linear-systems',
+    '/numerical-computing/newton-method',
+    '/numerical-computing/secant-method',
+    '/numerical-computing/numerical-differentiation',
+    '/numerical-computing/interpolation',
+    '/numerical-computing/numerical-integration',
+    '/numerical-computing/stochastic-simulation-reproducibility',
+    '/numerical-computing/tolerances-property-testing',
+    '/projects/floating-point-museum',
+  ],
+  '密码学的模运算与数论': [
+    '/number-theory-crypto/extended-euclid',
+    '/number-theory-crypto/modular-arithmetic',
+    '/number-theory-crypto/chinese-remainder-theorem',
+    '/number-theory-crypto/primality-testing',
+    '/number-theory-crypto/finite-fields-groups',
+    '/number-theory-crypto/rsa',
+    '/number-theory-crypto/diffie-hellman',
+    '/number-theory-crypto/hashing-passwords',
+    '/number-theory-crypto/message-authentication-codes',
+    '/number-theory-crypto/elliptic-curve-prelude',
+    '/projects/crypto-toybox',
+  ],
+}
+
 const errors = []
+for (const [topic, anchors] of Object.entries(roadmapAnchors)) {
+  for (const anchor of anchors) {
+    if (!pageUrls.has(anchor)) {
+      errors.push(`${topic}: 课程路线锚点 ${anchor} 找不到对应 Markdown 页面`)
+    }
+  }
+}
 // The initial deep-rewrite cohort is the site-wide reference implementation
 // for the lesson contract.  Keep its reader-facing stages from silently
 // regressing during later edits, while other lessons continue to use the
