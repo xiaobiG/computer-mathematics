@@ -9,3 +9,41 @@
 .VPHomeHero .text { max-width: 620px; }
 .VPFeature { border-color: rgba(15, 118, 110, 0.16); }
 .VPFeature:hover { border-color: var(--vp-c-brand-2); }
+
+.lesson-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0 0 24px;
+  overflow: hidden;
+  border: 1px solid rgba(15, 118, 110, 0.22);
+  border-radius: 12px;
+  background: rgba(15, 118, 110, 0.14);
+  box-shadow: 0 8px 22px rgba(15, 118, 110, 0.06);
+}
+
+.lesson-meta__item {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding: 12px 14px;
+  background: var(--vp-c-bg);
+}
+
+.lesson-meta__label {
+  color: var(--vp-c-text-2);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.025em;
+}
+
+.lesson-meta__value {
+  overflow-wrap: anywhere;
+  color: var(--vp-c-text-1);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+@media (max-width: 640px) {
+  .lesson-meta { grid-template-columns: 1fr; }
+}
