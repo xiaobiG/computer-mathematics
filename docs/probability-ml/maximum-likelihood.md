@@ -50,15 +50,17 @@ $$\frac{d\ell}{dp}=\frac{h}{p}-\frac{t}{1-p}=0
 ```python
 from projects.naive_bayes_spam.bernoulli_estimation import (
     bernoulli_log_likelihood, bernoulli_map, bernoulli_mle,
+    bernoulli_mle_certificate,
 )
 
 observations = [1] * 8 + [0] * 2
 assert bernoulli_mle(observations) == 0.8
 assert bernoulli_log_likelihood(observations, 0.8) > bernoulli_log_likelihood(observations, 0.6)
 assert bernoulli_map([1, 1, 0], alpha=2.0, beta=2.0) == 3 / 5
+assert bernoulli_mle_certificate(observations, 0.8)["valid"]
 ```
 
-运行 `python -m unittest projects.naive_bayes_spam.test_bernoulli_estimation`。实现将 $p=0$ 和 $p=1$ 的端点区分为“与观测一致时对数似然为 0”与“观察到不可能事件时为 $-\infty$”，不再把数学边界静默混为同一错误。测试验证 MLE 是样本均值、它优于邻近候选、MAP 的先验平滑，以及空样本/非法概率的失败契约。
+运行 `python -m unittest projects.naive_bayes_spam.test_bernoulli_estimation`。实现将 $p=0$ 和 $p=1$ 的端点区分为“与观测一致时对数似然为 0”与“观察到不可能事件时为 $-\infty$”，不再把数学边界静默混为同一错误。`bernoulli_mle_certificate` 会从样本重新计算均值，并标出结果应当是唯一的内部驻点，还是全 0/全 1 数据的边界解；将候选值从 0.8 篡改为 0.7 会使证书失效。它核查定理结论，不替代上节的二阶导数证明。测试验证 MLE 是样本均值、它优于邻近候选、MAP 的先验平滑，以及空样本/非法概率的失败契约。
 
 扫描 $n$ 条观测的时间为 $O(n)$、额外空间为 $O(1)$。实际分类器会最小化平均负对数似然，也就是交叉熵；用 `logsumexp` 等技巧处理极小概率，避免下溢。
 
@@ -76,14 +78,14 @@ assert bernoulli_map([1, 1, 0], alpha=2.0, beta=2.0) == 3 / 5
 
 1. **基础**：为 3 正 7 反计算 MLE 和对数似然。
 2. **推导**：写出 Beta$(\alpha,\beta)$ 先验下的 MAP 估计，并指出何时存在内部解。
-3. **编码**：为全 0、全 1、非法观测和空列表增加测试。
+3. **编码**：将 `bernoulli_mle_certificate` 的候选值篡改为非样本均值，确认它拒绝；再为全 0、全 1、非法观测和空列表增加测试。
 4. **开放**：说明高斯噪声假设下最小二乘如何等价于最大似然，并指出离群点为什么会破坏该假设。
 
 ## 练习答案提示
 
 1. MLE 是样本均值，所以先得 $\hat p=0.3$；对数似然要把正、反面两项分别计入，使用自然对数。
 2. 先将 Bernoulli 对数似然与 $(\alpha-1)\log p+(\beta-1)\log(1-p)$ 相加；检查分子、分母及端点，避免把所有先验都当作有内部众数。
-3. 全 0 与全 1 是合法边界样本；非法观测和空列表是输入契约问题，分别验证返回值和异常类型。
+3. 全 0 与全 1 是合法边界样本；混合样本才有内部驻点。证书应从样本重新计算均值，而不是只相信传入候选；非法观测和空列表是输入契约问题，分别验证拒绝方式。
 4. 从独立同方差高斯的联合密度取对数，丢掉与参数无关的常数；再说明平方残差会让单个离群点获得过大权重。
 
 ## 延伸与下一步

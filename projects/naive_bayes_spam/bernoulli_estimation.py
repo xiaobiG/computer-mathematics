@@ -16,6 +16,52 @@ def bernoulli_mle(observations: list[int]) -> float:
     return sum(observations) / len(observations)
 
 
+def bernoulli_mle_certificate(
+    observations: list[int], candidate: float, *, tolerance: float = 1e-12
+) -> dict[str, bool]:
+    """Audit the Bernoulli MLE theorem for a proposed estimate.
+
+    For mixed data the sample mean is the unique interior stationary point and
+    the log likelihood is strictly concave.  For all-zero/all-one data, the
+    maximum is respectively the 0/1 boundary.  This certificate checks which
+    branch applies and whether ``candidate`` is the theorem's answer; it does
+    not turn a finite numerical check into a substitute for the proof.
+    """
+    try:
+        _validate_observations(observations)
+        if not isinstance(candidate, (int, float)) or isinstance(candidate, bool) or not 0.0 <= candidate <= 1.0:
+            return {
+                "candidate_is_a_probability": False,
+                "matches_sample_mean": False,
+                "is_interior_stationary_case": False,
+                "is_correct_boundary_case": False,
+                "valid": False,
+            }
+        if tolerance < 0.0:
+            raise ValueError("tolerance must be non-negative")
+        estimate = bernoulli_mle(observations)
+        successes = sum(observations)
+        failures = len(observations) - successes
+        interior = successes > 0 and failures > 0
+        boundary = (successes == 0 and candidate == 0.0) or (failures == 0 and candidate == 1.0)
+        matches = abs(candidate - estimate) <= tolerance
+        return {
+            "candidate_is_a_probability": True,
+            "matches_sample_mean": matches,
+            "is_interior_stationary_case": interior,
+            "is_correct_boundary_case": boundary,
+            "valid": matches and (interior or boundary),
+        }
+    except (TypeError, ValueError):
+        return {
+            "candidate_is_a_probability": False,
+            "matches_sample_mean": False,
+            "is_interior_stationary_case": False,
+            "is_correct_boundary_case": False,
+            "valid": False,
+        }
+
+
 def bernoulli_log_likelihood(observations: list[int], probability: float) -> float:
     """Return log P(data | p), including mathematically valid endpoint cases."""
     _validate_observations(observations)
