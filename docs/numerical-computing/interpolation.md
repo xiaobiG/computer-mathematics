@@ -40,14 +40,19 @@ $$p(x)=2-(x+1)+(x+1)x=x^2+1.$$
 ## 可运行实现
 
 ```python
-from projects.floating_point_museum.interpolation import divided_differences, evaluate_newton
+from projects.floating_point_museum.interpolation import (
+    divided_differences,
+    evaluate_newton,
+    interpolation_certificate,
+)
 
 nodes = [-1.0, 0.0, 2.0]
 coefficients = divided_differences(nodes, [2.0, 1.0, 5.0])
 assert evaluate_newton(nodes, coefficients, 3.0) == 10.0
+assert interpolation_certificate(nodes, [2.0, 1.0, 5.0], coefficients)["valid"]
 ```
 
-运行 `python -m unittest projects.floating_point_museum.test_interpolation`。测试验证二次函数在节点内外的精确复原，以及重复节点、长度不匹配和系数维度错误会被拒绝。构造差商表为 $O(n^2)$ 时间、$O(n)$ 额外空间；一次嵌套求值为 $O(n)$。
+运行 `python -m unittest projects.floating_point_museum.test_interpolation`。`interpolation_certificate` 会重算差商系数，并将多项式逐一代回全部节点检查残差；篡改任一系数会同时破坏系数匹配和节点拟合。测试验证二次函数在节点内外的精确复原，以及重复节点、长度不匹配和系数维度错误会被拒绝。构造差商表为 $O(n^2)$ 时间、$O(n)$ 额外空间；一次嵌套求值为 $O(n)$。
 
 ## 误差、正确性与边界
 
@@ -68,14 +73,14 @@ $$f(x)-p_n(x)=\frac{f^{(n+1)}(\xi)}{(n+1)!}\prod_{i=0}^{n}(x-x_i)$$
 
 1. **基础**：为三个节点列出一阶和二阶差商。
 2. **推导**：证明新牛顿基函数在所有旧节点为零。
-3. **编码**：每加入一个节点输出当前插值多项式在全部旧节点的残差。
+3. **编码**：篡改一项牛顿系数，确认 `interpolation_certificate` 同时拒绝系数和节点拟合；再每加入一个节点输出当前插值多项式在全部旧节点的残差。
 4. **开放**：比较等距节点和 Chebyshev 节点对 $1/(1+25x^2)$ 的高阶插值，记录端点最大误差。
 
 ## 练习答案提示
 
 1. 一阶差商是相邻函数值差除以节点差，二阶差商再对一阶差商做同样操作；先检查节点互异。
 2. 第 $k$ 个牛顿基含因子 $\prod_{i<k}(x-x_i)$，在任一旧节点至少有一个因子为零，所以新项不改变已拟合值。
-3. 每次扩展后逐一代回所有已有节点并记录最大残差；节点重复、长度不符和高阶外推都应有独立失败/诊断测试。
+3. 先让证书重算差商系数并逐一代回节点，再每次扩展后记录最大残差；节点重复、长度不符和高阶外推都应有独立失败/诊断测试。
 4. 用同一节点数和评估网格比较端点最大误差；Chebyshev 节点在端点更密，常抑制 Runge 振荡，但不是噪声数据的万能解法。
 
 ## 下一步

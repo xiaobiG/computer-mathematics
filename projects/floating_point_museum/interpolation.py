@@ -32,3 +32,36 @@ def evaluate_newton(nodes: list[float], coefficients: list[float], point: float)
     for index in range(len(coefficients) - 2, -1, -1):
         result = coefficients[index] + (point - nodes[index]) * result
     return result
+
+
+def interpolation_certificate(
+    nodes: list[float], values: list[float], coefficients: list[float], *, tolerance: float = 1e-12
+) -> dict[str, bool]:
+    """Recompute Newton coefficients and audit every interpolation-node residual."""
+    empty = {
+        "coefficients_match_divided_differences": False,
+        "all_nodes_are_reconstructed_within_tolerance": False,
+        "valid": False,
+    }
+    try:
+        if tolerance < 0.0 or not isfinite(tolerance):
+            return empty
+        expected = divided_differences(nodes, values)
+        if len(coefficients) != len(expected) or any(not isfinite(value) for value in coefficients):
+            return empty
+        coefficients_match = all(
+            abs(actual - target) <= tolerance * max(1.0, abs(actual), abs(target))
+            for actual, target in zip(coefficients, expected)
+        )
+        nodes_match = all(
+            abs(evaluate_newton(nodes, coefficients, node) - value)
+            <= tolerance * max(1.0, abs(value))
+            for node, value in zip(nodes, values)
+        )
+        return {
+            "coefficients_match_divided_differences": coefficients_match,
+            "all_nodes_are_reconstructed_within_tolerance": nodes_match,
+            "valid": coefficients_match and nodes_match,
+        }
+    except (TypeError, ValueError):
+        return empty
