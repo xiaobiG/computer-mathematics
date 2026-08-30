@@ -28,19 +28,28 @@ $$\operatorname{HMAC}_K(m)=H((K'\oplus opad)\,\|\,H((K'\oplus ipad)\,\|\,m)).$$
 ## 可运行实验
 
 ```python
-from projects.crypto_toybox.message_auth import hmac_tag, verify_hmac
+from projects.crypto_toybox.message_auth import (
+    sequenced_hmac_tag,
+    verify_hmac,
+    verify_sequenced_hmac,
+)
 
 key, message = b"demo-shared-key", b"amount=100"
 tag = hmac_tag(key, message)
 assert verify_hmac(key, message, tag)
 assert not verify_hmac(key, b"amount=900", tag)
+
+# MAC 正确不代表消息新鲜：同一有效标签被重放仍应拒绝。
+sequenced_tag = sequenced_hmac_tag(key, 7, message)
+replay = verify_sequenced_hmac(key, 7, message, sequenced_tag, last_accepted_sequence=7)
+assert replay.tag_valid and not replay.sequence_is_fresh and not replay.accepted
 ```
 
 ```bash
 python -m unittest projects.crypto_toybox.test_message_auth
 ```
 
-标签生成与验证为消息长度的 $O(n)$；实现使用 `compare_digest`，避免普通逐字节比较尽早退出所造成的一类时序信号。测试覆盖正常验证、消息篡改、标签篡改和空密钥拒绝。
+标签生成与验证为消息长度的 $O(n)$；实现使用 `compare_digest`，避免普通逐字节比较尽早退出所造成的一类时序信号。`encode_sequenced_message` 为 64 位序号和主体加入固定长度前缀，`verify_sequenced_hmac` 将“标签有效”与“序号比已接受值新”分开返回：旧消息的 HMAC 可以完全正确，却仍不能被协议接受。这个函数不保存状态；真实接收方必须持久化序号或维护明确的滑动窗口。测试覆盖正常验证、消息/标签篡改、空密钥、编码分界和有效重放拒绝。
 
 ## 正确性与工程边界
 
@@ -57,14 +66,14 @@ python -m unittest projects.crypto_toybox.test_message_auth
 
 1. **基础题**：说明为什么攻击者能为修改后的裸哈希消息重算摘要，却不能在未知密钥下重算 HMAC。
 2. **推导题**：写出 HMAC 内外层的输入，并解释为何两个不同填充是必要结构的一部分。
-3. **编码题**：为带序号的消息设计无歧义编码，并测试旧序号重放被拒绝。
+3. **编码题**：阅读 `encode_sequenced_message` 的长度前缀，构造两个直接拼接会歧义的字段；再确认一个标签有效但等于已接受序号的消息仍被拒绝。
 4. **开放题**：为 API 请求认证列出必须覆盖的方法、路径、主体、时间和 nonce，并说明日志中哪些字段不能泄露。
 
 ## 练习答案提示
 
 1. 裸哈希没有秘密，攻击者可对修改后消息再算摘要；HMAC 的标签依赖未知密钥，攻击者不能凭公开消息重算有效标签。
 2. HMAC 形如 $H((K\oplus opad)\|H((K\oplus ipad)\|m))$；内外两层与不同填充形成规范构造，不能简化为随意字符串拼接。
-3. 用长度前缀或规范二进制序列化编码序号和主体；服务端保存/验证单调序号或去重窗口，旧序号即使标签正确也必须拒绝。
+3. 用长度前缀或规范二进制序列化编码序号和主体；`tag_valid` 与 `sequence_is_fresh` 是两项不同断言。服务端保存/验证单调序号或去重窗口，旧序号即使标签正确也必须拒绝。
 4. 认证输入应覆盖方法、规范路径、主体哈希、时间、nonce 和密钥标识；日志不能记录密钥、完整认证标签或敏感主体，且需避免泄漏可重放材料。
 
 ## 延伸
