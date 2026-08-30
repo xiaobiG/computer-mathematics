@@ -51,3 +51,48 @@ def posterior_trace(prior: float, observations: list[tuple[float, float]]) -> tu
         updates.append(update)
         current = update.posterior
     return current, updates
+
+
+def posterior_trace_respects_model(
+    prior: float,
+    observations: list[tuple[float, float]],
+    final: float,
+    updates: list[BayesUpdate],
+    *,
+    tolerance: float = 1e-12,
+) -> bool:
+    """Independently replay a sequential Bayes trace as a teaching certificate.
+
+    This verifies every stored prior, normalising evidence and posterior against
+    the supplied conditionally independent observation model.  It does not
+    prove that the observations are actually conditionally independent in the
+    real world; that is an assumption outside a finite execution trace.
+    """
+    try:
+        _probability(prior, "prior")
+        _probability(final, "final")
+        if tolerance < 0.0:
+            return False
+        if len(observations) != len(updates):
+            return False
+        current = prior
+        for (likelihood_if_event, likelihood_if_not_event), update in zip(observations, updates):
+            _probability(likelihood_if_event, "likelihood_if_event")
+            _probability(likelihood_if_not_event, "likelihood_if_not_event")
+            evidence = likelihood_if_event * current + likelihood_if_not_event * (1.0 - current)
+            if evidence == 0.0:
+                return False
+            expected_posterior = likelihood_if_event * current / evidence
+            fields = (
+                (update.prior, current),
+                (update.likelihood_if_event, likelihood_if_event),
+                (update.likelihood_if_not_event, likelihood_if_not_event),
+                (update.evidence, evidence),
+                (update.posterior, expected_posterior),
+            )
+            if any(abs(actual - expected) > tolerance for actual, expected in fields):
+                return False
+            current = expected_posterior
+        return abs(final - current) <= tolerance
+    except (TypeError, ValueError):
+        return False

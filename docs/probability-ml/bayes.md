@@ -47,7 +47,11 @@ $$P(A\mid B)=\frac{P(B\mid A)P(A)}{P(B\mid A)P(A)+P(B\mid\neg A)P(\neg A)}.$$
 ## 算法实现与复杂度
 
 ```python
-from projects.naive_bayes_spam.bayes_update import posterior, posterior_trace
+from projects.naive_bayes_spam.bayes_update import (
+    posterior,
+    posterior_trace,
+    posterior_trace_respects_model,
+)
 
 first = posterior(0.01, likelihood_if_event=0.90, likelihood_if_not_event=0.05)
 assert round(first.evidence, 4) == 0.0585
@@ -57,13 +61,36 @@ assert round(first.posterior, 3) == 0.154
 final, trace = posterior_trace(0.10, [(0.8, 0.2), (0.8, 0.2)])
 assert trace[1].prior == trace[0].posterior
 assert final > trace[0].posterior > 0.10
+assert posterior_trace_respects_model(0.10, [(0.8, 0.2), (0.8, 0.2)], final, trace)
 ```
 
 单个证据的计算为 $O(1)$，$k$ 个顺序更新为 $O(k)$ 并保留 $O(k)$ 条审计轨迹。轨迹显示 `evidence`（分母）而不仅是后验，避免把“灵敏度”误读为结论。朴素贝叶斯对 $d$ 个特征在对数域累加 $\log P(x_i\mid y)$，预测成本为 $O(d\cdot\text{类别数})$；使用对数避免许多小概率连乘下溢。
 
+## 赔率视角：独立证据为何能相加
+
+当先验和后验都不在 $0,1$ 的边界时，将贝叶斯公式的补事件版本相除，可得赔率形式：
+
+$$
+\frac{P(A\mid E)}{P(\neg A\mid E)}
+=
+\frac{P(E\mid A)}{P(E\mid\neg A)}
+\cdot
+\frac{P(A)}{P(\neg A)}.
+$$
+
+中间的比值称为似然比（likelihood ratio）。如果 $E_1,\ldots,E_k$ 在给定 $A$ 与给定 $\neg A$ 时都条件独立，则连续更新变为
+
+$$
+\log\operatorname{odds}(A\mid E_{1:k})
+=\log\operatorname{odds}(A)+
+\sum_{i=1}^{k}\log\frac{P(E_i\mid A)}{P(E_i\mid\neg A)}.
+$$
+
+这解释了朴素贝叶斯为什么对特征做对数加法，也暴露了它的脆弱点：两个高度相关的词若被误当作独立，几乎同一份信息会在求和中出现两次，赔率被人为放大。代码的 `posterior_trace_respects_model` 只能重放“在给定似然下更新是否算对”，不能从一段轨迹证明真实数据满足独立性；后者必须依靠建模审查、留出集校准与漂移监控。
+
 ## 正确性与工程边界
 
-代码逐项实现全概率分母与贝叶斯分子，因此在输入是合法概率且证据概率非零时恰好返回定义的后验。`posterior_trace` 还额外假定每一条新证据在给定类别后与此前证据条件独立；词语高度相关时朴素贝叶斯会重复计数证据，不能把连续更新当作无条件成立的规则。模型分数还必须校准：预测 0.8 的一组样本不一定真的有约 80% 为正类。
+代码逐项实现全概率分母与贝叶斯分子，因此在输入是合法概率且证据概率非零时恰好返回定义的后验。`posterior_trace_respects_model` 会独立重算每步的先验、证据分母和后验，并拒绝长度不一致或被篡改的轨迹；这是一份算术证书。`posterior_trace` 还额外假定每一条新证据在给定类别后与此前证据条件独立；词语高度相关时朴素贝叶斯会重复计数证据，不能把连续更新当作无条件成立的规则。模型分数还必须校准：预测 0.8 的一组样本不一定真的有约 80% 为正类。
 
 ## 常见误区
 
@@ -75,14 +102,14 @@ assert final > trace[0].posterior > 0.10
 
 1. **基础**：先验改为 20%，计算新的后验并与 15.4% 比较。
 2. **推导**：从 $P(A\cap B)=P(B\cap A)$ 独立推导贝叶斯公式。
-3. **编码**：为 `posterior` 添加零证据与非法概率的测试。
+3. **编码**：篡改一条 `posterior_trace` 的分母或后验，确认 `posterior_trace_respects_model` 拒绝它；再为零证据与非法概率添加测试。
 4. **开放**：设计一个医疗筛查例子，说明改变阈值如何在假阳性和假阴性间权衡。
 
 ## 练习答案提示
 
 1. 先用全概率公式求 $P(B)$，再代入新的 $P(A)=0.2$；不要沿用 15.4% 示例里的旧分母。
 2. 两种对交集的展开都要求条件概率的分母为正；令 $B$ 为证据事件，再移项即可。
-3. “零证据”指分母为零，并不等于后验为零；分别断言 `ValueError` 与输入范围检查。
+3. “零证据”指分母为零，并不等于后验为零；证书应逐步重算分母、先验链接和后验，分别断言篡改拒绝、`ValueError` 与输入范围检查。
 4. 固定敏感度和特异度，或明确它们怎样随阈值改变；同时报告基率、假阳性和假阴性，不能只报准确率。
 
 ## 延伸与下一步
