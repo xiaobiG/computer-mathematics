@@ -152,6 +152,15 @@ const priorityStagePatterns = [
   ['正确性、复杂度或工程边界', /^##\s+.*(?:正确性|边界|复杂度).*$/m],
   ['算法实现或实验', /^##\s+.*(?:实现|实验|算法).*$/m],
 ]
+// Headings evolve as an article is revised, so the all-course gate checks the
+// explanatory prose rather than prescribing identical heading text.  Together
+// with the existing executable-code, failure-boundary and exercise gates this
+// keeps the reader-facing chain visible: problem -> model -> derivation.
+const narrativeStagePatterns = [
+  ['问题场景', /(?:问题|开始|反例|失败|需求)/],
+  ['直觉或定义', /(?:直觉|定义|符号|模型|设\s*[A-Za-z$])/],
+  ['推导、证明或算法', /(?:推导|证明|算法|不变量|公式|等价)/],
+]
 for (const path of files) {
   const source = await readFile(path, 'utf8')
   // Structural Markdown headings must be read outside fenced code examples.
@@ -210,6 +219,11 @@ for (const path of files) {
     errors.push(`${label}: 缺少至少一个二级章节`)
   }
   if (!label.endsWith('rewrite-plan.md')) {
+    for (const [stage, pattern] of narrativeStagePatterns) {
+      if (!pattern.test(prose)) {
+        errors.push(`${label}: 缺少深度课程叙事“${stage}”`)
+      }
+    }
     const requiredMetadata = ['courseLevel', 'prerequisites', 'estimatedMinutes', 'experiment']
     for (const key of requiredMetadata) {
       if (!new RegExp(`^${key}:\\s*.+$`, 'm').test(source)) {
