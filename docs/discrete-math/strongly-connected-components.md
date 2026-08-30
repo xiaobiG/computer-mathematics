@@ -59,6 +59,13 @@ python -m unittest projects.algorithm_lab.test_strongly_connected
 3. **编码题**：返回每个顶点所属组件编号，并验证跨组件边构成 DAG。
 4. **开放题**：为包依赖扫描设计 SCC 报告：如何显示最小循环、组件规模和修复优先级？
 
+## 练习答案提示
+
+1. 将每个 SCC 收缩成一个点，原图跨组件边成为凝聚图边；对该 DAG 做拓扑排序，注意孤立组件也要出现。
+2. 自反、对称、传递性分别来自零长度路径、反向可达和路径拼接；因此互达关系确实是等价关系，组件是等价类。
+3. 组件编号需覆盖所有顶点；遍历每条原边，若端点编号不同则加入凝聚边，再用拓扑排序或 DFS 验证没有环。
+4. 报告可按组件大小和影响范围排序，但最小循环需要在 SCC 内另找回边/最短环；输出应区分“结构事实”和“业务修复优先级”。
+
 ## 延伸
 
 [DFS](/discrete-math/depth-first-search)给出完成时间的基础；[拓扑排序](/discrete-math/graph-foundations-topological-sort)处理凝聚后的 DAG；[算法实验室](/projects/algorithm-lab)收录实现。继续学习可检索 Tarjan algorithm、2-SAT、condensation graph。
