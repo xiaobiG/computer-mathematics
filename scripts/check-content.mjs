@@ -38,6 +38,29 @@ const pageUrls = new Set(allMarkdownFiles.map((path) => {
 }))
 
 const errors = []
+// The initial deep-rewrite cohort is the site-wide reference implementation
+// for the lesson contract.  Keep its reader-facing stages from silently
+// regressing during later edits, while other lessons continue to use the
+// broader structural checks below as they are upgraded.
+const priorityDeepLessons = new Set([
+  'linear-algebra/vectors-dot-product.md',
+  'linear-algebra/gaussian-elimination.md',
+  'linear-algebra/least-squares.md',
+  'discrete-math/loop-invariants.md',
+  'discrete-math/dijkstra.md',
+  'probability-ml/bayes.md',
+  'probability-ml/maximum-likelihood.md',
+  'numerical-computing/floating-point.md',
+  'numerical-computing/condition-number.md',
+  'number-theory-crypto/rsa.md',
+])
+const priorityStagePatterns = [
+  ['问题场景', /^##\s+.*(?:问题|开始|场景|案例).*$/m],
+  ['直觉或严格定义', /^##\s+.*(?:定义|直觉|符号).*$/m],
+  ['分步推导或算法证明', /^##\s+.*(?:推导|证明|算法).*$/m],
+  ['正确性、复杂度或工程边界', /^##\s+.*(?:正确性|边界|复杂度).*$/m],
+  ['算法实现或实验', /^##\s+.*(?:实现|实验|算法).*$/m],
+]
 for (const path of files) {
   const source = await readFile(path, 'utf8')
   // Structural Markdown headings must be read outside fenced code examples.
@@ -100,6 +123,13 @@ for (const path of files) {
     for (const key of requiredMetadata) {
       if (!new RegExp(`^${key}:\\s*.+$`, 'm').test(source)) {
         errors.push(`${label}: 缺少 ${key} 课程元信息`)
+      }
+    }
+  }
+  if (priorityDeepLessons.has(label)) {
+    for (const [stage, pattern] of priorityStagePatterns) {
+      if (!pattern.test(prose)) {
+        errors.push(`${label}: 优先深度文章缺少“${stage}”正文锚点`)
       }
     }
   }
