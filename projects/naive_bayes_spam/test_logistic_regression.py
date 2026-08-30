@@ -36,6 +36,17 @@ class LogisticRegressionTests(unittest.TestCase):
         self.assertLess(model.loss(SAMPLES), first_loss)
         self.assertEqual([model.predict(features) for features, _ in SAMPLES], [target for _, target in SAMPLES])
 
+    def test_l2_regularisation_shrinks_the_non_intercept_weight_norm(self):
+        plain = LogisticRegression().fit(SAMPLES, learning_rate=0.5, steps=500, l2=0.0)
+        regularised = LogisticRegression().fit(SAMPLES, learning_rate=0.5, steps=500, l2=0.3)
+        plain_norm = sum(weight * weight for weight in plain.weights[1:]) ** 0.5
+        regularised_norm = sum(weight * weight for weight in regularised.weights[1:]) ** 0.5
+        self.assertLess(regularised_norm, plain_norm)
+
+    def test_fit_rejects_negative_l2_strength(self):
+        with self.assertRaises(ValueError):
+            LogisticRegression().fit(SAMPLES, l2=-0.1)
+
     def test_fit_rejects_inconsistent_or_empty_feature_vectors(self):
         with self.assertRaises(ValueError):
             LogisticRegression().fit([])

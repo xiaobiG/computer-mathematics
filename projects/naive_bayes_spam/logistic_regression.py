@@ -1,7 +1,9 @@
 """A tiny batch logistic-regression implementation for teaching.
 
 It intentionally favours an auditable gradient calculation over production
-features such as regularisation, sparse inputs, or an adaptive optimiser.
+features such as sparse inputs or an adaptive optimiser.  It includes L2
+regularisation because its gradient is short enough to connect the math lesson
+to an observable weight-norm trade-off.
 """
 
 from __future__ import annotations
@@ -37,16 +39,18 @@ class LogisticRegression:
         samples: list[tuple[list[float], bool]],
         learning_rate: float = 0.5,
         steps: int = 500,
+        l2: float = 0.0,
     ) -> "LogisticRegression":
         if not samples:
             raise ValueError("training data must not be empty")
-        if learning_rate <= 0 or steps <= 0:
-            raise ValueError("learning_rate and steps must be positive")
+        if learning_rate <= 0 or steps <= 0 or l2 < 0:
+            raise ValueError("learning_rate and steps must be positive and l2 must be non-negative")
         dimension = len(samples[0][0])
         if dimension == 0 or any(len(features) != dimension for features, _ in samples):
             raise ValueError("every sample needs the same nonzero feature dimension")
 
         self.weights = [0.0] * (dimension + 1)  # intercept, then one coefficient per feature
+        self.l2 = l2
         for _ in range(steps):
             gradient = [0.0] * len(self.weights)
             for features, target in samples:
@@ -55,7 +59,8 @@ class LogisticRegression:
                 for index, feature in enumerate(features, start=1):
                     gradient[index] += residual * feature
             for index, value in enumerate(gradient):
-                self.weights[index] -= learning_rate * value / len(samples)
+                penalty_gradient = l2 * self.weights[index] if index else 0.0
+                self.weights[index] -= learning_rate * (value / len(samples) + penalty_gradient)
         return self
 
     def predict_proba(self, features: list[float]) -> float:
@@ -71,4 +76,6 @@ class LogisticRegression:
     def loss(self, samples: list[tuple[list[float], bool]]) -> float:
         if not samples:
             raise ValueError("evaluation data must not be empty")
-        return sum(binary_cross_entropy(self.predict_proba(features), target) for features, target in samples) / len(samples)
+        data_loss = sum(binary_cross_entropy(self.predict_proba(features), target) for features, target in samples) / len(samples)
+        penalty = getattr(self, "l2", 0.0) * sum(weight * weight for weight in self.weights[1:]) / 2
+        return data_loss + penalty

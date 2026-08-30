@@ -11,7 +11,7 @@ experiment: projects/naive_bayes_spam/logistic_regression.py
 
 ## 学习目标
 
-读完后，你能从伯努利似然推导二元交叉熵，写出逻辑回归的批量梯度，并说明它与朴素贝叶斯在“建模什么”上的差异。
+读完后，你能从伯努利似然推导二元交叉熵和批量梯度，解释线性分数为何作用在对数赔率上，实现 L2 正则化，并用 Brier 分数区分“分类正确”和“概率可信”。
 
 ## 从一个分类决策开始
 
@@ -28,6 +28,14 @@ $$z=b+w^\mathsf{T}x,$$
 $$p=P(Y=1\mid x)=\sigma(z)=\frac{1}{1+e^{-z}}.$$
 
 其中 $b$ 是截距，$w$ 是权重。$z=0$ 对应 $p=0.5$；每让 $z$ 增加一，正类对数赔率增加一。这个线性假设作用在**对数赔率**上，而不是直接作用在概率上。
+
+把 sigmoid 方程移项即可看到这件事：
+
+$$
+\frac{p}{1-p}=e^z,\qquad \log\frac{p}{1-p}=z=b+w^\mathsf{T}x.
+$$
+
+因此一个特征权重 $w_j=\log 2$ 的含义不是“概率增加 $\log2$”，而是在其他特征不变时把正类赔率乘以 2。靠近 $p=0$ 或 $p=1$ 时，同样的赔率变化对应的概率增量很小；这是不能直接做线性概率回归的原因。
 
 ## 从伯努利似然推导交叉熵
 
@@ -46,6 +54,15 @@ $$\nabla_w L=\frac{1}{n}\sum_i(p_i-y_i)x_i,\qquad
 
 梯度为正表示该特征组合预测得过高，梯度下降就降低相应权重；为负则相反。这正是实现中 `residual = probability - target` 的来源。
 
+不省略中间步骤时，对单个样本的负对数似然 $\ell=-y\log p-(1-y)\log(1-p)$，有
+
+$$
+\frac{\partial\ell}{\partial p}=-\frac yp+\frac{1-y}{1-p},
+\qquad \frac{\partial p}{\partial z}=p(1-p).
+$$
+
+相乘后分母消去：$\partial\ell/\partial z=p-y$。再由 $z=b+w^\mathsf T x$ 得到 $\partial z/\partial w_j=x_j$，这正是每个特征梯度中 `residual * feature` 的来历。推导也说明了两项前提：标签必须是伯努利的 $0/1$，而且损失必须接收连续概率，不能先阈值化。
+
 ## 手算一次更新
 
 从 $b=0,w=0$ 开始，对样本 $x=[2],y=1$，有 $p=0.5$，残差为 $-0.5$。学习率 $\eta=0.1$ 时：
@@ -56,19 +73,32 @@ $$b\leftarrow0-0.1(-0.5)=0.05,\quad w\leftarrow0-0.1(-0.5\times2)=0.1.$$
 
 ## 可运行实验
 
-项目中的实现只依赖标准库，训练一个二维、线性可分的小数据集：
+项目中的实现只依赖标准库，训练一个二维、线性可分的小数据集。`l2` 是 $\lambda$，它只惩罚特征权重、不惩罚截距：
 
 ```python
 from projects.naive_bayes_spam.logistic_regression import LogisticRegression
 
 samples = [([-2.0, -1.0], False), ([-1.0, -2.0], False),
            ([1.0, 2.0], True), ([2.0, 1.0], True)]
-model = LogisticRegression().fit(samples, learning_rate=0.5, steps=500)
-print(model.predict_proba([1.0, 1.0]))
-print(model.loss(samples))
+plain = LogisticRegression().fit(samples, learning_rate=0.5, steps=500, l2=0.0)
+regularised = LogisticRegression().fit(samples, learning_rate=0.5, steps=500, l2=0.3)
+
+def l2_norm(model):
+    return sum(weight * weight for weight in model.weights[1:]) ** 0.5
+
+assert l2_norm(regularised) < l2_norm(plain)
+print(regularised.predict_proba([1.0, 1.0]))
+print(regularised.loss(samples))
 ```
 
-运行 `python -m unittest projects.naive_bayes_spam.test_logistic_regression`。测试验证极端分数下 sigmoid 不发生指数溢出、交叉熵方向正确、训练损失下降、特征维度不一致会被拒绝。有限精度下极端分数仍可能舍入为 `0.0` 或 `1.0`，因此训练生产模型通常直接使用以 logits 表示的稳定交叉熵实现。
+训练目标变为
+
+$$
+L_\lambda(b,w)=L(b,w)+\frac\lambda2\lVert w\rVert_2^2,
+\qquad \nabla_wL_\lambda=\nabla_wL+\lambda w.
+$$
+
+运行 `python -m unittest projects.naive_bayes_spam.test_logistic_regression`。测试验证极端分数下 sigmoid 不发生指数溢出、交叉熵方向正确、训练损失下降、L2 会缩小非截距权重范数、特征维度不一致或负正则强度会被拒绝。有限精度下极端分数仍可能舍入为 `0.0` 或 `1.0`，因此训练生产模型通常直接使用以 logits 表示的稳定交叉熵实现。
 
 时间复杂度为 $O(Tnd)$，其中 $T$ 为更新次数、$n$ 为样本数、$d$ 为特征数；模型本身占用 $O(d)$ 空间。
 
@@ -77,6 +107,16 @@ print(model.loss(samples))
 朴素贝叶斯建模 $P(x\mid y)P(y)$，再归一化得到 $P(y\mid x)$；它需要给特征的联合生成过程作假设，词袋版本尤其假设给定类别后词独立。逻辑回归直接建模 $P(y\mid x)$，避免该生成假设，但仍假设类别的对数赔率可由特征线性组合表示。
 
 两者并无必然胜者：数据很少、生成假设较合理时，朴素贝叶斯常能快速工作；特征相关性强、标注数据足够时，逻辑回归通常更灵活。必须在独立验证集上以相同指标比较，而不是凭训练集准确率下结论。
+
+## 分类阈值与概率校准是两件事
+
+阈值 $0.5$ 把概率变成类别，适合计算准确率、精确率和召回率；但它会丢弃置信度。对二元标签，Brier 分数保留这部分信息：
+
+$$
+\operatorname{Brier}=\frac1n\sum_{i=1}^n(p_i-y_i)^2.
+$$
+
+一个预测 $0.51$ 和一个预测 $0.99$ 即使都被阈值化为正类，Brier 分数也会严格区分它们。它不是万能排名指标：类别不平衡、业务阈值和误报成本仍需单独报告；可靠性曲线则检查“预测约为 0.7 的样本中，正类频率是否也约为 0.7”。
 
 ## 失败案例与工程边界
 
