@@ -80,6 +80,8 @@ assert topological_trace({"a": ["b"], "b": ["a"]})[0] is None
 
 `shortest_path_query_boundary_report(payload)` 进一步把“完整单源”与“固定目标”拆开：在满足前提时，BFS 首次出队目标、Dijkstra 定型目标后可停止；Bellman–Ford 的后续轮次和 Floyd–Warshall 的全源矩阵则不能省略。报告同时给出有向密度、邻接表槽位和矩阵格，并以证书拒绝被篡改的提前停止或存储结论。
 
+`shortest_path_update_report(before, after)` 把两个同源、同目标、同顶点集的图快照做多重集边差异和 SHA-256 指纹对照。只要边表改变，旧的比较、工作量和查询边界报告都必须重放；即使最短路输出碰巧没变，也不能把旧证据移植到新输入。
+
 3-SAT 模块将变量写为非零整数，负号表示否定：
 
 ```python

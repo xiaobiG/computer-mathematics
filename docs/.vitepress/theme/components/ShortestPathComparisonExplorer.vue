@@ -41,6 +41,7 @@ const customEdges = ref('0 1 5\n0 2 1\n2 1 1\n1 3 1\n2 3 10')
 const customError = ref('')
 const copied = ref(false)
 const requestedQueryCount = ref(1)
+const updateBaseline = ref(null)
 const customGraph = ref({
   label: '自定义图：可重放输入', start: 0, target: 3,
   note: '这份初始输入可以直接修改；点击“应用并审计”后才会替换当前图。',
@@ -201,6 +202,30 @@ const boundaryCards = computed(() => {
     floyd?.status === 'applicable' ? { key: 'floyd-boundary', name: 'Floyd–Warshall', status: 'not-safe', note: '它的状态本来就是全源矩阵，不是目标导向搜索。' } : { key: 'floyd-boundary', name: 'Floyd–Warshall', status: 'rejected', note: '负环使全源最短路无定义。' },
   ]
 })
+function stableEdgeCounts(edges) {
+  const counts = new Map()
+  for (const edge of edges) { const key = JSON.stringify(edge); counts.set(key, (counts.get(key) ?? 0) + 1) }
+  return counts
+}
+function snapshotForUpdate() {
+  updateBaseline.value = JSON.parse(JSON.stringify({ graph: scenario.value, cards: cards.value }))
+}
+function clearUpdateBaseline() { updateBaseline.value = null }
+const updateSummary = computed(() => {
+  if (!updateBaseline.value) return null
+  const before = updateBaseline.value.graph; const after = scenario.value
+  const beforeEdges = stableEdgeCounts(before.edges); const afterEdges = stableEdgeCounts(after.edges)
+  let added = 0; let removed = 0
+  for (const [key, count] of afterEdges) added += Math.max(0, count - (beforeEdges.get(key) ?? 0))
+  for (const [key, count] of beforeEdges) removed += Math.max(0, count - (afterEdges.get(key) ?? 0))
+  const graphChanged = before.nodes.length !== after.nodes.length || before.start !== after.start || before.target !== after.target || added > 0 || removed > 0
+  const beforeCards = new Map(updateBaseline.value.cards.map(card => [card.key, card.result]))
+  const changedAlgorithms = cards.value.filter(card => {
+    const previous = beforeCards.get(card.key)
+    return !previous || ['status', 'distance', 'path', 'reason'].some(field => JSON.stringify(previous[field]) !== JSON.stringify(card.result[field]))
+  }).map(card => card.name)
+  return { added, removed, graphChanged, changedAlgorithms, sameQuestion: before.nodes.length === after.nodes.length && before.start === after.start && before.target === after.target }
+})
 const customInput = computed(() => ({
   contract_version: contractVersion,
   vertex_count: scenario.value.nodes.length,
@@ -248,6 +273,12 @@ async function copyInput() {
       <dl class="graph-facts"><div><dt>有向密度</dt><dd>{{ uniqueNonloopEdges }} / {{ scenario.nodes.length * (scenario.nodes.length - 1) }} = {{ (density * 100).toFixed(0) }}%</dd><small>{{ densityLabel }}</small></div><div><dt>邻接表槽位</dt><dd>{{ scenario.nodes.length + scenario.edges.length }}</dd><small>顶点表头 + 边项</small></div><div><dt>全源矩阵格</dt><dd>{{ scenario.nodes.length ** 2 }}</dd><small>Floyd–Warshall 的核心状态</small></div></dl>
       <div class="boundary-cards"><article v-for="card in boundaryCards" :key="card.key" :class="card.status"><h4>{{ card.name }}</h4><template v-if="card.status === 'safe'"><p>完整单源扫描：<strong>{{ card.full }}</strong></p><p>目标停止扫描：<strong>{{ card.target }}</strong></p></template><p>{{ card.note }}</p></article></div>
     </section>
+    <section class="update-explorer" aria-labelledby="update-title">
+      <div><p class="eyebrow">图更新与报告失效</p><h3 id="update-title">先固定基线，再审计更新影响</h3><p>浏览器内基线用于理解变化；Python 的 <code>shortest_path_update_report</code> 用规范化 JSON 指纹绑定可复制的正式证据。</p></div>
+      <div class="update-actions"><button type="button" @click="snapshotForUpdate">将当前图固定为基线</button><button v-if="updateBaseline" type="button" class="secondary" @click="clearUpdateBaseline">清除基线</button></div>
+      <p v-if="!updateSummary" class="update-empty">尚未固定基线。先固定，再切换示例或修改自定义边表。</p>
+      <div v-else class="update-result"><div><strong>{{ updateSummary.graphChanged ? '旧报告必须重放' : '仍是同一图快照' }}</strong><p v-if="updateSummary.graphChanged">边多重集变化：新增 {{ updateSummary.added }}，移除 {{ updateSummary.removed }}。即使下方输出恰好不变，旧报告也不能证明当前图。</p><p v-else>边、顶点、源点和目标均未变；相同输入下的报告可重放验证。</p></div><div><strong>{{ updateSummary.sameQuestion ? '查询问题未变' : '查询问题也变了' }}</strong><p>算法输出变化：{{ updateSummary.changedAlgorithms.length ? updateSummary.changedAlgorithms.join('、') : '无（但输入变化仍会使旧证据失效）' }}</p></div></div>
+    </section>
     <div class="comparison-grid"><div class="graph-panel"><svg viewBox="0 0 100 100" role="img" aria-label="当前加权有向图"><defs><marker id="compare-arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" /></marker></defs><g v-for="([from, to, weight]) in scenario.edges" :key="`${from}-${to}-${weight}`"><line :x1="nodeById.get(from).x" :y1="nodeById.get(from).y" :x2="nodeById.get(to).x" :y2="nodeById.get(to).y" marker-end="url(#compare-arrow)"/><text :x="(nodeById.get(from).x + nodeById.get(to).x) / 2" :y="(nodeById.get(from).y + nodeById.get(to).y) / 2 - 3">{{ weight }}</text></g><g v-for="node in scenario.nodes" :key="node.id" :transform="`translate(${node.x} ${node.y})`"><circle r="6.4" :class="{ endpoint: node.id === scenario.start || node.id === scenario.target }"/><text text-anchor="middle" dominant-baseline="central">{{ node.id }}</text></g></svg><p><strong>当前判断：</strong>{{ scenario.note }}</p></div><div class="property-panel"><span :class="allUnit ? 'ok' : 'warn'">{{ allUnit ? '全部边权为 1' : '含非单位权边' }}</span><span :class="allNonnegative ? 'ok' : 'warn'">{{ allNonnegative ? '全部边权非负' : '存在负边' }}</span><p>起点 <code>{{ scenario.start }}</code> → 目标 <code>{{ scenario.target }}</code></p><p>读卡顺序：先看状态，再看理由；“拒绝”是正确的前提检查，不是算法失败。</p></div></div>
     <div class="algorithm-cards"><article v-for="card in cards" :key="card.key" :class="card.result.status"><div class="card-top"><h3>{{ card.name }}</h3><code>{{ card.complexity }}</code></div><p class="status">{{ card.result.status === 'applicable' ? '适用' : '拒绝' }}</p><template v-if="card.result.status === 'applicable'"><p>距离：<strong>{{ card.result.distance ?? '不可达' }}</strong></p><p>路径：<code>{{ card.result.path ? card.result.path.join(' → ') : '—' }}</code></p><p class="invariant">{{ card.result.invariant }}</p></template><p v-else class="reason">{{ card.result.reason }}</p></article></div>
     <footer><strong>边界：</strong>BFS 的“拒绝”不表示它不能遍历该图，只表示它的层数结果不能解释为加权最短路；Floyd–Warshall 适合所有源点对，小型交互示例并不意味着它适合大规模稀疏图。</footer>
@@ -259,6 +290,16 @@ async function copyInput() {
 </style>
 
 <style scoped>
+.update-explorer { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:1rem; margin:0 0 1rem; padding:1rem; border:1px solid #b9c9d8; border-radius:.65rem; background:#f8fbff; }
+.update-actions { display:flex; gap:.55rem; align-items:end; flex-wrap:wrap; }
+.update-actions button { border:0; border-radius:.42rem; padding:.52rem .75rem; background:#2563eb; color:#fff; cursor:pointer; font:inherit; font-weight:700; }
+.update-actions .secondary { border:1px solid #b9c9d8; background:#fff; color:#15334f; }
+.update-empty,.update-result { grid-column:1 / -1; }
+.update-empty { margin:0; color:#53677a; }
+.update-result { display:grid; grid-template-columns:repeat(2,1fr); gap:.7rem; }
+.update-result div { padding:.8rem; border:1px solid #c7d4df; border-radius:.5rem; background:#fff; }
+.update-result strong { color:#102e4c; }
+.update-result p { margin:.42rem 0 0; color:#53677a; }
 .query-boundary { display:grid; grid-template-columns:minmax(0,1fr); gap:1rem; margin:0 0 1rem; padding:1rem; border:1px solid #b9c9d8; border-radius:.65rem; background:#f8fbff; }
 .graph-facts,.boundary-cards { display:grid; grid-template-columns:repeat(3,1fr); gap:.7rem; margin:0; }
 .graph-facts div,.boundary-cards article { padding:.8rem; border:1px solid #c7d4df; border-radius:.5rem; background:#fff; }
@@ -271,5 +312,5 @@ async function copyInput() {
 .boundary-cards h4 { margin:0; }
 .boundary-cards p { margin:.42rem 0 0; }
 .boundary-cards strong { color:#102e4c; }
-@media(max-width:760px){ .graph-facts,.boundary-cards { grid-template-columns:1fr; } }
+@media(max-width:760px){ .update-explorer { grid-template-columns:1fr; }.update-result,.graph-facts,.boundary-cards { grid-template-columns:1fr; } }
 </style>

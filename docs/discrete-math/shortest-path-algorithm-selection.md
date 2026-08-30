@@ -62,6 +62,12 @@ $$\rho=\frac{\lvert\{(u,v)\in E:u\ne v\}\rvert}{V(V-1)}.$$
 
 邻接表约保存 $V+E$ 个槽位；Floyd–Warshall 的核心距离矩阵是 $V^2$ 个格。页面会同时显示这两种空间口径和实际“完整单源扫描 / 目标停止扫描”计数。它们解释了为什么稀疏图、目标查询和大量点对查询会改变问题结构，而不是给出脱离输入的万能赢家。
 
+## 图更新：输出没变，不等于旧证据仍有效
+
+将当前图固定为基线后再修改边表，面板会显示新增/移除边和发生变化的算法卡。一个容易漏掉的情况是：新增一条永远不会出现在 $s\to t$ 路径上的边，最短距离、路径和前提可能都不变；但旧报告绑定的是**旧输入**，它不能证明新图。必须从新的规范化 JSON 重放比较、工作量和目标查询报告。
+
+`shortest_path_update_report` 用规范化输入的 SHA-256 指纹识别图快照，并把平行边当作多重集。因此增加或删除一条重复边也不会被静默吞掉。顶点数、源点和目标若变化，则问题本身不同，报告会拒绝把它包装成“同一次更新”。
+
 ## 可运行统一报告
 
 `shortest_path_comparison` 将前提、距离、路径和不变量放入同一报告，并从原始边表重放包括“拒绝卡”在内的全部结论。
@@ -81,6 +87,10 @@ from projects.algorithm_lab.shortest_path_workload import (
 from projects.algorithm_lab.shortest_path_query_boundary import (
     shortest_path_query_boundary_certificate,
     shortest_path_query_boundary_report,
+)
+from projects.algorithm_lab.shortest_path_update import (
+    shortest_path_update_certificate,
+    shortest_path_update_report,
 )
 
 edges = [(0, 1, 2.0), (0, 2, 5.0), (2, 1, -10.0), (1, 3, 4.0)]
@@ -116,6 +126,12 @@ boundary = shortest_path_query_boundary_report(unit_target_query)
 assert boundary["algorithms"]["dijkstra"]["target_only"]["edge_scans"] < boundary["algorithms"]["dijkstra"]["full_source"]["edge_scans"]
 assert boundary["storage"]["floyd_matrix_cells"] == 25
 assert shortest_path_query_boundary_certificate(unit_target_query, boundary)
+
+updated = {**unit_target_query, "edges": [*unit_target_query["edges"], [0, 4, 1]]}
+update = shortest_path_update_report(unit_target_query, updated)
+assert not update["invalidation"]["old_comparison_report_valid_for_after"]
+assert "dijkstra" in update["algorithm_outcome_changes"]
+assert shortest_path_update_certificate(unit_target_query, updated, update)
 ```
 
 运行：
@@ -124,7 +140,7 @@ assert shortest_path_query_boundary_certificate(unit_target_query, boundary)
 python -m unittest projects.algorithm_lab.test_shortest_path_comparison
 ```
 
-篡改距离、路径或“Dijkstra 可以处理负边”的理由都会使证书失败。重放合同还会拒绝第 9 个顶点、超过 20 条边、无穷权重、额外字段或错误合同版本；工作量证书还会拒绝被改写的扫描边数、查询源集合或 $V^3$ 候选格计数；目标查询证书还会拒绝被伪装成“安全提前停止”的 Bellman–Ford/Floyd 卡片、密度和内存槽位。拒绝信息也必须被审计，因为它绑定了算法结论的适用范围。
+篡改距离、路径或“Dijkstra 可以处理负边”的理由都会使证书失败。重放合同还会拒绝第 9 个顶点、超过 20 条边、无穷权重、额外字段或错误合同版本；工作量证书还会拒绝被改写的扫描边数、查询源集合或 $V^3$ 候选格计数；目标查询证书还会拒绝被伪装成“安全提前停止”的 Bellman–Ford/Floyd 卡片、密度和内存槽位；更新证书还会拒绝被改写的边增删、输入指纹或“旧报告仍有效”声明。拒绝信息也必须被审计，因为它绑定了算法结论的适用范围。
 
 ## 推导、复杂度与工程边界
 
@@ -166,4 +182,4 @@ python -m unittest projects.algorithm_lab.test_shortest_path_comparison
 
 ## 延伸
 
-[BFS](/discrete-math/breadth-first-search)、[Dijkstra](/discrete-math/dijkstra)、[Bellman–Ford](/discrete-math/bellman-ford)和[Floyd–Warshall](/discrete-math/floyd-warshall)分别展开四条证明线；[算法可视化实验室](/projects/algorithm-lab)收录可重放实现。下一步将审计图发生边权或边集更新时，旧报告何时必须失效并重算。
+[BFS](/discrete-math/breadth-first-search)、[Dijkstra](/discrete-math/dijkstra)、[Bellman–Ford](/discrete-math/bellman-ford)和[Floyd–Warshall](/discrete-math/floyd-warshall)分别展开四条证明线；[算法可视化实验室](/projects/algorithm-lab)收录可重放实现。下一步将对 v1.2 的同图、输入、工作量、目标查询与更新证据做收束审计，再决定下一条高价值学习链。
