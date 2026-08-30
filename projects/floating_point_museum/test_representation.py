@@ -1,9 +1,11 @@
 import math
 import unittest
+from dataclasses import replace
 from fractions import Fraction
 
 from projects.floating_point_museum.representation import (
     adjacent_values,
+    decimal_rounding_certificate,
     decimal_rounding_report,
     float64_parts,
     spacing_at,
@@ -34,10 +36,18 @@ class RepresentationTests(unittest.TestCase):
         self.assertEqual(report.rounding_direction, "up")
         self.assertTrue(report.certificate["rounding_error_is_within_half_ulp"])
         self.assertTrue(report.certificate["valid"])
+        self.assertTrue(decimal_rounding_certificate(report)["valid"])
 
         exact = decimal_rounding_report("0.5")
         self.assertEqual(exact.rounding_direction, "exact")
         self.assertEqual(exact.rounding_error, 0)
+
+    def test_decimal_rounding_certificate_rejects_tampered_fields(self):
+        report = decimal_rounding_report("0.1")
+        tampered = replace(report, rounding_error=Fraction(0, 1), rounding_direction="exact")
+        certificate = decimal_rounding_certificate(tampered)
+        self.assertFalse(certificate["fields_match_recomputed_literal"])
+        self.assertFalse(certificate["valid"])
 
     def test_decimal_rounding_report_rejects_nonfinite_or_unknown_source_values(self):
         for literal in ("nan", "inf", "1e400"):

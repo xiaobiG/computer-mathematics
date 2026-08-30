@@ -96,6 +96,46 @@ def decimal_rounding_report(literal: str) -> DecimalRoundingReport:
     )
 
 
+def decimal_rounding_certificate(report: DecimalRoundingReport) -> dict[str, bool]:
+    """Recompute a decimal-conversion report and check nearest finite neighbours.
+
+    A report's fields are useful teaching evidence but should not be trusted as
+    input.  This certificate reparses the source literal exactly, reconstructs
+    every report field, then confirms the stored binary64 fraction is no
+    farther from the exact decimal than either finite adjacent float.  At the
+    finite extremes only the available finite neighbour is compared.
+    """
+    if not isinstance(report, DecimalRoundingReport):
+        return {
+            "fields_match_recomputed_literal": False,
+            "stored_value_is_nearest_finite_neighbour": False,
+            "valid": False,
+        }
+    try:
+        expected = decimal_rounding_report(report.literal)
+        fields_match = report == expected
+        stored_float = float(expected.stored_value)
+        lower, upper = adjacent_values(stored_float)
+        stored_distance = abs(expected.stored_value - expected.exact_value)
+        neighbour_distances = []
+        if isfinite(lower):
+            neighbour_distances.append(abs(Fraction.from_float(lower) - expected.exact_value))
+        if isfinite(upper):
+            neighbour_distances.append(abs(Fraction.from_float(upper) - expected.exact_value))
+        nearest = all(stored_distance <= distance for distance in neighbour_distances)
+        return {
+            "fields_match_recomputed_literal": fields_match,
+            "stored_value_is_nearest_finite_neighbour": nearest,
+            "valid": fields_match and nearest,
+        }
+    except (TypeError, ValueError, OverflowError):
+        return {
+            "fields_match_recomputed_literal": False,
+            "stored_value_is_nearest_finite_neighbour": False,
+            "valid": False,
+        }
+
+
 def adjacent_values(value: float) -> tuple[float, float]:
     """Return the immediately representable finite neighbours of a finite value."""
     if not isfinite(value):
