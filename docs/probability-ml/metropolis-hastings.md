@@ -73,6 +73,13 @@ assert metropolis_hastings_trace_certificate(target, proposal, 0, samples, trace
 3. **编码**：为轨迹计算接受率与滞后一自相关；比较不同随机种子。
 4. **开放**：为一个双峰目标设计局部随机游走提议，解释为何链会卡在一个峰，并提出平行回火或独立提议等改进方向。
 
+## 练习答案提示
+
+1. 写出两状态转移概率和目标权重，分别计算两侧乘积；应相等，且要注意自环概率也使每行和为一。
+2. 接受率取两方向流量的较小者，分比值不小于/小于 1 两种情形代入即可证明详细平衡；这只给平稳性，不给混合速度。
+3. 接受率为接受次数除提议次数；滞后一自相关需中心化相邻状态，多个种子只能提示诊断一致性，不能替代收敛证明。
+4. 局部提议跨越低密度谷的概率很小，链会长时间停在一峰；平行回火借高温链帮助跨峰，独立提议则需要足够覆盖两峰，二者都应报告 ESS 与多链诊断。
+
 ## 下一步
 
 [蒙特卡洛与重要性采样](/probability-ml/monte-carlo-importance-sampling)解释独立样本与权重退化；[共轭先验与后验预测](/probability-ml/conjugate-priors-predictive)展示不需要 MCMC 的可解后验。继续学习 Gibbs sampling、Hamiltonian Monte Carlo、$\hat R$ 与有效样本量诊断。

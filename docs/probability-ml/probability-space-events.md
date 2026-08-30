@@ -91,6 +91,13 @@ $$P(A\cup B)=P(A)+P(B)-P(A\cap B).$$
 3. **编码题**：为 `finite_event_report` 加入“条件在右事件上”的字段与篡改拒绝测试。
 4. **开放题**：为垃圾邮件的“含链接/含附件”建立有限事件空间，说明哪些原子由数据支持、哪些必须作为建模假设，并设计抽样误差报告。
 
+## 练习答案提示
+
+1. 两枚公平硬币共有四个等可能原子，补事件是“两枚都是反面”；先枚举原子再用补事件核对。
+2. 将 $A\cup B$ 拆为互不相交的 $A$ 与 $B\setminus A$，再用 $B=(A\cap B)\cup(B\setminus A)$ 消去重叠；补事件由全集分割得到。
+3. 条件在右事件时分母必须是右事件概率；证书要独立重算分子、分母与归一性，篡改一个字段后应拒绝。
+4. 明确观测窗口、原子定义和未观察组合的含义；用计数/总数估计并给置信区间或后验区间，避免把缺失直接当真零概率。
+
 ## 延伸
 
 [联合、边缘与条件分布](/probability-ml/joint-marginal-conditional)把有限事件扩展为两个随机变量的联合表；[条件概率与贝叶斯更新](/probability-ml/bayes)将条件化用于证据更新；[抽样误差与置信区间](/probability-ml/confidence-intervals-sampling)处理从有限数据估计这些概率的误差。继续学习可检索 probability axioms、sigma algebra、conditional expectation 与 exchangeability。

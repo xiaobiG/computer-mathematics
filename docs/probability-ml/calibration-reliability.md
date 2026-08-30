@@ -98,6 +98,13 @@ python -m unittest projects.naive_bayes_spam.test_main
 3. **编码题**：为 `reliability_bins` 增加每箱 Wilson 置信区间，并测试计数为 1 的边界。
 4. **开放题**：某模型在训练后六个月出现校准恶化。设计监控指标、再校准触发规则与不应自动采取的高风险动作。
 
+## 练习答案提示
+
+1. Brier 单样本损失为 $(p-y)^2$，所以三项分别为 $0.25,0.04,0.0001$；这只测概率平方误差，不是分类准确率。
+2. 提取共同的最大 logit 可避免直接计算巨大指数；两边同除以 $e^{\ell_0}$ 或使用符号分支，得到数值稳定的 sigmoid。
+3. Wilson 区间需输入成功数和箱样本数；$n=1$ 是重要边界，空箱应省略而不是给伪区间。
+4. 监控分箱偏差、Brier/对数损失、样本量和输入/标签漂移；触发后先人工审计数据与风险，不能仅凭自动再校准就改变高风险决策。
+
 ## 延伸
 
 [贝叶斯更新](/probability-ml/bayes)说明后验从何而来；[置信区间与抽样误差](/probability-ml/confidence-intervals-sampling)说明为什么要报告分箱样本量；[垃圾邮件分类器项目](/projects/naive-bayes-spam)将三者连为可运行实验。下一步可以研究验证集上的 Platt scaling、isotonic regression 与分布漂移监控，但必须避免把校准器当作安全或公平性的替代证明。
