@@ -17,3 +17,9 @@ class RandomizedSVDTests(unittest.TestCase):
         report = randomized_svd_report([[5., 0.], [0., 1.]], rank=1, oversampling=1, seed=3)
         self.assertGreater(report.frobenius_error, 0.)
         self.assertTrue(randomized_svd_certificate([[5., 0.], [0., 1.]], report))
+
+    def test_same_seed_replays_the_entire_report(self):
+        matrix = [[3., 1., 0.], [0., 2., 1.], [1., 0., 2.]]
+        first = randomized_svd_report(matrix, rank=1, oversampling=1, seed=29)
+        second = randomized_svd_report(matrix, rank=1, oversampling=1, seed=29)
+        self.assertEqual(first, second)
