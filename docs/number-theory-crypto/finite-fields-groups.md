@@ -62,6 +62,8 @@ g^{p-1}\equiv1\pmod p
 ```python
 from projects.crypto_toybox.finite_group import (
     discrete_log_toy,
+    finite_group_certificate,
+    finite_group_report,
     multiplicative_order,
     primitive_generators,
     subgroup_elements,
@@ -75,9 +77,14 @@ assert set(subgroup_elements(generator, p)) == set(range(1, p))
 
 # 小群中可直接枚举；模块明确限制在 p <= 1000。
 assert discrete_log_toy(generator, pow(generator, 7, p), p) == 7
+
+subgroup_report = finite_group_report(2, p)
+assert subgroup_report["order"] == 11
+assert not subgroup_report["generator_spans_full_group"]
+assert finite_group_certificate(2, p, subgroup_report)["valid"]
 ```
 
-该程序在教学规模枚举阶、生成元与离散对数，且拒绝复合模数和超过 1000 的枚举请求：它的作用正是让读者观察小群为何不安全，而不是生成参数或实现密钥交换。真实参数应由成熟协议/库固定选择，并使用密码学安全随机数。
+该程序在教学规模枚举阶、生成元与离散对数，且拒绝复合模数和超过 1000 的枚举请求：它的作用正是让读者观察小群为何不安全，而不是生成参数或实现密钥交换。`finite_group_report` 显式列出 $g^0$ 到 $g^{\operatorname{ord}(g)-1}$，并检查元素互异、阶整除 $p-1$、乘法封闭与逆元仍在子群中；`finite_group_certificate` 不信任显示出的列表，而是从 $g,p$ 重新枚举全部有限证据。它还区分“阶为 11 的真子群”与“阶为 22 的生成元覆盖全群”，正是小子群边界的可执行版本。真实参数应由成熟协议/库固定选择，并使用密码学安全随机数。
 
 ## Diffie–Hellman 如何使用这些结构
 
@@ -101,7 +108,7 @@ B^a=(g^b)^a=g^{ab}=(g^a)^b=A^b.
 
 1. 证明 \(\mathbb F_p^*\) 中每个元素的阶整除 \(p-1\)，并用 \(p=11\) 枚举验证。
 2. 求模 15 下可逆元素集合，解释为什么 3 没有乘法逆元。
-3. 修改 `powers`，输出 \(p=23\) 下每个元素的阶；哪些元素是生成元？
+3. 修改 `powers`，输出 \(p=23\) 下每个元素的阶；哪些元素是生成元？篡改一份 `finite_group_report` 的元素列表，确认其证书拒绝。
 4. 构造一个小子群例子，说明攻击者为何能从未验证的公钥得到关于私钥的同余信息。
 5. 比较有限域 DH 与椭圆曲线 DH：列出相同的抽象结构和不同的元素/运算，不讨论具体生产参数。
 
@@ -109,7 +116,7 @@ B^a=(g^b)^a=g^{ab}=(g^a)^b=A^b.
 
 1. 由拉格朗日定理，元素生成的子群阶整除群阶 $p-1$；用快速幂逐个求最小正指数验证，避免把元素值当作阶。
 2. 列出与 15 互素的剩余类；$\gcd(3,15)\ne1$，所以贝祖等式不能给出逆元。
-3. 对每个非零元素从指数 1 起寻找首次回到 1 的位置；阶为 22 的元素才是模 23 乘法群的生成元。
+3. 对每个非零元素从指数 1 起寻找首次回到 1 的位置；阶为 22 的元素才是模 23 乘法群的生成元。报告应分别检查幂列表、封闭性和逆元，篡改一个元素即应无法通过重新枚举。
 4. 选择小阶元素 $h$，攻击者令公钥为 $h$ 后共享值只依赖私钥模该小阶；重复不同小子群可拼出更多同余信息，故协议必须验证成员资格。
 5. 两者都在有限阶循环子群做标量/指数运算并依赖离散对数型假设；有限域元素是模数剩余类和乘法，椭圆曲线元素是点和点加法。
 
