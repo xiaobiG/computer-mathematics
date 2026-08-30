@@ -76,6 +76,17 @@ assert report.frobenius_error < 1e-10
 
 报告记录 seed 与实际正交基的列数；在慢衰减谱上需比较多个 seed、过采样和幂迭代，而不是将一次运行当作通用误差界。
 
+## 随机 SVD 实验
+
+```python
+from projects.linear_algebra_lab.randomized_svd import randomized_svd_report
+
+report = randomized_svd_report([[5.0, 0.0], [0.0, 1.0]], rank=1, seed=3)
+print(report.singular_values, report.frobenius_error)
+```
+
+它在随机子空间内分解小矩阵 $Q^TA$，并把截断重构误差与种子一同保存；该误差不等同于精确秩一 SVD 的最优误差。
+
 ## 运行
 
 ```bash
@@ -86,6 +97,7 @@ python -m unittest projects.linear_algebra_lab.test_basis
 python -m unittest projects.linear_algebra_lab.test_forward_autodiff
 python -m unittest projects.linear_algebra_lab.test_image_metrics
 python -m unittest projects.linear_algebra_lab.test_randomized_range
+python -m unittest projects.linear_algebra_lab.test_randomized_svd
 python -m unittest projects.linear_algebra_lab.test_recommendation
 ```
 

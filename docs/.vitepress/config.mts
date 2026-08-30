@@ -101,6 +101,10 @@ export default defineConfig({
               link: "/linear-algebra/randomized-range-finder",
             },
             {
+              text: "随机 SVD：从随机子空间到低秩分解",
+              link: "/linear-algebra/randomized-svd",
+            },
+            {
               text: "低秩推荐：缺失评分如何建模",
               link: "/linear-algebra/low-rank-recommendation",
             },
