@@ -43,14 +43,30 @@ $$\|A-A_1\|_F=\sqrt{2^2+1^2}=\sqrt5.$$
 ```python
 from projects.linear_algebra_lab.main import (
     low_rank_parameter_report,
+    truncated_svd_report,
+    truncated_svd_report_certificate,
     truncated_svd_frobenius_error,
 )
 
 assert truncated_svd_frobenius_error([5.0, 2.0, 1.0], rank=1) == 5 ** 0.5
 assert low_rank_parameter_report(8, 8, rank=2)["saved_parameters"] == 30
+
+report = truncated_svd_report([5.0, 2.0, 1.0], rank=1, rows=8, columns=8)
+assert report["retained_spectral_energy"] == 25.0
+assert report["discarded_spectral_energy"] == 5.0
+assert truncated_svd_report_certificate([5.0, 2.0, 1.0], 1, 8, 8, report)["valid"]
 ```
 
-对 $m\times n$ 矩阵，原始密集表示要 $mn$ 个数；$k$ 个奇异三元组约要 $k(m+n+1)$ 个数。后者更少才表示参数层面有节省；它仍未包含量化、编码和元数据。
+对 $m\times n$ 矩阵，原始密集表示要 $mn$ 个数；$k$ 个奇异三元组约要 $k(m+n+1)$ 个数。后者更少才表示参数层面有节省；它仍未包含量化、编码和元数据。`truncated_svd_report` 将总谱能量、保留能量、舍弃能量、理论 Frobenius 误差和参数量放在同一份报告中；其证书会独立核对
+
+$$
+\sum_i\sigma_i^2
+=\sum_{i\le k}\sigma_i^2+\sum_{i>k}\sigma_i^2,
+\qquad
+\lVert A-A_k\rVert_F^2=\sum_{i>k}\sigma_i^2,
+$$
+
+以及 `saved_parameters = dense_parameters - low_rank_parameters`。因此“保留约 83.3% 谱能量”和“参数是否真有节省”可一起审查，而不会把其中任意一个误当成另一个的结论。
 
 ## 手算解释与实现边界
 
@@ -81,14 +97,14 @@ print(len(components), measured_error)
 
 1. 对奇异值 $5,2,1$ 计算保留一个模式的平方重构误差与 Frobenius 误差。
 2. 解释秩一外积为何只有一个独立方向。
-3. 用数值库对小灰度矩阵比较不同 $k$ 的重构误差，并与谱尾平方和核对。
+3. 用数值库对小灰度矩阵比较不同 $k$ 的重构误差，并与谱尾平方和核对；篡改 `truncated_svd_report` 的舍弃能量，确认其证书拒绝。
 4. **开放**：为一个 $1000\times800$ 矩阵选择参数量确有节省的 $k$，再说明为什么这仍不足以证明实际文件更小。
 
 ## 练习答案提示
 
 1. 舍弃奇异值 $2,1$ 的平方和为 $5$，Frobenius 误差为 $\sqrt5$；区分“平方误差”和“误差范数”。
 2. 外积 $uv^T$ 的任一列都是同一 $u$ 的标量倍，因此列空间至多一维；非零时秩恰为一。
-3. 对每个 $k$ 用同一库的精确 SVD 重构，并比较实际平方误差与 $\sum_{i>k}\sigma_i^2$；不要拿有限迭代近似直接当定理证书。
+3. 对每个 $k$ 用同一库的精确 SVD 重构，并比较实际平方误差与 $\sum_{i>k}\sigma_i^2$；报告还应验证保留/舍弃能量分解。不要拿有限迭代近似直接当定理证书。
 4. 原矩阵参数约为 $1000\times800$，秩 $k$ 分解约为 $k(1000+800+1)$；文件大小还取决于量化、编码、元数据和数据可压缩性。
 
 ## 下一步

@@ -383,6 +383,64 @@ def low_rank_parameter_report(rows, columns, rank):
     }
 
 
+def truncated_svd_report(singular_values, rank, rows, columns):
+    """Join exact spectral loss and factor-storage tradeoffs in one lesson report.
+
+    The spectrum describes an *exact* SVD.  It must not be used to certify the
+    finite power-iteration approximation returned by ``rank_k_approximation``.
+    """
+    error = truncated_svd_frobenius_error(singular_values, rank)
+    parameters = low_rank_parameter_report(rows, columns, rank)
+    total_energy = sum(value * value for value in singular_values)
+    retained_energy = sum(value * value for value in singular_values[:rank])
+    discarded_energy = total_energy - retained_energy
+    return {
+        "rank": rank,
+        "singular_value_count": len(singular_values),
+        "total_spectral_energy": total_energy,
+        "retained_spectral_energy": retained_energy,
+        "discarded_spectral_energy": discarded_energy,
+        "frobenius_error": error,
+        "retained_energy_ratio": retained_energy / total_energy if total_energy else 1.0,
+        **parameters,
+    }
+
+
+def truncated_svd_report_certificate(singular_values, rank, rows, columns, report, tolerance=EPSILON):
+    """Recompute an exact truncation report and expose its independent claims."""
+    empty = {
+        "fields_match_recomputed_report": False,
+        "spectral_energy_splits_into_retained_and_discarded": False,
+        "discarded_energy_matches_squared_frobenius_error": False,
+        "parameter_tradeoff_is_consistent": False,
+        "valid": False,
+    }
+    try:
+        if tolerance <= 0 or not isfinite(tolerance) or not isinstance(report, dict):
+            return empty
+        expected = truncated_svd_report(singular_values, rank, rows, columns)
+        if set(report) != set(expected):
+            return empty
+        fields_match = all(
+            report[key] == value if isinstance(value, (int, bool))
+            else isinstance(report[key], (int, float)) and abs(report[key] - value) <= tolerance * max(1.0, abs(value))
+            for key, value in expected.items()
+        )
+        energy_split = abs(report["total_spectral_energy"] - report["retained_spectral_energy"]
+                           - report["discarded_spectral_energy"]) <= tolerance * max(1.0, report["total_spectral_energy"])
+        error_matches = abs(report["discarded_spectral_energy"] - report["frobenius_error"] ** 2) <= tolerance * max(1.0, report["discarded_spectral_energy"])
+        parameter_tradeoff = report["saved_parameters"] == report["dense_parameters"] - report["low_rank_parameters"]
+        return {
+            "fields_match_recomputed_report": fields_match,
+            "spectral_energy_splits_into_retained_and_discarded": energy_split,
+            "discarded_energy_matches_squared_frobenius_error": error_matches,
+            "parameter_tradeoff_is_consistent": parameter_tradeoff,
+            "valid": fields_match and energy_split and error_matches and parameter_tradeoff,
+        }
+    except (TypeError, ValueError):
+        return empty
+
+
 def image_cosine_similarity(left, right):
     """Compare same-shaped grayscale matrices as flattened vectors; zero images score 0."""
     if (not left or not right or len(left) != len(right)

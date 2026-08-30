@@ -6,6 +6,7 @@ from projects.linear_algebra_lab.main import (
     compressed_image_search, least_squares_comparison_report, least_squares_normal_equations, low_rank_parameter_report,
     matmul, matrix_composition_certificate, norm, project, least_squares_qr, rank_k_approximation, rank_one_approximation,
     pivot_trace_certificate, solve, solve_with_pivot_trace, truncated_svd_frobenius_error,
+    truncated_svd_report, truncated_svd_report_certificate,
 )
 
 
@@ -150,6 +151,19 @@ class LinearAlgebraLabTests(unittest.TestCase):
         self.assertEqual(report["saved_parameters"], 30)
         self.assertTrue(report["has_parameter_savings"])
         self.assertFalse(low_rank_parameter_report(2, 2, rank=2)["has_parameter_savings"])
+
+    def test_truncated_svd_report_connects_spectral_error_and_storage_with_a_certificate(self):
+        report = truncated_svd_report([5.0, 2.0, 1.0], rank=1, rows=8, columns=8)
+        self.assertEqual(report["retained_spectral_energy"], 25.0)
+        self.assertEqual(report["discarded_spectral_energy"], 5.0)
+        self.assertAlmostEqual(report["frobenius_error"], sqrt(5.0))
+        self.assertAlmostEqual(report["retained_energy_ratio"], 25.0 / 30.0)
+        self.assertTrue(truncated_svd_report_certificate([5.0, 2.0, 1.0], 1, 8, 8, report)["valid"])
+        tampered = dict(report)
+        tampered["discarded_spectral_energy"] = 4.0
+        certificate = truncated_svd_report_certificate([5.0, 2.0, 1.0], 1, 8, 8, tampered)
+        self.assertFalse(certificate["fields_match_recomputed_report"])
+        self.assertFalse(certificate["valid"])
 
     def test_compressed_image_search_reports_errors_and_ranks_the_exact_match_first(self):
         query = [[8.0, 0.0], [0.0, 3.0]]
