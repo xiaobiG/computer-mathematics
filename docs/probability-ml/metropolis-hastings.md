@@ -37,6 +37,7 @@ $$\alpha(x,y)=\min\left(1,\frac{\pi(y)q(x\mid y)}{\pi(x)q(y\mid x)}\right)$$
 
 ```python
 from projects.naive_bayes_spam.metropolis_hastings import (
+    detailed_balance_report,
     empirical_probabilities,
     metropolis_hastings,
     metropolis_hastings_trace_certificate,
@@ -47,9 +48,15 @@ proposal = {0: {1: 1.0}, 1: {0: 1.0}}
 samples, trace = metropolis_hastings(target, proposal, initial=0, steps=10_000, seed=2026)
 print(empirical_probabilities(samples[500:]))  # state 1 接近 0.75
 assert metropolis_hastings_trace_certificate(target, proposal, 0, samples, trace, seed=2026)
+
+balance = detailed_balance_report(target, proposal)
+assert abs(balance["kernel"][1][0] - 1 / 3) < 1e-12
+assert abs(balance["kernel"][1][1] - 2 / 3) < 1e-12
+assert balance["detailed_balance_holds"]
+assert balance["certificate"]["valid"]
 ```
 
-运行 `python -m unittest projects.naive_bayes_spam.test_metropolis_hastings`。实现允许未归一化目标权重与非对称提议，并显式计算 $q(x\mid y)/q(y\mid x)$；每轮记录候选、接受率和实际状态。`metropolis_hastings_trace_certificate` 从公开种子重放两次伪随机抽取，再独立计算 Hastings 比值并逐项核对轨迹；测试会篡改一项接受率，确认重放器拒绝。它验证一段程序运行遵循实现契约，并不证明链已经混合。测试还验证长期频率、非对称修正、提议行和为一、反向概率存在、初值合法和空样本边界。
+运行 `python -m unittest projects.naive_bayes_spam.test_metropolis_hastings`。实现允许未归一化目标权重与非对称提议，并显式计算 $q(x\mid y)/q(y\mid x)$；每轮记录候选、接受率和实际状态。`metropolis_hastings_trace_certificate` 从公开种子重放两次伪随机抽取，再独立计算 Hastings 比值并逐项核对轨迹。`detailed_balance_report` 则在小状态空间中显式构造包含拒绝自环的转移核，列出每一行和与 $\pi(x)P(x,y)$ 的双向流；它的证书从 $\pi,q$ 重新生成整张核，因此篡改任一转移概率会被拒绝。前者验证一段程序运行遵循实现契约，后者验证目标分布确为该有限核的平稳分布；两者都不证明链已经混合。测试还验证长期频率、非对称修正、提议行和为一、反向概率存在、初值合法和空样本边界。
 
 有限状态、显式提议表的一步成本为 $O(d)$（$d$ 为当前候选数）；真实高维模型通常只计算局部对数密度差，不能把整个状态空间写成字典。
 
@@ -70,14 +77,14 @@ assert metropolis_hastings_trace_certificate(target, proposal, 0, samples, trace
 
 1. **基础**：验证两状态例子中 $\pi(0)P(0\to1)=\pi(1)P(1\to0)$。
 2. **推导**：按接受率比值小于/大于一两种情形证明详细平衡。
-3. **编码**：为轨迹计算接受率与滞后一自相关；比较不同随机种子。
+3. **编码**：为轨迹计算接受率与滞后一自相关；比较不同随机种子；篡改 `detailed_balance_report` 的一个转移概率，确认其证书拒绝。
 4. **开放**：为一个双峰目标设计局部随机游走提议，解释为何链会卡在一个峰，并提出平行回火或独立提议等改进方向。
 
 ## 练习答案提示
 
 1. 写出两状态转移概率和目标权重，分别计算两侧乘积；应相等，且要注意自环概率也使每行和为一。
 2. 接受率取两方向流量的较小者，分比值不小于/小于 1 两种情形代入即可证明详细平衡；这只给平稳性，不给混合速度。
-3. 接受率为接受次数除提议次数；滞后一自相关需中心化相邻状态，多个种子只能提示诊断一致性，不能替代收敛证明。
+3. 接受率为接受次数除提议次数；滞后一自相关需中心化相邻状态，多个种子只能提示诊断一致性，不能替代收敛证明。详细平衡证书必须重算包含拒绝自环的整张核，而不是只检查采样频率。
 4. 局部提议跨越低密度谷的概率很小，链会长时间停在一峰；平行回火借高温链帮助跨峰，独立提议则需要足够覆盖两峰，二者都应报告 ESS 与多链诊断。
 
 ## 下一步

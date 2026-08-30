@@ -1,7 +1,8 @@
 import unittest
 
 from projects.naive_bayes_spam.metropolis_hastings import (
-    McmcEvent, empirical_probabilities, metropolis_hastings, metropolis_hastings_trace_certificate,
+    McmcEvent, detailed_balance_certificate, detailed_balance_report, empirical_probabilities,
+    metropolis_hastings, metropolis_hastings_trace_certificate,
 )
 
 
@@ -36,6 +37,22 @@ class MetropolisHastingsTests(unittest.TestCase):
         self.assertFalse(metropolis_hastings_trace_certificate(
             TARGET, SYMMETRIC_PROPOSAL, 0, samples, tampered, seed=17,
         ))
+
+    def test_detailed_balance_report_certifies_the_finite_transition_kernel(self):
+        report = detailed_balance_report(TARGET, SYMMETRIC_PROPOSAL)
+        self.assertEqual(report["normalized_target"], {0: 0.25, 1: 0.75})
+        self.assertEqual(report["kernel"][0], {0: 0.0, 1: 1.0})
+        self.assertAlmostEqual(report["kernel"][1][0], 1 / 3)
+        # The self-loop is formed by a floating subtraction after rejection.
+        self.assertAlmostEqual(report["kernel"][1][1], 2 / 3)
+        self.assertTrue(report["detailed_balance_holds"])
+        self.assertTrue(report["certificate"]["valid"])
+
+        tampered = dict(report)
+        tampered_kernel = {state: dict(row) for state, row in report["kernel"].items()}
+        tampered_kernel[1][0] = 0.5
+        tampered["kernel"] = tampered_kernel
+        self.assertFalse(detailed_balance_certificate(TARGET, SYMMETRIC_PROPOSAL, tampered)["valid"])
 
     def test_rejects_invalid_chain_contracts(self):
         with self.assertRaises(ValueError):

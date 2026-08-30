@@ -93,6 +93,95 @@ def metropolis_hastings_trace_certificate(
         return False
 
 
+def _transition_kernel(
+    target: dict[State, float], proposal: dict[State, dict[State, float]]
+) -> dict[State, dict[State, float]]:
+    """Build the exact finite-state MH transition matrix, including rejection."""
+    kernel = {state: {candidate: 0.0 for candidate in target} for state in target}
+    for current, candidates in proposal.items():
+        for proposed, proposal_probability in candidates.items():
+            ratio = target[proposed] * proposal[proposed][current] / (
+                target[current] * proposal[current][proposed]
+            )
+            acceptance = min(1.0, ratio)
+            if proposed == current:
+                kernel[current][current] += proposal_probability
+            else:
+                kernel[current][proposed] += proposal_probability * acceptance
+                kernel[current][current] += proposal_probability * (1.0 - acceptance)
+    return kernel
+
+
+def detailed_balance_report(
+    target: dict[State, float], proposal: dict[State, dict[State, float]]
+) -> dict[str, object]:
+    """Expose a finite MH kernel and all detailed-balance flow checks.
+
+    This is practical only for the deliberately small classroom state spaces.
+    It verifies stationarity of the *kernel*, not the mixing time of a sampled
+    trajectory.
+    """
+    _validate(target, proposal)
+    total_weight = sum(target.values())
+    normalized_target = {state: weight / total_weight for state, weight in target.items()}
+    kernel = _transition_kernel(target, proposal)
+    row_sums = {state: sum(row.values()) for state, row in kernel.items()}
+    flows = {
+        (left, right): normalized_target[left] * kernel[left][right]
+        for left in target for right in target
+    }
+    detailed_balance = all(
+        abs(flows[left, right] - flows[right, left]) <= 1e-12
+        for left in target for right in target
+    )
+    report: dict[str, object] = {
+        "normalized_target": normalized_target,
+        "kernel": kernel,
+        "row_sums": row_sums,
+        "detailed_balance_holds": detailed_balance,
+    }
+    report["certificate"] = detailed_balance_certificate(target, proposal, report)
+    return report
+
+
+def detailed_balance_certificate(
+    target: dict[State, float], proposal: dict[State, dict[State, float]], report: dict[str, object]
+) -> dict[str, bool]:
+    """Recompute a finite detailed-balance report and reject edited fields."""
+    try:
+        _validate(target, proposal)
+        total_weight = sum(target.values())
+        expected_target = {state: weight / total_weight for state, weight in target.items()}
+        expected_kernel = _transition_kernel(target, proposal)
+        expected_rows = {state: sum(row.values()) for state, row in expected_kernel.items()}
+        fields_match = (
+            report.get("normalized_target") == expected_target
+            and report.get("kernel") == expected_kernel
+            and report.get("row_sums") == expected_rows
+        )
+        rows_are_stochastic = all(abs(value - 1.0) <= 1e-12 for value in expected_rows.values())
+        flows_match = all(
+            abs(
+                expected_target[left] * expected_kernel[left][right]
+                - expected_target[right] * expected_kernel[right][left]
+            ) <= 1e-12
+            for left in target for right in target
+        )
+        return {
+            "fields_match_recomputed_kernel": fields_match,
+            "rows_are_stochastic": fields_match and rows_are_stochastic,
+            "detailed_balance_holds": fields_match and flows_match,
+            "valid": fields_match and rows_are_stochastic and flows_match,
+        }
+    except (ArithmeticError, TypeError, ValueError):
+        return {
+            "fields_match_recomputed_kernel": False,
+            "rows_are_stochastic": False,
+            "detailed_balance_holds": False,
+            "valid": False,
+        }
+
+
 def empirical_probabilities(samples: list[State]) -> dict[State, float]:
     """Return observed state frequencies; burn-in/thinning decisions stay explicit."""
     if not samples:
