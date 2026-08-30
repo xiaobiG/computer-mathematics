@@ -36,6 +36,19 @@ class SubgroupCalibrationTests(unittest.TestCase):
         self.assertIsNone(small["metrics"])
         self.assertEqual(small["interpretation"], "insufficient_sample_for_group_calibration_conclusion")
 
+    def test_bin_interval_contains_rate_and_exposes_small_bin_uncertainty(self):
+        window = {
+            "contract_version": LABELED_WINDOW_CONTRACT_VERSION,
+            "probabilities": [0.8] * 10,
+            "labels": [1] * 6 + [0] * 4,
+        }
+        report = subgroup_calibration_report(window, ["a"] * 10, minimum_group_size=10)
+        bin_row = report["subgroups"][0]["metrics"]["bins"][0]
+        self.assertLessEqual(bin_row["positive_rate_wilson_low"], bin_row["positive_rate"])
+        self.assertGreaterEqual(bin_row["positive_rate_wilson_high"], bin_row["positive_rate"])
+        self.assertEqual(bin_row["absolute_gap_wilson_low"], 0.0)
+        self.assertGreater(bin_row["absolute_gap_wilson_high"], bin_row["absolute_gap"])
+
     def test_certificate_rejects_changed_policy_or_conclusion(self):
         window = {
             "contract_version": LABELED_WINDOW_CONTRACT_VERSION,
@@ -50,6 +63,9 @@ class SubgroupCalibrationTests(unittest.TestCase):
         tampered = copy.deepcopy(report)
         tampered["causal_interpretation"] = "established"
         self.assertFalse(subgroup_calibration_certificate(window, groups, tampered))
+        tampered = copy.deepcopy(report)
+        tampered["policy"]["confidence_z"] = 1.0
+        self.assertFalse(subgroup_calibration_certificate(window, groups, tampered))
 
     def test_input_contract_rejects_unsafe_bin_and_group_policies(self):
         window = {
@@ -63,5 +79,7 @@ class SubgroupCalibrationTests(unittest.TestCase):
             subgroup_calibration_report(window, ["a", "a"], minimum_group_size=1)
         with self.assertRaises(ValueError):
             subgroup_calibration_report(window, ["a", "a"], ece_review_threshold=1.1)
+        with self.assertRaises(ValueError):
+            subgroup_calibration_report(window, ["a", "a"], confidence_z=0)
         with self.assertRaises(ValueError):
             subgroup_calibration_report(window, ["a"])

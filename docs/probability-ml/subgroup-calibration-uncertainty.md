@@ -1,17 +1,17 @@
 ---
 title: 分组校准：总体可信，为什么局部仍可能失真
-description: 用固定分箱、ECE、最低样本量与可重放证书审计分组概率承诺，避免总体平均掩盖局部偏差。
+description: 用固定分箱、ECE、Wilson 分箱区间、最低样本量与可重放证书审计分组概率承诺。
 courseLevel: "3（概率校准、分层评估与审计边界）"
 prerequisites: "概率校准、带标签窗口、子群体性能、抽样误差"
 estimatedMinutes: 60
-experiment: "重放总体 ECE 为零而两个子群均失校准的抵消反例"
+experiment: "重放总体 ECE 为零而两个子群均失校准的抵消反例，并检查分箱频率区间"
 ---
 
 # 分组校准：总体可信，为什么局部仍可能失真
 
 ## 学习目标
 
-你将能区分总体校准与预先定义子群的校准；从可靠性分箱推导期望校准误差（ECE）；识别总体平均如何掩盖方向相反的局部偏差；并用最低样本量、固定分箱政策和可重放证书约束结论。
+你将能区分总体校准与预先定义子群的校准；从可靠性分箱推导期望校准误差（ECE）；识别总体平均如何掩盖方向相反的局部偏差；为每个分箱的经验频率解释 Wilson 区间；并用最低样本量、固定分箱政策和可重放证书约束结论。
 
 ## 从一个计算问题开始
 
@@ -37,13 +37,25 @@ $$
 
 对组 $g$，只在 $n_g\ge m$ 时计算 $\operatorname{ECE}_{K,g}$ 与 Brier 分数。$m$ 是治理政策，不是普适定理：它受窗口长度、风险成本、隐私约束和可获得标签数影响。低于门槛时正确的输出是“证据不足”，不是 ECE 为零。
 
+## 分箱不确定性：区间属于频率，不属于 ECE
+
+对一个分箱中的 $r_k$ 个正例和 $n_k$ 个观测，报告以正态临界值 $z$ 参数化的 Wilson 区间 $[L_k,U_k]$：
+
+$$
+\frac{\hat y_k+z^2/(2n_k)\;\pm\;
+z\sqrt{\bigl(\hat y_k(1-\hat y_k)+z^2/(4n_k)\bigr)/n_k}}
+{1+z^2/n_k},\qquad \hat y_k=\frac{r_k}{n_k}.
+$$
+
+它描述在该报告口径、抽样模型和固定分箱下，**观测正例率**的不确定性；不包含预测均值本身的不确定性，也不是 ECE 的置信区间。对固定的 $\bar p_k$，项目把 $[L_k,U_k]$ 映射为绝对校准差的可能范围：若 $\bar p_k\in[L_k,U_k]$，下界为零；上界取到两个端点距离的较大值。这样可以说“现有样本尚不能排除零差距”，不能说“模型已被证明校准”。
+
 ## 算法：一次分组，一次重放
 
 报告输入是同一带标签窗口中的 `probabilities`、`labels` 和等长的预定义 `groups`。算法对总体及每个合格组执行相同的分箱：
 
 1. 将每个 $p_i$ 放入 `min(int(p_i * K), K - 1)`，使 $p_i=1$ 进入最后一箱；
 2. 对非空箱计算计数、平均预测、正例率、绝对差和 $n_k/n$ 加权贡献；
-3. 求贡献和得到 ECE，同时报告 Brier 分数；
+3. 求贡献和得到 ECE，同时报告 Brier 分数、Wilson 频率区间及其映射的绝对差范围；
 4. 对 $n_g<m$ 的组拒绝指标结论；对合格组仅在 ECE 达到预先记录阈值时发出人工复核信号。
 
 时间复杂度为 $O(n+K\cdot G)$：样本只扫描一次以形成分组索引，随后各组总计仍处理 $n$ 个样本。这里的 $G$ 是实际出现的组数；这不是允许枚举或发掘无限候选群体的许可。
@@ -64,11 +76,14 @@ window = {
 }
 groups = ["A"] * 10 + ["B"] * 10
 report = subgroup_calibration_report(
-    window, groups, bins=5, minimum_group_size=10, ece_review_threshold=0.15
+    window, groups, bins=5, minimum_group_size=10,
+    ece_review_threshold=0.15, confidence_z=1.96,
 )
 print(report["overall_metrics"]["expected_calibration_error"])  # 0.0
 print([(row["group"], row["metrics"]["expected_calibration_error"])
        for row in report["subgroups"]])  # A、B 都是 0.2
+first_bin = report["subgroups"][0]["metrics"]["bins"][0]
+print(first_bin["positive_rate_wilson_low"], first_bin["positive_rate_wilson_high"])
 assert subgroup_calibration_certificate(window, groups, report)
 ```
 
@@ -78,11 +93,11 @@ assert subgroup_calibration_certificate(window, groups, report)
 python -m unittest projects.naive_bayes_spam.test_subgroup_calibration
 ```
 
-证书会重新生成窗口、组、分箱数、样本门槛和 ECE 阈值对应的整份报告。因此把阈值改大以消除信号、把 `causal_interpretation` 改成“已建立”，或篡改组内指标都会被拒绝。
+证书会重新生成窗口、组、分箱数、样本门槛、ECE 阈值和 `confidence_z` 对应的整份报告。因此把阈值改大以消除信号、把区间口径改窄、把 `causal_interpretation` 改成“已建立”，或篡改组内指标都会被拒绝。
 
 ## 正确性与证据边界
 
-每个观测恰好进入一个箱：`min` 处理右端点，非空箱计数之和等于该组样本数。每箱的 `ece_contribution` 是非负的，且最多为其样本份额，所以 ECE 位于 $[0,1]$。这证明实现与给定分箱定义一致，不证明模型在未来、在其他分箱或在总体外部校准。
+每个观测恰好进入一个箱：`min` 处理右端点，非空箱计数之和等于该组样本数。每箱的 `ece_contribution` 是非负的，且最多为其样本份额，所以 ECE 位于 $[0,1]$。Wilson 区间保留在 $[0,1]$ 并覆盖该箱观察到的正例率；映射后的绝对差下界不超过上界。这证明实现与给定分箱和区间定义一致，不证明模型在未来、在其他分箱或在总体外部校准。
 
 反例还揭示一个重要的聚合边界。总体的
 
@@ -96,7 +111,8 @@ $$
 ## 失败案例与工程边界
 
 - **事后搜索许多组。** 从几十个属性组合中只报告最大 ECE 会产生多重比较和选择偏差。组、窗口、门槛应在查看结果前治理并记录。
-- **小样本稳定幻觉。** 此版本拒绝低于最小样本量的组，却还不把 ECE 转成置信区间；小而非零的 ECE 也可能是抽样波动。下一步需加入分组分箱的不确定性区间与重采样边界。
+- **把分箱区间当作 ECE 区间。** 错。每箱的 Wilson 区间针对该箱正例率；多箱 ECE 的抽样分布还受分箱、预测和依赖结构影响，不能直接把端点相加。
+- **小样本稳定幻觉。** 区间能显示频率的不确定性，却不能挽救极小组或任意事后分组；仍要遵守最小样本量和预定义审计维度。
 - **把描述性差异当成因果或公平结论。** 采集、标注、覆盖范围和条件分布都可能造成差异。报告的 `automatic_action` 始终为 `none`。
 - **复用同一验证窗口调分箱和做最终报告。** 这会把诊断选择泄漏进结论。将策略冻结在独立设计阶段，最终用保留窗口一次性报告。
 
@@ -112,15 +128,17 @@ $$
 1. 对两个等大的组，均预测 $0.7$；组一正例率为 $0.5$、组二为 $0.9$。计算总体和各组在单一非空箱下的 ECE。
 2. 证明 ECE 的每项贡献非负，且总 ECE 不超过 1。
 3. 构造一个 $n_g<m$ 的小组，其经验正例率看似与预测相差很大；解释为何报告仍应拒绝它。
-4. 为此报告设计一个人工复核流程，明确列出哪些行动不能由 ECE 信号自动触发。
+4. 一个箱中有 6 个正例、10 个样本，平均预测为 $0.8$。说明为何该箱的 Wilson 区间不能直接被称为“ECE 的 95% 区间”。
+5. 为此报告设计一个人工复核流程，明确列出哪些行动不能由 ECE 信号自动触发。
 
 ## 练习答案提示
 
 1. 总体正例率也是 $0.7$，故总体 ECE 为 0；两个组分别为 $|0.7-0.5|=0.2$ 与 $|0.7-0.9|=0.2$。
 2. 权重 $n_k/n$ 非负且和为 1，绝对差在 $[0,1]$，故加权和落在 $[0,1]$。
 3. 分母太小会使频率大幅跳动；收集更多高质量标签或依据预先规则合并窗口，而不是发布确定性结论。
-4. 信号可创建审计工单、检查数据与标签质量；不得自动重训、改阈值、限制服务或做因果归因。
+4. 它只对该固定箱内的经验正例率给出区间；ECE 是跨箱加权绝对差，额外包含分箱和预测结构。
+5. 信号可创建审计工单、检查数据与标签质量；不得自动重训、改阈值、限制服务或做因果归因。
 
 ## 延伸
 
-[概率校准与可靠性曲线](/probability-ml/calibration-reliability)给出总体分箱定义；[子群体性能](/probability-ml/subgroup-performance-uncertainty)先建立最低样本量边界；[带标签窗口](/probability-ml/labeled-window-performance-degradation)说明标签延迟时应如何冻结比较口径。后续可在独立窗口上为每个分箱加入不确定性区间，但仍不能把统计区间变成自动决策器。
+[概率校准与可靠性曲线](/probability-ml/calibration-reliability)给出总体分箱定义；[子群体性能](/probability-ml/subgroup-performance-uncertainty)先建立最低样本量边界；[带标签窗口](/probability-ml/labeled-window-performance-degradation)说明标签延迟时应如何冻结比较口径。下一步可研究预先指定的重采样设计来比较两个冻结窗口，但仍不能把统计区间变成自动决策器。
