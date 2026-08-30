@@ -44,7 +44,7 @@ $$F=(x_1\lor\neg x_2\lor x_3)\land(\neg x_1\lor x_2)\land x_3.$$
 from projects.algorithm_lab.sat_verifier import find_satisfying_assignment, verify_assignment
 
 formula = ((1, -2, 3), (-1, 2), (3,))
-witness = find_satisfying_assignment(formula)  # 教学基线：枚举 2^n 种赋值
+witness = find_satisfying_assignment(formula, max_variables=20)  # 教学基线：枚举至多 2^20 种赋值
 assert witness is not None
 assert verify_assignment(formula, witness)      # 验证只扫描文字
 ```
@@ -55,7 +55,7 @@ assert verify_assignment(formula, witness)      # 验证只扫描文字
 python -m unittest projects.algorithm_lab.test_sat_verifier
 ```
 
-穷举器会对 $n$ 个变量尝试 $2^n$ 个赋值，故最坏情况为 $O(2^nM)$；这**不是** 3-SAT 必然不能更快解决的证明，只是一个明确且可审计的上界。现代 SAT 求解器使用传播、学习与启发式，许多真实实例远快于枚举，但最坏情形仍是研究核心。
+穷举器会对 $n$ 个变量尝试 $2^n$ 个赋值，故最坏情况为 $O(2^nM)$；这**不是** 3-SAT 必然不能更快解决的证明，只是一个明确且可审计的上界。`max_variables` 是教学资源契约：超过上限会拒绝，而不是悄悄开始一次不可控的指数搜索；它既不证明 SAT 困难，也不改变上限内实例的 yes/no 结果。现代 SAT 求解器使用传播、学习与启发式，许多真实实例远快于枚举，但最坏情形仍是研究核心。
 
 ## 归约：把一个问题的求解器变成另一个问题的求解器
 
@@ -97,7 +97,7 @@ $$x\in A\iff f(x)\in B.$$
 
 1. **基础题**：说明为何所有 $P$ 问题也属于 $NP$，并明确验证器如何使用空证书。
 2. **推导题**：证明若 $A\le_pB$ 且 $B\in P$，则 $A\in P$；标出两段算法的总复杂度。
-3. **编码题**：为 `find_satisfying_assignment` 加入变量数上限，超限时抛出异常；测试该保护不会改变小公式答案。
+3. **编码题**：改变 `find_satisfying_assignment` 的 `max_variables`，观察超限时的异常；测试该保护不会改变上限内小公式答案。
 4. **开放题**：为一个课程排程系统设计“精确求解、近似/启发式、人工回退”的决策规则，并写明哪些指标触发回退。
 
 ## 练习答案提示

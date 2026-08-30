@@ -34,9 +34,18 @@ def verify_assignment(formula: Formula, assignment: Assignment) -> bool:
     return all(any(assignment[abs(literal)] == (literal > 0) for literal in clause) for clause in formula)
 
 
-def find_satisfying_assignment(formula: Formula) -> Assignment | None:
-    """枚举所有赋值；这是教学用指数时间基线，不是 SAT 求解器。"""
+def find_satisfying_assignment(formula: Formula, *, max_variables: int = 20) -> Assignment | None:
+    """Enumerate assignments under an explicit teaching-resource budget.
+
+    The bound is an API safety contract, not a claim about SAT's theoretical
+    complexity.  It prevents an accidental classroom call from silently
+    requesting an infeasible ``2**n`` search.
+    """
     names = variables(formula)
+    if not isinstance(max_variables, int) or isinstance(max_variables, bool) or max_variables < 0:
+        raise ValueError("max_variables must be a non-negative integer")
+    if len(names) > max_variables:
+        raise ValueError("formula exceeds the teaching exhaustive-search variable limit")
     for values in product((False, True), repeat=len(names)):
         candidate = dict(zip(names, values))
         if verify_assignment(formula, candidate):

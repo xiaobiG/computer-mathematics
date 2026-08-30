@@ -19,6 +19,14 @@ class SatVerifierTests(unittest.TestCase):
         self.assertTrue(verify_assignment(satisfiable, witness))
         self.assertIsNone(find_satisfying_assignment(((1,), (-1,))))
 
+    def test_exhaustive_search_has_an_explicit_variable_budget(self):
+        formula = ((1,), (2,), (3,))
+        self.assertTrue(verify_assignment(formula, find_satisfying_assignment(formula, max_variables=3)))
+        with self.assertRaises(ValueError):
+            find_satisfying_assignment(formula, max_variables=2)
+        with self.assertRaises(ValueError):
+            find_satisfying_assignment(formula, max_variables=-1)
+
     def test_rejects_missing_extra_or_malformed_variables(self):
         with self.assertRaises(ValueError):
             verify_assignment(((1,),), {})
