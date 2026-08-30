@@ -3,6 +3,7 @@ import { h } from 'vue'
 import 'katex/dist/katex.min.css'
 import './style.css'
 import BfsTraceExplorer from './components/BfsTraceExplorer.vue'
+import DijkstraTraceExplorer from './components/DijkstraTraceExplorer.vue'
 import LessonMeta from './components/LessonMeta.vue'
 
 export default {
@@ -12,5 +13,6 @@ export default {
   }),
   enhanceApp({ app }) {
     app.component('BfsTraceExplorer', BfsTraceExplorer)
+    app.component('DijkstraTraceExplorer', DijkstraTraceExplorer)
   },
 }

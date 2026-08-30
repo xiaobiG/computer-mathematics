@@ -57,6 +57,8 @@ assert shortest_path_certificate(graph, "s", distances, parents, events)["valid"
 
 采用二叉堆时，每次松弛可能入堆，时间复杂度为 $O((V+E)\log V)$，空间为 $O(V+E)$。代码允许过期条目留在堆中，以简化“降低键”操作。证书检查扫描父指针和所有边，为 $O(V+E)$ 时间与 $O(V)$ 额外空间；它适合测试和审计，不是替代算法本身的第二次求解。
 
+<DijkstraTraceExplorer />
+
 ## 失败案例与工程边界
 
 负权边会破坏证明。图 $s\to a$ 权重 $2$、$s\to b$ 权重 $5$、$b\to a$ 权重 $-10$ 中，算法可能先确定 $a=2$，却遗漏真实距离 $-5$。有负权边应使用 Bellman–Ford；有负环时最短路甚至未定义。超大图还要考虑权重溢出、稀疏存储和多源查询的预处理。
