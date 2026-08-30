@@ -42,23 +42,24 @@ $$x,x^2,x^{2^2},\ldots,x^{2^{s-1}}$$
 ## 可运行教学实现
 
 ```python
-from projects.crypto_toybox.primality import miller_rabin_report
+from projects.crypto_toybox.primality import miller_rabin_report, miller_rabin_report_certificate
 
 composite = miller_rabin_report(561, [2, 3, 5])
 assert not composite["probably_prime"]
 assert composite["witnesses"]
 assert composite["certificate"]["all_rounds_replay"]
+assert miller_rabin_report_certificate(561, [2, 3, 5], composite)["valid"]
 
 prime = miller_rabin_report(1_000_000_007, [2, 3, 5])
 assert prime["probably_prime"]
 assert prime["certificate"]["valid"]
 ```
 
-运行 `python -m unittest projects.crypto_toybox.test_primality`。每一轮保留 $n-1=2^sd$、底数和完整平方链；`miller_rabin_round_certificate` 可逐项重放它。报告只接受调用者明确传入的教学底数，并把发现的见证者单独列出：因此 `probably_prime=False` 带有可复算的合数证据，`True` 始终只是这些轮次下的“可能素数”。每轮由一次 $O(\log n)$ 次模乘的快速幂主导；对大整数，实际成本取决于乘法算法和运行时。真实密钥候选的底数与候选数必须来自密码学安全随机源和经审计库策略。
+运行 `python -m unittest projects.crypto_toybox.test_primality`。每一轮保留 $n-1=2^sd$、底数和完整平方链；`miller_rabin_round_certificate` 可逐项重放它。报告只接受调用者明确传入的教学底数，并把发现的见证者单独列出；`miller_rabin_report_certificate` 还会从候选数和底数表重新生成整份报告，拒绝将 `probably_prime`、见证者列表或轮次单独篡改。因此 `probably_prime=False` 带有可复算的合数证据，`True` 始终只是这些轮次下的“可能素数”。每轮由一次 $O(\log n)$ 次模乘的快速幂主导；对大整数，实际成本取决于乘法算法和运行时。真实密钥候选的底数与候选数必须来自密码学安全随机源和经审计库策略。
 
 ## 正确性与可验证实验
 
-验证的最强性质是单向的：若函数返回 `False`，可记录底数和平方链，人工复算以确认证据。对小 $n$，用试除真值表枚举比较；对 Carmichael 数 $561,1105,1729$，展示费马测试可能通过而 Miller–Rabin 常找到见证者。
+验证的最强性质是单向的：若函数返回 `False`，可记录底数和平方链，人工复算以确认证据；报告级证书则核对“布尔结论是否与见证者列表一致”。对小 $n$，用试除真值表枚举比较；对 Carmichael 数 $561,1105,1729$，展示费马测试可能通过而 Miller–Rabin 常找到见证者。
 
 函数返回 `True` 不等于形式证明素数；将 API 命名为 `is_probable_prime` 是安全设计的一部分，防止调用者误以为得到了确定性证书。
 

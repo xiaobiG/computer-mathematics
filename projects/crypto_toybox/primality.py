@@ -84,3 +84,36 @@ def miller_rabin_report(candidate: int, bases: list[int] | tuple[int, ...]) -> d
             "valid": all(miller_rabin_round_certificate(candidate, round_) for round_ in rounds),
         },
     }
+
+
+def miller_rabin_report_certificate(candidate: int, bases: list[int] | tuple[int, ...], report: dict[str, object]) -> dict[str, bool]:
+    """Independently recompute an explicit-base report and its claim.
+
+    This validates faithful reporting for a finite set of supplied bases.  It
+    does not turn a passing report into a deterministic primality proof.
+    """
+    empty = {
+        "fields_match_recomputed_report": False,
+        "probability_claim_matches_witnesses": False,
+        "composite_claim_has_witness": False,
+        "valid": False,
+    }
+    if not isinstance(report, dict):
+        return empty
+    try:
+        expected = miller_rabin_report(candidate, bases)
+    except (ValueError, TypeError):
+        return empty
+    fields_match = report == expected
+    probably_prime = expected["probably_prime"]
+    witnesses = expected["witnesses"]
+    claim_matches = probably_prime == (not witnesses)
+    # Trivial small/even cases are classified before any witness round; for
+    # odd candidates a false probability claim must contain a replayable base.
+    composite_has_witness = probably_prime or candidate < 2 or candidate % 2 == 0 or bool(witnesses)
+    return {
+        "fields_match_recomputed_report": fields_match,
+        "probability_claim_matches_witnesses": claim_matches,
+        "composite_claim_has_witness": composite_has_witness,
+        "valid": fields_match and claim_matches and composite_has_witness,
+    }

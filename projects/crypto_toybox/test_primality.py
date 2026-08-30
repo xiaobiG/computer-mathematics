@@ -4,6 +4,7 @@ from projects.crypto_toybox.primality import (
     MillerRabinRound,
     decompose_power_of_two,
     miller_rabin_report,
+    miller_rabin_report_certificate,
     miller_rabin_round,
     miller_rabin_round_certificate,
 )
@@ -24,11 +25,19 @@ class PrimalityTests(unittest.TestCase):
         self.assertFalse(composite["probably_prime"])
         self.assertTrue(composite["witnesses"])
         self.assertTrue(composite["certificate"]["all_rounds_replay"])
+        self.assertTrue(miller_rabin_report_certificate(561, [2, 3, 5], composite)["valid"])
+
+        tampered = dict(composite)
+        tampered["probably_prime"] = True
+        certificate = miller_rabin_report_certificate(561, [2, 3, 5], tampered)
+        self.assertFalse(certificate["fields_match_recomputed_report"])
+        self.assertFalse(certificate["valid"])
 
         prime = miller_rabin_report(1_000_000_007, [2, 3, 5])
         self.assertTrue(prime["probably_prime"])
         self.assertEqual(prime["witnesses"], [])
         self.assertTrue(prime["certificate"]["valid"])
+        self.assertTrue(miller_rabin_report_certificate(1_000_000_007, [2, 3, 5], prime)["valid"])
 
     def test_contracts_reject_invalid_candidates_and_bases(self):
         self.assertEqual(decompose_power_of_two(560), (4, 35))
