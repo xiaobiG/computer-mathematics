@@ -95,6 +95,51 @@ def normwise_backward_error(matrix: Matrix, estimate: list[float], right_side: l
     return infinity_norm(residual(matrix, estimate, right_side)) / denominator
 
 
+def matrix_perturbation_report(
+    matrix: Matrix, perturbed_matrix: Matrix, right_side: list[float]
+) -> dict[str, float | list[float] | dict[str, bool]]:
+    """Audit the first-order sensitivity bound for an ``A``-only perturbation.
+
+    If ``delta = ||dA|| / ||A||`` and ``kappa(A) * delta < 1``, exact
+    solutions of ``Ax=b`` and ``(A+dA)x'=b`` obey the normwise bound
+    ``||x'-x||/||x|| <= kappa(A) delta / (1-kappa(A) delta)``.  The fixed
+    two-by-two setting makes each quantity independently inspectable.
+    """
+    _validate_matrix(matrix)
+    _validate_matrix(perturbed_matrix)
+    _validate_vector(right_side)
+    baseline_solution = solve_2x2(matrix, right_side)
+    perturbed_solution = solve_2x2(perturbed_matrix, right_side)
+    matrix_norm = matrix_infinity_norm(matrix)
+    delta_matrix_norm = matrix_infinity_norm([
+        [new - old for old, new in zip(old_row, new_row)]
+        for old_row, new_row in zip(matrix, perturbed_matrix)
+    ])
+    relative_matrix_change = delta_matrix_norm / matrix_norm
+    condition_number = condition_number_infinity_2x2(matrix)
+    stability_margin = 1.0 - condition_number * relative_matrix_change
+    bound = condition_number * relative_matrix_change / stability_margin if stability_margin > 0 else float("inf")
+    relative_solution_change = relative_change(baseline_solution, perturbed_solution)
+    numerical_slack = 1e-12
+    return {
+        "condition_number": condition_number,
+        "relative_matrix_change": relative_matrix_change,
+        "relative_solution_change": relative_solution_change,
+        "matrix_perturbation_bound": bound,
+        "baseline_solution": baseline_solution,
+        "perturbed_solution": perturbed_solution,
+        "certificate": {
+            "bound_has_positive_margin": stability_margin > 0,
+            "observed_change_is_bounded_by_matrix_perturbation": (
+                stability_margin > 0 and relative_solution_change <= bound + numerical_slack
+            ),
+            "perturbed_system_residual_is_small": (
+                normwise_backward_error(perturbed_matrix, perturbed_solution, right_side) <= 1e-12
+            ),
+        },
+    }
+
+
 def perturbation_report(
     matrix: Matrix, baseline_rhs: list[float], perturbed_rhs: list[float]
 ) -> dict[str, float | list[float] | dict[str, bool]]:

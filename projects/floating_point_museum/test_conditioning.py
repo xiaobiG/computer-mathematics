@@ -3,6 +3,7 @@ import unittest
 from projects.floating_point_museum.conditioning import (
     condition_number_infinity_2x2,
     inverse_2x2,
+    matrix_perturbation_report,
     normwise_backward_error,
     perturbation_report,
     residual,
@@ -37,6 +38,29 @@ class ConditioningTests(unittest.TestCase):
         matrix = [[1.0, 1.0], [1.0, 1.000001]]
         self.assertLess(max(abs(value) for value in residual(matrix, [0.0, 2.0], [2.0, 2.000002])), 1e-12)
         self.assertLess(normwise_backward_error(matrix, [0.0, 2.0], [2.0, 2.000002]), 1e-12)
+
+    def test_matrix_perturbation_uses_the_denominator_margin_bound(self):
+        report = matrix_perturbation_report(
+            [[1.0, 0.0], [0.0, 1.0]],
+            [[1.001, 0.0], [0.0, 1.0]],
+            [1.0, 2.0],
+        )
+        self.assertAlmostEqual(report["relative_matrix_change"], 0.001)
+        # ||x||_inf is 2 for [1, 2], while only the first coordinate moves.
+        self.assertAlmostEqual(report["relative_solution_change"], 1.0 / (2.0 * 1001.0))
+        self.assertLess(report["relative_solution_change"], report["matrix_perturbation_bound"])
+        self.assertTrue(report["certificate"]["bound_has_positive_margin"])
+        self.assertTrue(report["certificate"]["observed_change_is_bounded_by_matrix_perturbation"])
+        self.assertTrue(report["certificate"]["perturbed_system_residual_is_small"])
+
+    def test_matrix_perturbation_marks_a_bound_without_margin_as_inapplicable(self):
+        report = matrix_perturbation_report(
+            [[1.0, 0.0], [0.0, 1.0]],
+            [[2.0, 0.0], [0.0, 1.0]],
+            [1.0, 2.0],
+        )
+        self.assertFalse(report["certificate"]["bound_has_positive_margin"])
+        self.assertFalse(report["certificate"]["observed_change_is_bounded_by_matrix_perturbation"])
 
     def test_singular_and_invalid_inputs_are_rejected(self):
         with self.assertRaises(ValueError):

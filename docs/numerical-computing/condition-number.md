@@ -75,6 +75,45 @@ $$
 
 小 $\eta$ 只说明方程的后向一致性；它不能反驳这个病态问题造成的大前向变化。这就是“后向看似很好、前向却不可靠”的可观察版本。
 
+## 矩阵也会被扰动：为什么界里多出一个分母
+
+数值误差并不只来自右端 $b$；测量系数、离散化和浮点消元都会把 $A$ 改成 $A+\Delta A$。令原解为 $x$、扰动后解为 $x+\Delta x$，并保持右端不变：
+
+$$
+(A+\Delta A)(x+\Delta x)=b=Ax.
+$$
+
+移项后不是简单的 $A\Delta x=-\Delta A x$，而是
+
+$$
+A\Delta x=-\Delta A(x+\Delta x).
+$$
+
+设 $\delta=\lVert\Delta A\rVert/\lVert A\rVert$，取范数并把含 $\lVert\Delta x\rVert$ 的项移到左侧；当 $\kappa(A)\delta<1$ 时，得到
+
+$$
+\frac{\lVert\Delta x\rVert}{\lVert x\rVert}
+\le
+\frac{\kappa(A)\delta}{1-\kappa(A)\delta}.
+$$
+
+分母不是装饰：若 $\kappa(A)\delta$ 接近 1，原矩阵的逆附近可能已经不再稳定，右侧界会爆炸，不能把一阶近似当成保证。教学实验将这一条件写成可检查证书：
+
+```python
+from projects.floating_point_museum.conditioning import matrix_perturbation_report
+
+report = matrix_perturbation_report(
+    [[1.0, 0.0], [0.0, 1.0]],
+    [[1.001, 0.0], [0.0, 1.0]],
+    [1.0, 2.0],
+)
+
+assert report["certificate"]["bound_has_positive_margin"]
+assert report["certificate"]["observed_change_is_bounded_by_matrix_perturbation"]
+```
+
+这和前一节的右端扰动报告是两种不同契约：前者固定 $A$ 并给出 $\kappa(A)\lVert\Delta b\rVert/\lVert b\rVert$，这里固定 $b$ 并必须额外检查分母的正裕量。
+
 实验的求解和求逆都是固定 $2\times2$ 的教学公式，因而为 $O(1)$；一般 $n\times n$ 情况中，消元为 $O(n^3)$，条件数的精确计算通常也需要分解或迭代估计。生产程序往往只估计它，而非显式求逆矩阵。
 
 ## 前向误差、后向误差与工程边界
@@ -91,14 +130,14 @@ $$
 
 1. **基础**：改变例子中的 `right_side`，观察解随 $\epsilon$ 变小时如何放大。
 2. **推导**：证明若 $A$ 是正交矩阵，在 2-范数下 $\kappa(A)=1$。
-3. **编码**：修改 `perturbation_report`，分别报告矩阵扰动与右端扰动，并比较残差和解的变化。
+3. **编码**：运行 `matrix_perturbation_report`，分别报告矩阵扰动与右端扰动，并比较残差和解的变化；构造一个使 $\kappa\delta\ge1$ 的例子，确认该界被标为不可用。
 4. **开放**：解释为何特征标准化可改善某些建模问题，却不必然消除所有病态性。
 
 ## 练习答案提示
 
 1. 每次只改变一个量，并同时记录 $\lVert\delta b\rVert/\lVert b\rVert$ 与 $\lVert\delta x\rVert/\lVert x\rVert$；不要只比较解的绝对差。
 2. 由 $Q^TQ=I$ 得 $Q^{-1}=Q^T$；再利用 2-范数在正交变换下不变，得到 $\lVert Q\rVert_2=\lVert Q^{-1}\rVert_2=1$。
-3. 为两类扰动保留各自的相对量、解变化和尺度化残差；小残差和大解变化可以同时出现，测试应刻意覆盖这种情况。
+3. 为两类扰动保留各自的相对量、解变化和尺度化残差；矩阵扰动还要检查 $1-\kappa\delta>0$，否则不能声称界成立；小残差和大解变化可以同时出现，测试应刻意覆盖这种情况。
 4. 标准化可改善列尺度差异并常使优化更顺畅，但共线性、近重复样本和模型本身的不可辨识性仍会造成病态。
 
 ## 延伸与下一步
