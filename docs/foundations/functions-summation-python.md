@@ -65,6 +65,13 @@ assert sum_of_squares_report(0)["certificate"]["empty_sum_is_zero"]
 3. **编码**：实现 $\sum_{i=0}^{n-1}(2i+1)$ 并用 $n^2$ 验证。
 4. **开放**：比较 Python 循环与 NumPy `sum` 的语义、浮点累加顺序和性能边界。
 
+## 练习答案提示
+
+1. `range(2, 5)` 给出 $2,3,4$；先写清半开区间，再做求和，避免把 5 误算进去。
+2. 基例代入 $n=0$（或题目约定的起点）；归纳步将 $S_{n+1}$ 写成 $S_n+(n+1)^2$，代入假设后通分化简。
+3. 用 `range(n)` 枚举 $0$ 到 $n-1$，并覆盖 $n=0$；比较枚举值与 $n*n$，不要只测试一个正整数。
+4. 先确认两者处理的轴、空数组和数据类型是否相同；性能比较要包含数组创建成本，数值比较要注意归约顺序可能不同。
+
 ## 延伸
 
 [命题逻辑、量词与归纳法](/discrete-math/logic-induction-proofs)给出这里归纳证明的语言；[向量与点积](/linear-algebra/vectors-dot-product)将求和推广到向量；[误差传播](/numerical-computing/error-propagation)说明浮点求和为何还需考虑数值稳定性。
