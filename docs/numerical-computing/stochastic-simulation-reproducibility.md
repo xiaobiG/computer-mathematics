@@ -97,6 +97,13 @@ $$s=\sqrt{\frac1{R-1}\sum_{r=1}^R(z_r-\bar z)^2},\qquad
 3. **编码题**：为 `simulation_report` 加入置信区间近似，并测试一个 seed 与多个 seed 的边界语义。
 4. **开放题**：设计一个并行蒙特卡洛实验的复现记录：包括随机流拆分、版本、硬件、样本数和停止准则。
 
+## 练习答案提示
+
+1. $\hat\pi$ 是 Bernoulli 指示变量均值，故方差为 $p(1-p)/N$；实际 $p$ 未知时可用估计值并说明近似。
+2. 标准误是方差开平方，故样本变为四倍时分母变为两倍；还要求独立同分布、有限方差且没有系统性抽样偏差。
+3. 区间可用估计标准误构造，并分别定义单一 seed 的一次运行与多 seed 的重复汇总；不要把重复间变异和同一流内部抽样混为一谈。
+4. 记录主 seed 和子流派生规则、调度/归约方式、代码依赖版本、硬件/浮点环境、总样本和停止规则；这样不同机器上的差异才可诊断。
+
 ## 延伸
 
 [蒙特卡洛与重要性采样](/probability-ml/monte-carlo-importance-sampling)从概率角度处理同一估计器；[浮点比较、容差与属性测试](/numerical-computing/tolerances-property-testing)处理数值测试契约；[浮点数错误博物馆](/projects/floating-point-museum)汇集可运行案例。继续学习可检索：common random numbers、random-number streams、reproducible reductions、variance reduction。

@@ -95,6 +95,13 @@ $$\frac{\lVert x-\hat{x}\rVert}{\lVert x\rVert}\lesssim\kappa(A)\frac{\lVert b-A
 3. **编码**：给轨迹加入相对残差，并为一个零对角输入写测试。
 4. **开放**：将矩阵改成稀疏邻接结构，比较 Jacobi 的并行优势与 Gauss–Seidel 的数据依赖；说明何时应选择共轭梯度或预条件方法。
 
+## 练习答案提示
+
+1. Jacobi 第二轮只用上一轮所有分量；Gauss–Seidel 的后续分量已用本轮更新值，逐行列式最容易看出差别。
+2. 从 $Ax=b$ 分解为 $(D+L+U)x=b$，把 $U x^{(k)}$ 移到右侧；更新时左侧使用新值，得到所给迭代式。
+3. 相对残差须除以与问题尺度匹配的量并处理零右端；零对角导致除零，应在开始前拒绝或要求重排。
+4. Jacobi 可并行更新但往往迭代更多，Gauss–Seidel 有顺序依赖；对对称正定稀疏系统可考虑共轭梯度，病态/尺度差异时评估预条件与残差历史。
+
 ## 下一步
 
 [条件数](/numerical-computing/condition-number)解释为什么残差不能独自保证答案质量；[浮点比较、容差与属性测试](/numerical-computing/tolerances-property-testing)给出停止契约的工程写法。继续可学习主元消元、QR/SVD 与 Krylov 子空间方法。
