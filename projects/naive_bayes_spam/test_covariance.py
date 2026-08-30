@@ -1,7 +1,9 @@
 import unittest
+from copy import deepcopy
 
 from projects.naive_bayes_spam.covariance import (
     covariance_report,
+    covariance_report_certificate,
     sample_correlation,
     sample_covariance,
 )
@@ -13,6 +15,7 @@ class CovarianceTests(unittest.TestCase):
         self.assertEqual(report["means"], [2.0, 4.0])
         self.assertEqual(report["covariance"], [[1.0, 2.0], [2.0, 4.0]])
         self.assertTrue(report["certificate"]["valid"])
+        self.assertTrue(covariance_report_certificate([[1.0, 2.0], [2.0, 4.0], [3.0, 6.0]], report)["valid"])
         self.assertAlmostEqual(sample_correlation([1.0, 2.0, 3.0], [2.0, 4.0, 6.0]), 1.0)
 
     def test_quadratic_dependence_can_have_zero_covariance(self):
@@ -29,6 +32,15 @@ class CovarianceTests(unittest.TestCase):
             sample_covariance([1.0, 2.0], [1.0])
         with self.assertRaises(ValueError):
             covariance_report([[1.0, float("nan")], [2.0, 3.0]])
+
+    def test_report_certificate_rejects_tampered_matrix_or_structure_claim(self):
+        rows = [[1.0, 2.0], [2.0, 4.0], [3.0, 6.0]]
+        report = covariance_report(rows)
+        tampered = deepcopy(report)
+        tampered["covariance"][0][1] = 3.0
+        certificate = covariance_report_certificate(rows, tampered)
+        self.assertFalse(certificate["covariance_matches_recomputed_values"])
+        self.assertFalse(certificate["valid"])
 
 
 if __name__ == "__main__":

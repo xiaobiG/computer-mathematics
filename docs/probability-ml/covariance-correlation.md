@@ -148,12 +148,14 @@ S=\frac1{n-1}Z^\mathsf T Z.
 
 ```python
 from projects.naive_bayes_spam.covariance import (
-    covariance_report, sample_correlation, sample_covariance,
+    covariance_report, covariance_report_certificate,
+    sample_correlation, sample_covariance,
 )
 
 report = covariance_report([[1.0, 2.0], [2.0, 4.0], [3.0, 6.0]])
 assert report["covariance"] == [[1.0, 2.0], [2.0, 4.0]]
 assert report["certificate"]["valid"]
+assert covariance_report_certificate([[1.0, 2.0], [2.0, 4.0], [3.0, 6.0]], report)["valid"]
 
 xs = [-2.0, -1.0, 0.0, 1.0, 2.0]
 ys = [value * value for value in xs]
@@ -161,7 +163,7 @@ assert sample_covariance(xs, ys) == 0.0
 assert sample_correlation(xs, ys) == 0.0
 ```
 
-运行 `python -m unittest projects.naive_bayes_spam.test_covariance`。`covariance_report` 自动检查中心化列和、协方差矩阵对称性与对角方差非负；这些是定义直接导出的结构证据。第二组对称的二次样本精确给出零协方差、零相关，却由 `ys = xs^2` 确定性生成，形成“零相关不等于独立”的可运行反例。
+运行 `python -m unittest projects.naive_bayes_spam.test_covariance`。`covariance_report` 自动检查中心化列和、协方差矩阵对称性与对角方差非负；这些是定义直接导出的结构证据。`covariance_report_certificate` 会从原始样本重算均值、矩阵和三项结构结论，篡改非对角元或结构标签都不能通过。第二组对称的二次样本精确给出零协方差、零相关，却由 `ys = xs^2` 确定性生成，形成“零相关不等于独立”的可运行反例。
 
 ## 相关不是因果：还缺少什么
 
@@ -181,7 +183,7 @@ assert sample_correlation(xs, ys) == 0.0
 
 1. **基础**：从 \(\mathbb E[(X-\mu_X)(Y-\mu_Y)]\) 逐项展开，证明本课的协方差计算式。
 2. **推导**：证明协方差矩阵的对称性，并完成 \(\mathbf v^\mathsf T\Sigma\mathbf v=\operatorname{Var}(\mathbf v^\mathsf T\mathbf X)\) 的推导。
-3. **编码**：为 `covariance_report` 添加三维样本，检查对称性与对角方差；再传入常量列，验证相关系数被拒绝。
+3. **编码**：为 `covariance_report` 添加三维样本，检查对称性与对角方差；篡改一项协方差后确认重放证书拒绝，再传入常量列，验证相关系数被拒绝。
 4. **开放**：找一份两列以上的真实数据：分别在原始尺度与标准化后做 PCA，比较第一主方向，并写出量纲理由。
 5. **开放**：新闻中出现“冰淇淋销量与溺水人数正相关”。画出一个含季节变量的因果图，说明为何该相关不能支持因果结论。
 
@@ -189,7 +191,7 @@ assert sample_correlation(xs, ys) == 0.0
 
 1. 展开乘积后利用 $E[X]=\mu_X,E[Y]=\mu_Y$；中间两项各为 $-\mu_X\mu_Y$，最后常数项补回一个该值。
 2. 由协方差定义可直接交换 $i,j$ 得对称性；将线性组合的方差展开为双重求和，即得到 $v^T\Sigma v$。
-3. 三维输入应验证矩阵与其转置近似相等、对角线非负；常量列方差为零，相关系数分母无定义，应有明确异常或缺失值契约。
+3. 三维输入应验证矩阵与其转置近似相等、对角线非负；证书需从原样本重算而非信任报告。常量列方差为零，相关系数分母无定义，应有明确异常或缺失值契约。
 4. 原始尺度会使大单位变量主导协方差，标准化相当于改用相关结构；保留数据处理、中心化和尺度的记录才能解释方向变化。
 5. 画 $season\to ice\ cream$ 与 $season\to drowning$，必要时加入共同暴露因素；该图说明观察相关兼容共同原因，不能单凭相关确定任一箭头。
 

@@ -64,3 +64,49 @@ def covariance_report(rows: list[list[float]], tolerance: float = 1e-12) -> dict
     }
     certificate["valid"] = all(certificate.values())
     return {"means": means, "covariance": matrix, "certificate": certificate}
+
+
+def covariance_report_certificate(
+    rows: list[list[float]], report: dict[str, object], *, tolerance: float = 1e-12,
+) -> dict[str, bool]:
+    """Recompute a covariance report and its structural consequences.
+
+    This checks finite-sample arithmetic and matrix structure; it does not turn
+    covariance into a claim of independence or causality.
+    """
+    empty = {
+        "means_match_recomputed_values": False,
+        "covariance_matches_recomputed_values": False,
+        "centered_columns_sum_to_zero": False,
+        "matrix_is_symmetric": False,
+        "variances_are_nonnegative": False,
+        "valid": False,
+    }
+    try:
+        if tolerance <= 0.0 or not isfinite(tolerance) or not isinstance(report, dict):
+            return empty
+        expected = covariance_report(rows, tolerance)
+        if set(report) != set(expected):
+            return empty
+        means = report.get("means")
+        matrix = report.get("covariance")
+        certificate = report.get("certificate")
+        if (not isinstance(means, list) or not isinstance(matrix, list) or not isinstance(certificate, dict)
+                or len(means) != len(expected["means"]) or len(matrix) != len(expected["covariance"])):
+            return empty
+        close = lambda observed, value: isinstance(observed, (int, float)) and isfinite(observed) and abs(observed - value) <= tolerance * max(1.0, abs(value))
+        means_match = all(close(value, expected_value) for value, expected_value in zip(means, expected["means"]))
+        matrix_match = (all(isinstance(row, list) and len(row) == len(expected_row)
+                            and all(close(value, expected_value) for value, expected_value in zip(row, expected_row))
+                            for row, expected_row in zip(matrix, expected["covariance"])))
+        expected_certificate = expected["certificate"]
+        structure_match = {key: certificate.get(key) == expected_certificate[key]
+                           for key in ("centered_columns_sum_to_zero", "matrix_is_symmetric", "variances_are_nonnegative")}
+        return {
+            "means_match_recomputed_values": means_match,
+            "covariance_matches_recomputed_values": matrix_match,
+            **structure_match,
+            "valid": means_match and matrix_match and all(structure_match.values()),
+        }
+    except (TypeError, ValueError):
+        return empty
