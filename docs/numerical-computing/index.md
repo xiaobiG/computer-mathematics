@@ -8,7 +8,7 @@
 | --- | --- | --- | --- |
 | 0 · 预备 | 二进制、函数与有限求和 | 把数学计算映射为程序的有限操作 | [符号、函数、求和与 Python](/foundations/functions-summation-python) |
 | 1 · 核心 | 浮点表示、绝对/相对误差 | 解释舍入、NaN 与尺度差异 | [浮点数表示](/numerical-computing/floating-point) → [误差传播](/numerical-computing/error-propagation) |
-| 2 · 推导与算法 | 条件数、稳定性、求根与迭代 | 区分问题敏感性和算法误差 | [条件数](/numerical-computing/condition-number) → [牛顿法](/numerical-computing/newton-method) |
+| 2 · 推导与算法 | 条件数、稳定性、直接法、求根与迭代 | 区分问题敏感性和算法误差 | [直接法与选主元](/numerical-computing/direct-methods-pivoting) → [条件数](/numerical-computing/condition-number) → [牛顿法](/numerical-computing/newton-method) |
 | 3 · 工程与前沿 | 容差、属性测试、随机模拟 | 将误差分析固化为可复核工程契约 | [浮点比较、容差与属性测试](/numerical-computing/tolerances-property-testing) → [浮点数错误博物馆](/projects/floating-point-museum) |
 
 层 2 的算法课应在理解浮点表示后阅读；遇到“结果看似正确”但不稳定的代码时，直接回到层 1 的误差模型核对。
@@ -28,6 +28,7 @@
 - [绝对误差、相对误差与消去](/numerical-computing/error-propagation)：误差传播、相减条件数与零参考值边界；
 - [条件数](/numerical-computing/condition-number)：用可运行的 $2\\times2$ 扰动报告对照病态问题、前向/后向误差与稳定算法；
 - [算法稳定性：二次公式](/numerical-computing/algorithmic-stability)：从 Vieta 关系推导避免消去的小根公式，并以高精度参考值审计前向误差；
+- [直接法与选主元](/numerical-computing/direct-methods-pivoting)：重放两条消元轨迹，区分算法稳定性、残差与前向误差；
 - [浮点比较、容差与属性测试](/numerical-computing/tolerances-property-testing)：尺度相关契约、残差与可复现实验；
 - [牛顿法](/numerical-computing/newton-method)：二次收敛、停止准则与区间保护；
 - [割线法](/numerical-computing/secant-method)：用两点函数值替代导数的快速求根；

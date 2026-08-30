@@ -16,7 +16,7 @@ description: 从有限精度表示到稳定算法、误差分析和工程容差�
 | 0 | 二进制、范数、绝对/相对误差 | 由浮点文章补齐 |
 | 1 | IEEE 754、NaN、无穷、溢出与下溢 | [浮点数表示](/numerical-computing/floating-point) 已深化 |
 | 2 | 条件数、前向/后向误差、稳定性、Kahan、插值 | [条件数](/numerical-computing/condition-number)、[割线法](/numerical-computing/secant-method)与[数值插值](/numerical-computing/interpolation)已深化 |
-| 3 | 主元、QR/SVD、迭代线性系统、属性测试、可复现模拟 | [迭代解线性方程组](/numerical-computing/iterative-linear-systems)、[浮点比较、容差与属性测试](/numerical-computing/tolerances-property-testing)、[随机模拟与可复现性](/numerical-computing/stochastic-simulation-reproducibility)、牛顿法、数值微分与数值积分已深化；主元与 QR/SVD 由线性代数专题连接 |
+| 3 | 主元、QR/SVD、迭代线性系统、属性测试、可复现模拟 | [直接法与选主元](/numerical-computing/direct-methods-pivoting)、[迭代解线性方程组](/numerical-computing/iterative-linear-systems)、[浮点比较、容差与属性测试](/numerical-computing/tolerances-property-testing)、[随机模拟与可复现性](/numerical-computing/stochastic-simulation-reproducibility)、牛顿法、数值微分与数值积分已深化；QR/SVD 由线性代数专题连接 |
 
 ## 项目连接
 

@@ -21,6 +21,7 @@ description: 用可复现实验观察舍入、累计误差、消去误差与蒙�
 
 - [浮点数](/numerical-computing/floating-point)：为何十进制小数常被近似存储；
 - [Kahan 求和](/numerical-computing/kahan-summation)：如何补偿累计时丢失的低位；
+- [直接法与选主元](/numerical-computing/direct-methods-pivoting)：为何微小主元会破坏消元轨迹；
 - [条件数](/numerical-computing/condition-number)：为何有些表达式对误差天生敏感。
 - [迭代解线性方程组](/numerical-computing/iterative-linear-systems)：用残差和步长一起审查 Jacobi/Gauss–Seidel 的收敛。
 - [数值插值](/numerical-computing/interpolation)：用差商构造多项式，并观察外推与高阶节点的误差边界。
@@ -59,6 +60,7 @@ python -m unittest projects.floating_point_museum.test_conditioning
 10. 数值微分：扫描中心差分的十进制步长，核对粗步长区的二阶误差趋势与极小步长的舍入误差反弹；域边界使双侧差分不可用时，确认接口拒绝函数值非有限的样本。
 11. 算法稳定性：对二次方程的小根比较直接公式与 Vieta 改写，使用高精度参考值检查消去如何放大前向误差。
 12. 驻定迭代：重放 Jacobi/Gauss–Seidel 的每一步向量、更新量与残差，确认停止不是由被篡改的轨迹标签触发。
+13. 直接法：比较不选主元和部分选主元的增广矩阵轨迹，分别报告前向和后向误差，确认行交换不是条件数的修复。
 
 ## 工程边界
 
