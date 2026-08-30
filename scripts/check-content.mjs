@@ -61,6 +61,16 @@ for (const path of files) {
         errors.push(`${label}: “练习”章节至少需要 4 道分层题目（当前 ${exerciseCount} 道）`)
       }
     }
+    const answerHeading = /^##\s+练习答案提示\s*$/m.exec(prose)
+    if (answerHeading) {
+      const afterHeading = prose.slice(answerHeading.index + answerHeading[0].length)
+      const nextHeading = afterHeading.search(/^##\s+/m)
+      const answerBody = nextHeading === -1 ? afterHeading : afterHeading.slice(0, nextHeading)
+      const answerCount = (answerBody.match(/^\d+\.\s+/gm) ?? []).length
+      if (answerCount < 4) {
+        errors.push(`${label}: “练习答案提示”章节至少需要 4 条对应提示（当前 ${answerCount} 条）`)
+      }
+    }
     if (!/```(?:python|bash)\r?\n[\s\S]*?```/.test(source)) {
       errors.push(`${label}: 缺少可运行的 Python 或 Bash 代码块`)
     }
