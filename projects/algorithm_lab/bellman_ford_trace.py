@@ -81,3 +81,67 @@ def reconstruct_path(parents: list[int | None], source: int, target: int) -> lis
             return list(reversed(path))
         node = parents[node]
     raise ValueError("parents contain a cycle")
+
+
+def bellman_ford_certificate(
+    vertex_count: int,
+    edges: list[Edge],
+    source: int,
+    distances: list[float],
+    parents: list[int | None],
+    events: list[BellmanFordEvent],
+) -> dict[str, bool]:
+    """Recompute a finite Bellman--Ford run and audit its shortest-path proof.
+
+    Parent paths provide a witness that each finite label is attainable.  The
+    final edge inequalities provide the complementary lower bound: repeatedly
+    extending any source path cannot produce a shorter label.  The replayed
+    rounds additionally make the lesson's "at most k edges" invariant
+    inspectable rather than trusting a final distance vector alone.
+    """
+    empty = {
+        "trace_matches_edge_rounds": False,
+        "labels_match_recomputed_run": False,
+        "parent_witnesses_match_labels": False,
+        "all_edges_respect_final_labels": False,
+        "valid": False,
+    }
+    try:
+        _validate_input(vertex_count, edges, source)
+        expected_distances, expected_parents, expected_events = bellman_ford_trace(vertex_count, edges, source)
+        if len(distances) != vertex_count or len(parents) != vertex_count:
+            return empty
+
+        labels_match = distances == expected_distances and parents == expected_parents
+        trace_matches = events == expected_events
+        edge_weights: dict[tuple[int, int], float] = {}
+        for left, right, weight in edges:
+            edge_weights[left, right] = min(edge_weights.get((left, right), inf), weight)
+
+        witnesses_match = True
+        for target, distance in enumerate(distances):
+            path = reconstruct_path(parents, source, target)
+            if distance == inf:
+                witnesses_match = witnesses_match and path is None
+                continue
+            if path is None:
+                witnesses_match = False
+                break
+            path_weight = sum(edge_weights.get((left, right), inf) for left, right in zip(path, path[1:]))
+            if path_weight != distance:
+                witnesses_match = False
+                break
+
+        edge_inequalities = all(
+            distances[left] == inf or distances[right] <= distances[left] + weight
+            for left, right, weight in edges
+        )
+        return {
+            "trace_matches_edge_rounds": trace_matches,
+            "labels_match_recomputed_run": labels_match,
+            "parent_witnesses_match_labels": witnesses_match,
+            "all_edges_respect_final_labels": edge_inequalities,
+            "valid": trace_matches and labels_match and witnesses_match and edge_inequalities,
+        }
+    except (ArithmeticError, IndexError, TypeError, ValueError):
+        return empty

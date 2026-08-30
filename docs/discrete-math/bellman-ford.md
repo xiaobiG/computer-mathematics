@@ -30,7 +30,11 @@ $$d_k(v)=\min\bigl(d_{k-1}(v),\;d_{k-1}(u)+w\bigr).$$
 ## 可运行实现
 
 ```python
-from projects.algorithm_lab.bellman_ford_trace import bellman_ford_trace, reconstruct_path
+from projects.algorithm_lab.bellman_ford_trace import (
+    bellman_ford_certificate,
+    bellman_ford_trace,
+    reconstruct_path,
+)
 
 edges = [(0, 1, 2.0), (0, 2, 5.0), (2, 1, -10.0), (1, 3, 4.0)]
 distances, parents, events = bellman_ford_trace(5, edges, source=0)
@@ -38,9 +42,10 @@ distances, parents, events = bellman_ford_trace(5, edges, source=0)
 assert distances[3] == -1.0
 assert reconstruct_path(parents, 0, 3) == [0, 2, 1, 3]
 assert (2, 1, -5.0) in events[1].relaxed
+assert bellman_ford_certificate(5, edges, 0, distances, parents, events)["valid"]
 ```
 
-运行 `python -m unittest projects.algorithm_lab.test_bellman_ford_trace`。实现每轮先冻结前一轮的距离，再构造下一轮，因此第 $k$ 个事件直接对应“至多 $k$ 条边”的状态定义，而不是依赖边遍历顺序的就地更新。事件记录每轮成功松弛的边及候选距离；测试核对负边路径、逐轮不变量、不可达负环和可达负环拒绝。提前停止不改变正确性：若一整轮没有更新，所有可用“再加一条边”的路径也不能改善，之后不会再改变。`parent` 仅在更新时写入，回溯有长度上限以防输入或代码错误产生环。
+运行 `python -m unittest projects.algorithm_lab.test_bellman_ford_trace`。实现每轮先冻结前一轮的距离，再构造下一轮，因此第 $k$ 个事件直接对应“至多 $k$ 条边”的状态定义，而不是依赖边遍历顺序的就地更新。事件记录每轮成功松弛的边及候选距离；`bellman_ford_certificate` 重新执行逐轮松弛，并同时检查父指针给出的可达路径、最终所有边的松弛不等式和完整轮次轨迹。父路径说明标签可达到，边不等式说明沿任何边继续都不能改善标签；两者合成最短路的有限证书。测试核对负边路径、逐轮不变量、证书篡改、不可达负环和可达负环拒绝。提前停止不改变正确性：若一整轮没有更新，所有可用“再加一条边”的路径也不能改善，之后不会再改变。`parent` 仅在更新时写入，回溯有长度上限以防输入或代码错误产生环。
 
 ## 正确性与复杂度
 
@@ -66,14 +71,14 @@ assert (2, 1, -5.0) in events[1].relaxed
 
 1. **基础题**：对 $s\to a=2,s\to b=5,b\to a=-10$ 手算两轮松弛。
 2. **推导题**：完成“可改善的至少 $V$ 边路径蕴含可达负环”的证明。
-3. **编码题**：为实现添加 `reconstruct_path`，并测试不可达点、负边正确路径和可达负环。
+3. **编码题**：为实现添加 `reconstruct_path`，并测试不可达点、负边正确路径和可达负环；篡改一项距离、父指针或轮次事件，确认 `bellman_ford_certificate` 拒绝。
 4. **开放题**：比较 Dijkstra、Bellman–Ford、Floyd–Warshall 在稀疏/稠密、多源/单源、含负边三种维度的选择条件。
 
 ## 练习答案提示
 
 1. 第一轮从 $s$ 的初始标签出发；冻结上一轮状态时，$b\to a$ 的改善可能要到下一轮才可用，按边数而非边遍历顺序记录。
 2. 一条至少 $V$ 边的路径重复顶点；若重复段非负，删除它不会更差，因此仍可改善只能包含负权回路，并且该回路从源可达。
-3. 只有在松弛成功时更新 `parent`；回溯应限制最多 $V-1$ 条边，不可达返回空/None，可达负环应拒绝生成虚假的有限路径。
+3. 只有在松弛成功时更新 `parent`；回溯应限制最多 $V-1$ 条边，不可达返回空/None，可达负环应拒绝生成虚假的有限路径。证书还必须重新检查父路径权重、每条边的松弛不等式和每轮冻结状态，不能只比较一个最终数值。
 4. 单源有负边用 Bellman–Ford，多源小稠密图可用 Floyd–Warshall，非负稀疏单源优先 Dijkstra；还要比较顶点/边数和查询数量。
 
 ## 延伸
