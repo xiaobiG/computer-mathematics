@@ -67,6 +67,13 @@ python -m unittest projects.floating_point_museum.test_root_finding
 3. **编码题**：为求根器返回迭代轨迹，并构造一个分母接近零的失败输入。
 4. **开放题**：设计一个“二分保底 + 割线加速”策略，写出何时接受候选步、何时回退。
 
+## 练习答案提示
+
+1. 用两点 $(1,-1),(2,2)$ 的割线与横轴交点公式；保持足够有效位，下一步约为 $4/3$。
+2. 将过两点的直线写成斜率式并令 $y=0$，整理为 $x_1-f(x_1)(x_1-x_0)/(f(x_1)-f(x_0))$。
+3. 保存每次两点、函数值和候选值；常函数或几乎相等的函数值会使分母为零/很小，测试应断言明确失败而非巨大跳步。
+4. 只在候选值有限、落在含根区间且带来足够进展时接受割线步；否则二分并更新符号区间，停止同时检查区间、步长和残差。
+
 ## 延伸
 
 [牛顿法](/numerical-computing/newton-method)提供导数和区间保护版本；[数值微分](/numerical-computing/numerical-differentiation)解释近似导数为何脆弱；[浮点数错误博物馆](/projects/floating-point-museum)收录实验。继续学习可检索 Brent method、quasi-Newton method 和 root conditioning。
