@@ -2,11 +2,15 @@ import unittest
 from math import inf
 
 from projects.naive_bayes_spam.distribution_metrics import (
+    categorical_cross_entropy_from_logits,
     cross_entropy,
     entropy,
     information_report,
     information_report_certificate,
     kl_divergence,
+    logit_cross_entropy_certificate,
+    logit_cross_entropy_report,
+    log_softmax,
 )
 
 
@@ -42,6 +46,23 @@ class DistributionMetricTests(unittest.TestCase):
             entropy({"yes": 0.6, "no": 0.6})
         with self.assertRaises(ValueError):
             cross_entropy({"yes": 1.0}, {"no": 1.0})
+
+    def test_log_sum_exp_cross_entropy_stays_finite_for_extreme_logits(self):
+        logits = [1000.0, -1000.0]
+        report = logit_cross_entropy_report(logits, 1)
+        self.assertAlmostEqual(categorical_cross_entropy_from_logits(logits, 1), 2000.0)
+        self.assertAlmostEqual(sum(__import__("math").exp(value) for value in log_softmax(logits)), 1.0)
+        self.assertAlmostEqual(report["log_probability_normalizer"], 0.0)
+        self.assertTrue(logit_cross_entropy_certificate(logits, 1, report)["valid"])
+
+    def test_logit_loss_certificate_rejects_a_tampered_loss_or_invalid_target(self):
+        logits = [2.0, 1.0, -1.0]
+        report = logit_cross_entropy_report(logits, 0)
+        tampered = dict(report)
+        tampered["loss"] = float(tampered["loss"]) + 1.0
+        self.assertFalse(logit_cross_entropy_certificate(logits, 0, tampered)["valid"])
+        with self.assertRaises(ValueError):
+            categorical_cross_entropy_from_logits(logits, 3)
 
 
 if __name__ == "__main__":

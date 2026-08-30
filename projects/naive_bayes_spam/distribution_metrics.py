@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from math import inf, isclose, isfinite, log
+from math import exp, inf, isclose, isfinite, log
 from typing import Hashable
 
 
@@ -97,6 +97,92 @@ def information_report_certificate(
             "finite_decomposition_is_exact_within_tolerance": finite_decomposition,
             "infinite_loss_is_classified_consistently": infinite_classification,
             "valid": fields_match and (finite_decomposition or infinite_classification),
+        }
+    except (TypeError, ValueError):
+        return empty
+
+
+def _validate_logits(logits: list[float], target_index: int) -> None:
+    if not isinstance(logits, list) or not logits:
+        raise ValueError("logits must be a non-empty list")
+    if any(not isinstance(value, (int, float)) or isinstance(value, bool) or not isfinite(value)
+           for value in logits):
+        raise ValueError("logits must be finite numbers")
+    if (not isinstance(target_index, int) or isinstance(target_index, bool)
+            or not 0 <= target_index < len(logits)):
+        raise ValueError("target_index must select one logit")
+
+
+def log_softmax(logits: list[float]) -> tuple[float, ...]:
+    """Return stable log probabilities without materialising enormous exp(logit).
+
+    Subtracting the largest logit leaves the softmax probabilities unchanged:
+    ``log(sum(exp(z))) = maximum + log(sum(exp(z - maximum)))``.  Every
+    exponent is then at most one, so the normalising sum cannot overflow.
+    """
+    if not isinstance(logits, list) or not logits:
+        raise ValueError("logits must be a non-empty list")
+    if any(not isinstance(value, (int, float)) or isinstance(value, bool) or not isfinite(value)
+           for value in logits):
+        raise ValueError("logits must be finite numbers")
+    maximum = max(logits)
+    log_normalizer = maximum + log(sum(exp(value - maximum) for value in logits))
+    return tuple(float(value - log_normalizer) for value in logits)
+
+
+def categorical_cross_entropy_from_logits(logits: list[float], target_index: int) -> float:
+    """Return ``-log softmax(logits)[target_index]`` under a strict contract."""
+    _validate_logits(logits, target_index)
+    return -log_softmax(logits)[target_index]
+
+
+def logit_cross_entropy_report(logits: list[float], target_index: int) -> dict[str, object]:
+    """Expose a stable logit loss and its normalisation witness for one label."""
+    _validate_logits(logits, target_index)
+    log_probabilities = log_softmax(logits)
+    return {
+        "target_index": target_index,
+        "log_probabilities": log_probabilities,
+        "loss": -log_probabilities[target_index],
+        "log_probability_normalizer": log(sum(exp(value) for value in log_probabilities)),
+    }
+
+
+def logit_cross_entropy_certificate(
+    logits: list[float], target_index: int, report: dict[str, object], *, tolerance: float = 1e-12,
+) -> dict[str, bool]:
+    """Recompute a log-sum-exp loss report instead of trusting a displayed loss."""
+    empty = {
+        "target_matches": False,
+        "log_probabilities_match": False,
+        "loss_matches_negative_target_log_probability": False,
+        "normalizes_in_log_space": False,
+        "valid": False,
+    }
+    try:
+        if tolerance < 0.0 or not isfinite(tolerance) or not isinstance(report, dict):
+            return empty
+        expected = logit_cross_entropy_report(logits, target_index)
+        if set(report) != set(expected) or report.get("target_index") != target_index:
+            return empty
+        observed_logs = report.get("log_probabilities")
+        if not isinstance(observed_logs, tuple) or len(observed_logs) != len(expected["log_probabilities"]):
+            return empty
+        logs_match = all(isinstance(value, (int, float)) and isfinite(value)
+                         and abs(value - expected_value) <= tolerance
+                         for value, expected_value in zip(observed_logs, expected["log_probabilities"]))
+        loss = report.get("loss")
+        normalizer = report.get("log_probability_normalizer")
+        loss_matches = (isinstance(loss, (int, float)) and isfinite(loss)
+                        and abs(loss - expected["loss"]) <= tolerance)
+        normalizes = (isinstance(normalizer, (int, float)) and isfinite(normalizer)
+                      and abs(normalizer) <= tolerance)
+        return {
+            "target_matches": True,
+            "log_probabilities_match": logs_match,
+            "loss_matches_negative_target_log_probability": loss_matches,
+            "normalizes_in_log_space": normalizes,
+            "valid": logs_match and loss_matches and normalizes,
         }
     except (TypeError, ValueError):
         return empty
