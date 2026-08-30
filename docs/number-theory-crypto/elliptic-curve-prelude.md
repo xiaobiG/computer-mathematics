@@ -100,6 +100,13 @@ python -m unittest projects.crypto_toybox.test_elliptic_curve
 3. **编码题**：列举小曲线全部点，验证每次 `add(P, Q)` 的结果仍在曲线上或为 `None`。
 4. **开放题**：为一个真实 ECDH 集成列出必须交给成熟库处理的项目，并说明各自防范什么攻击。
 
+## 练习答案提示
+
+1. 代入曲线方程验证两点；它们纵坐标互为相反数，所以同 $x$ 的两点相加为无穷远点 `None`。
+2. 将直线代入曲线得到三次多项式，利用三根之和与二次项系数关系，再对第三交点取关于 $x$ 轴的反射。
+3. 枚举所有 $(x,y)$ 并验证闭包，同时覆盖相反点、倍点、无穷远点和分母不可逆等边界；小曲线枚举只是教学检查。
+4. 真实集成必须交给库处理标准参数/编码、点与子群验证、恒定时间标量乘、安全随机数、KDF/认证和密钥生命周期，以防无效点、侧信道和协议攻击。
+
 ## 延伸
 
 [有限域、群与离散对数直觉](/number-theory-crypto/finite-fields-groups)提供抽象群语言；[Diffie–Hellman](/number-theory-crypto/diffie-hellman)解释密钥交换的认证问题；[密码学玩具箱](/projects/crypto-toybox)收录本课实验。继续学习时优先查阅标准与成熟库文档：point validation、cofactor clearing、constant-time arithmetic、RFC 7748 与协议安全证明。

@@ -88,6 +88,13 @@ assert not toy_rsa_verify(66, signature, key)
 3. **编码**：为玩具验签添加签名范围的属性测试；不要加入任何自制填充。
 4. **开放**：为“发布软件更新”画出密钥生成、签名、公钥分发、验签、密钥撤销的威胁模型，并标出本课程代码无法承担的环节。
 
+## 练习答案提示
+
+1. 由 $ed=1+k\varphi(n)$ 写 $s^e\equiv m^{ed}=m(m^{\varphi(n)})^k\equiv m\pmod n$；需说明消息代表元与模数的条件。
+2. 裸 RSA 的乘法结构使 $(s_1s_2)^e\equiv m_1m_2\pmod n$，可构造相关签名；安全方案的编码和域分离正是为破坏这种可塑性。
+3. 测试只接受规范范围内的签名代表元，覆盖负数、等于模数和大于模数；不要用教学代码添加填充或声称生成真实签名。
+4. 威胁图至少区分私钥保护、公钥可信分发、包完整性、撤销/轮换和验签环境；玩具算术不覆盖硬件保护、证书基础设施和供应链流程。
+
 ## 下一步
 
 先比较[消息认证码：HMAC](/number-theory-crypto/message-authentication-codes)和[哈希与密码存储](/number-theory-crypto/hashing-passwords)的不同密钥模型；再回到[RSA](/number-theory-crypto/rsa)复习模逆元和 CRT。后续应学习标准签名方案、证书、公钥基础设施与协议上下文绑定。

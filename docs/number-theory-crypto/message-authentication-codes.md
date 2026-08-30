@@ -60,6 +60,13 @@ python -m unittest projects.crypto_toybox.test_message_auth
 3. **编码题**：为带序号的消息设计无歧义编码，并测试旧序号重放被拒绝。
 4. **开放题**：为 API 请求认证列出必须覆盖的方法、路径、主体、时间和 nonce，并说明日志中哪些字段不能泄露。
 
+## 练习答案提示
+
+1. 裸哈希没有秘密，攻击者可对修改后消息再算摘要；HMAC 的标签依赖未知密钥，攻击者不能凭公开消息重算有效标签。
+2. HMAC 形如 $H((K\oplus opad)\|H((K\oplus ipad)\|m))$；内外两层与不同填充形成规范构造，不能简化为随意字符串拼接。
+3. 用长度前缀或规范二进制序列化编码序号和主体；服务端保存/验证单调序号或去重窗口，旧序号即使标签正确也必须拒绝。
+4. 认证输入应覆盖方法、规范路径、主体哈希、时间、nonce 和密钥标识；日志不能记录密钥、完整认证标签或敏感主体，且需避免泄漏可重放材料。
+
 ## 延伸
 
 [哈希与密码存储](/number-theory-crypto/hashing-passwords)区分 KDF 与 MAC；[Diffie–Hellman](/number-theory-crypto/diffie-hellman)说明协商共享秘密后仍需要认证；[密码学玩具箱](/projects/crypto-toybox)提供实验。真实协议优先使用 TLS、平台签名机制和受审计库。

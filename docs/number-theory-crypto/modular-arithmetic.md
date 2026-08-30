@@ -79,6 +79,13 @@ assert mod_pow_operation_profile(15).total_modular_multiplications == 8  # 1111
 3. **编码**：测试模数 1、负指数、底数为负和指数为 0。
 4. **开放**：比较“平方—乘”与 Montgomery ladder 的控制流，说明后者为何更适合秘密指数。
 
+## 练习答案提示
+
+1. 将 $13$ 写成二进制 $1101$，逐次平方得到幂，再只乘对应的 1 位项并随时取模；不要先计算完整整数幂。
+2. 循环不变量可写为 `result * base^remaining ≡ original_base^original_exponent (mod m)`；最低位为 0 时只平方 `base` 并右移指数，等价式仍保持。
+3. 模数 1 是退化环，负指数需要先求逆元，负底数应按模规范化，零指数在合法模数下返回乘法单位元；分别定义/测试异常契约。
+4. 平方—乘的分支随指数位变化，可能形成可观测模式；ladder 每位执行固定形态的操作，更适合秘密标量，但真实实现仍需审计库、恒定时间大整数和完整协议防护。
+
 ## 延伸与下一步
 
 [模逆元](/number-theory-crypto/extended-euclid)给出负指数/除法的合法条件；[RSA](/number-theory-crypto/rsa)将快速幂嵌入公钥协议，但必须额外处理填充与攻击面。
