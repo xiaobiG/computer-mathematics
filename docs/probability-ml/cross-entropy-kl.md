@@ -42,7 +42,10 @@ KL 散度不是对称距离：交换 $P,Q$ 一般改变结果，也不满足三�
 ## 算法实现：用恒等式检查计算
 
 ```python
-from projects.naive_bayes_spam.distribution_metrics import information_report
+from projects.naive_bayes_spam.distribution_metrics import (
+    information_report,
+    information_report_certificate,
+)
 
 actual = {"spam": 0.2, "ham": 0.8}
 predicted = {"spam": 0.3, "ham": 0.7}
@@ -50,9 +53,10 @@ report = information_report(actual, predicted)
 
 assert report["kl_divergence"] > 0.0
 assert abs(report["cross_entropy"] - report["entropy"] - report["kl_divergence"]) < 1e-12
+assert information_report_certificate(actual, predicted, report)["valid"]
 ```
 
-运行 `python -m unittest projects.naive_bayes_spam.test_distribution_metrics`。实现要求两张表具有相同的结果集合、每格非负有限且各自和为一。`information_report` 返回熵、交叉熵、KL 和分解残差；后者应接近零，是比“函数返回了一个数”更强的计算证据。对 $k$ 个类别，所有指标均为 $O(k)$ 时间与 $O(1)$ 额外空间（不计输入/报告）。
+运行 `python -m unittest projects.naive_bayes_spam.test_distribution_metrics`。实现要求两张表具有相同的结果集合、每格非负有限且各自和为一。`information_report` 返回熵、交叉熵、KL 和分解残差；`information_report_certificate` 从两张分布重新计算全部字段，能拒绝被篡改的 KL 或残差，并将有限分解与无穷损失分开审计。后者应接近零，是比“函数返回了一个数”更强的计算证据。对 $k$ 个类别，所有指标均为 $O(k)$ 时间与 $O(1)$ 额外空间（不计输入/报告）。
 
 ## 零概率、稳定性与工程边界
 
@@ -67,14 +71,14 @@ assert abs(report["cross_entropy"] - report["entropy"] - report["kl_divergence"]
 
 1. **基础**：对 $P=(0.5,0.5)$、$Q=(0.9,0.1)$ 计算交叉熵和 KL（可保留对数形式）。
 2. **推导**：由 $H(P,Q)-H(P)$ 逐步推导 KL 公式，并说明 $P=Q$ 时为何为零。
-3. **编码**：扩展实验，使其将自然对数结果换算为 bit，并测试有正概率事件被预测为零时返回无穷。
+3. **编码**：篡改一份有限 `information_report` 的 KL 或残差，确认其证书拒绝；再将自然对数结果换算为 bit，并测试有正概率事件被预测为零时返回无穷。
 4. **开放**：比较两套垃圾邮件模型的准确率、交叉熵和可靠性曲线；构造一个准确率更高但交叉熵更差的情形并解释原因。
 
 ## 练习答案提示
 
 1. 交叉熵是 $-0.5\log0.9-0.5\log0.1$；KL 再减去 $H(P)=\log2$，保留符号可避免小数舍入。
 2. 代入定义后 $-\sum P\log Q+\sum P\log P=\sum P\log(P/Q)$；当 $P=Q$ 每项对数为 0。
-3. bit 单位用自然对数结果除以 $\log2$；若 $P(x)>0,Q(x)=0$ 直接返回无穷，不能用静默截断掩盖数学事件。
+3. bit 单位用自然对数结果除以 $\log2$；证书应重新计算全部字段并区分有限残差和无穷损失。若 $P(x)>0,Q(x)=0$ 直接返回无穷，不能用静默截断掩盖数学事件。
 4. 准确率只看最终类别，交叉熵还惩罚高置信错误；可靠性曲线检查分桶概率是否兑现，三者需要在相同留出集和分组上报告。
 
 ## 延伸

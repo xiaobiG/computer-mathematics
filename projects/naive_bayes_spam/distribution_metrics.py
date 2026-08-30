@@ -63,3 +63,40 @@ def information_report(actual: Distribution, predicted: Distribution) -> dict[st
         "decomposition_residual": (cross_entropy(actual, predicted) - actual_entropy - divergence
                                    if isfinite(divergence) else 0.0),
     }
+
+
+def information_report_certificate(
+    actual: Distribution, predicted: Distribution, report: dict[str, float], *, tolerance: float = 1e-12
+) -> dict[str, bool]:
+    """Recompute the entropy decomposition without trusting a stored report."""
+    empty = {
+        "fields_match_recomputed_metrics": False,
+        "finite_decomposition_is_exact_within_tolerance": False,
+        "infinite_loss_is_classified_consistently": False,
+        "valid": False,
+    }
+    try:
+        if tolerance < 0.0 or not isfinite(tolerance) or not isinstance(report, dict):
+            return empty
+        expected = information_report(actual, predicted)
+        required = set(expected)
+        if set(report) != required or any(not isinstance(report[name], (int, float)) for name in required):
+            return empty
+        fields_match = all(
+            (report[name] == expected[name] if not isfinite(expected[name])
+             else abs(report[name] - expected[name]) <= tolerance)
+            for name in required
+        )
+        infinite = not isfinite(expected["cross_entropy"])
+        finite_decomposition = (not infinite and abs(report["decomposition_residual"]) <= tolerance)
+        infinite_classification = (infinite and report["cross_entropy"] == inf
+                                   and report["kl_divergence"] == inf
+                                   and report["decomposition_residual"] == 0.0)
+        return {
+            "fields_match_recomputed_metrics": fields_match,
+            "finite_decomposition_is_exact_within_tolerance": finite_decomposition,
+            "infinite_loss_is_classified_consistently": infinite_classification,
+            "valid": fields_match and (finite_decomposition or infinite_classification),
+        }
+    except (TypeError, ValueError):
+        return empty
