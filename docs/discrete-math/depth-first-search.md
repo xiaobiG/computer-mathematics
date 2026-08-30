@@ -26,17 +26,19 @@ experiment: "运行显式栈 DFS，验证发现/完成时间、环图不重复�
 ## 可运行实现
 
 ```python
-from projects.algorithm_lab.dfs_trace import dfs_trace
+from projects.algorithm_lab.dfs_trace import dfs_trace, dfs_trace_certificate
 
-times, events = dfs_trace({"a": ["b", "c"], "b": ["d"], "c": [], "d": []}, "a")
+graph = {"a": ["b", "c"], "b": ["d"], "c": [], "d": []}
+times, events = dfs_trace(graph, "a")
 assert all(discovered < finished for discovered, finished in times.values())
+assert dfs_trace_certificate(graph, "a", times, events)
 ```
 
 ```bash
 python -m unittest projects.algorithm_lab.test_dfs_trace
 ```
 
-每个顶点至多发现/完成一次，每条邻接边至多检查一次，所以邻接表下时间为 $O(V+E)$、额外空间为 $O(V)$。事件数恰为已访问顶点数的两倍，这也成为项目测试的守恒量。
+每个顶点至多发现/完成一次，每条邻接边至多检查一次，所以邻接表下时间为 $O(V+E)$、额外空间为 $O(V)$。事件数恰为已访问顶点数的两倍，这也成为项目测试的守恒量。`dfs_trace_certificate` 从原图和起点重新运行显式栈契约，并要求发现/完成时间与每个事件后的栈快照完全一致；篡改时间戳、邻接顺序或栈快照会被拒绝。这是对一次有限执行的审计，不能替代“可达顶点为何必被访问”的归纳证明。
 
 ## 正确性与复杂度
 
@@ -60,14 +62,14 @@ python -m unittest projects.algorithm_lab.test_dfs_trace
 
 1. **基础题**：为一条长度 4 的链写出发现与完成时间的相对次序。
 2. **推导题**：证明事件数等于两倍已访问顶点数。
-3. **编码题**：扩展轨迹以在有向图发现灰色边时返回一条环证据。
+3. **编码题**：篡改一条 `DfsEvent` 的时间或栈快照，确认 `dfs_trace_certificate` 拒绝；再扩展轨迹以在有向图发现灰色边时返回一条环证据。
 4. **开放题**：设计百万节点图的 DFS 资源预算，说明内存、输入流和遍历顺序的取舍。
 
 ## 练习答案提示
 
 1. 链上的发现时间从起点依次递增，完成时间从末点反向递增；只需比较相对顺序，不依赖具体时钟起值。
 2. 每个已访问顶点恰有一次发现事件和一次完成事件；归纳检查新发现点不会重复、完成只在其邻居任务结束后发生。
-3. 维护灰色栈或父指针；遇到灰色邻居时沿父指针回溯到该邻居，再反向输出即可形成有向环。
+3. 先确认重放证书能拒绝时间/栈篡改；环扩展时维护灰色栈或父指针，遇到灰色邻居时沿父指针回溯到该邻居，再反向输出即可形成有向环。
 4. 显式栈避免递归限制；预算应分别估计顶点状态、边输入、栈深与排序代价，并说明流式输入为何会限制回溯。
 
 ## 延伸

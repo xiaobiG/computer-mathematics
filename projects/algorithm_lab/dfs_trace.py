@@ -42,3 +42,14 @@ def dfs_trace(graph: Graph, start: Node) -> tuple[dict[Node, tuple[int, int]], l
                     stack.append((neighbor, False))
             events.append(DfsEvent(node, "discover", time, tuple(item[0] for item in stack)))
     return {node: (pair[0], pair[1]) for node, pair in times.items()}, events
+
+
+def dfs_trace_certificate(
+    graph: Graph, start: Node, times: dict[Node, tuple[int, int]], events: list[DfsEvent]
+) -> bool:
+    """Replay the explicit-stack DFS contract without trusting its trace."""
+    try:
+        expected_times, expected_events = dfs_trace(graph, start)
+        return times == expected_times and events == expected_events
+    except (TypeError, ValueError):
+        return False
