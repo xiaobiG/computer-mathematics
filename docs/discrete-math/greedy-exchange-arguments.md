@@ -24,19 +24,17 @@ experiment: "实现活动选择并用穷举核对最优性；构造硬币系统�
 两个半开区间兼容当且仅当 $f_i\le s_j$ 或 $f_j\le s_i$。先按结束时间排序；维护最近选中活动的结束时间 `current_end`：
 
 ```python
-def select_activities(activities):
-    """Return a maximum-cardinality compatible subset of (start, finish, name)."""
-    if any(start > finish for start, finish, _ in activities):
-        raise ValueError("活动开始时间不能晚于结束时间")
-    chosen = []
-    current_end = float("-inf")
-    for start, finish, name in sorted(activities, key=lambda item: (item[1], item[0])):
-        if start >= current_end:
-            chosen.append((start, finish, name))
-            current_end = finish
-    return chosen
+from projects.algorithm_lab.weighted_activity import (
+    activity_selection_certificate,
+    activity_selection_trace,
+    brute_force_max_cardinality,
+)
 
-print(select_activities([(0, 3, "A"), (1, 2, "B"), (2, 4, "C"), (3, 5, "D")]))
+activities = [(0.0, 3.0, "A"), (1.0, 2.0, "B"), (2.0, 4.0, "C"), (3.0, 5.0, "D")]
+chosen, trace = activity_selection_trace(activities)
+assert [activity[2] for activity in chosen] == ["B", "C"]
+assert len(chosen) == brute_force_max_cardinality(activities)
+assert activity_selection_certificate(activities, chosen, trace)
 ```
 
 排序成本为 $O(n\log n)$，扫描为 $O(n)$，额外空间不计输出为 $O(1)$。使用半开区间使“一个活动在 2 结束、另一个在 2 开始”可兼容；接口语义必须先定清楚。
@@ -55,7 +53,7 @@ print(select_activities([(0, 3, "A"), (1, 2, "B"), (2, 4, "C"), (3, 5, "D")]))
 
 ## 可验证实验：算法与穷举对拍
 
-对很小的输入，枚举所有子集可作为独立预言：过滤兼容集合并取最大基数。随机生成 8 个以内活动，将 `len(select_activities(...))` 与穷举最优值比较。穷举是 $O(2^n n\log n)$，不用于生产，却很适合抓住排序、边界和相等结束时间处理错误。
+对很小的输入，枚举所有子集可作为独立预言：过滤兼容集合并取最大基数。`activity_selection_trace` 记录每个最早结束候选是否入选及当时的结束边界；`activity_selection_certificate` 重放整段贪心轨迹，再与受限的穷举最优基数交叉核对。篡改一个选取决定会使证书拒绝。穷举是 $O(2^n n\log n)$，不用于生产，却很适合抓住排序、边界和相等结束时间处理错误。
 
 还应测试性质：输出按结束时间非降；相邻选中活动满足前者结束不晚于后者开始；添加一个与全部活动冲突的活动不会让输出变得不兼容。
 
@@ -83,14 +81,14 @@ print(select_activities([(0, 3, "A"), (1, 2, "B"), (2, 4, "C"), (3, 5, "D")]))
 
 1. **基础题**：对活动 $[0,2),[1,3),[2,5),[4,6)$ 手工执行最早结束算法。
 2. **推导题**：补全交换论证中“替换后其余活动仍兼容”的不等式细节。
-3. **编码题**：实现小规模穷举对拍器，随机检验活动选择算法 1,000 次。
+3. **编码题**：使用 `activity_selection_trace` 与小规模穷举对拍器，随机检验活动选择算法 1,000 次；篡改一个轨迹事件，确认 `activity_selection_certificate` 拒绝。
 4. **开放题**：为“最大收益会议安排”设计状态定义并说明为什么它转为动态规划，而非修补一个贪心规则。
 
 ## 练习答案提示
 
 1. 按结束时间排序后依次选择：先选 $[0,2)$，跳过冲突的 $[1,3)$，再选 $[2,5)$；最后比较 $[4,6)$ 是否兼容。
 2. 设最优解第一项为 $o$、贪心第一项为 $g$；由 $finish(g)\le finish(o)$ 可知将 $o$ 换为 $g$ 后其余活动仍满足开始时间不早于 $finish(g)$。
-3. 随机生成半开区间并固定种子以便复现；穷举过滤两两兼容子集，比较的是选择数量而非活动名称或排序细节。
+3. 随机生成半开区间并固定种子以便复现；穷举过滤两两兼容子集，比较的是选择数量而非活动名称或排序细节。证书应同时重放最早结束扫描和小规模最优基数，不要把指数预言器用到生产规模。
 4. 加权时状态通常是按结束时间排序的前缀，转移为 $OPT(j)=\max(OPT(j-1),w_j+OPT(p(j)))$；局部最早结束不再控制总收益。
 
 ## 延伸

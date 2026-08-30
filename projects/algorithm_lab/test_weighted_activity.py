@@ -1,9 +1,14 @@
 import unittest
 
 from projects.algorithm_lab.weighted_activity import (
+    ActivitySelectionEvent,
     WeightedActivityEvent,
+    activity_selection_certificate,
+    activity_selection_trace,
     brute_force_best_value,
+    brute_force_max_cardinality,
     compatible_schedule,
+    unweighted_compatible_schedule,
     weighted_activity_selection,
     weighted_activity_trace,
     weighted_activity_trace_certificate,
@@ -11,6 +16,19 @@ from projects.algorithm_lab.weighted_activity import (
 
 
 class WeightedActivityTests(unittest.TestCase):
+    def test_earliest_finish_trace_matches_a_cardinality_oracle(self):
+        activities = [(0.0, 3.0, "A"), (1.0, 2.0, "B"), (2.0, 4.0, "C"), (3.0, 5.0, "D")]
+        chosen, trace = activity_selection_trace(activities)
+        self.assertEqual([activity[2] for activity in chosen], ["B", "C"])
+        self.assertTrue(unweighted_compatible_schedule(chosen))
+        self.assertEqual(len(chosen), brute_force_max_cardinality(activities))
+        self.assertTrue(activity_selection_certificate(activities, chosen, trace))
+
+        tampered = list(trace)
+        event = tampered[0]
+        tampered[0] = ActivitySelectionEvent(event.activity, not event.selected, event.current_end)
+        self.assertFalse(activity_selection_certificate(activities, chosen, tampered))
+
     def test_dp_beats_the_earliest_finish_counterexample(self):
         activities = [(0.0, 2.0, 1.0, "short"), (0.0, 4.0, 100.0, "valuable")]
         value, chosen = weighted_activity_selection(activities)
@@ -51,3 +69,5 @@ class WeightedActivityTests(unittest.TestCase):
             weighted_activity_selection([(0.0, 1.0, -1.0, "bad")])
         with self.assertRaises(ValueError):
             brute_force_best_value([(float(index), float(index + 1), 1.0, str(index)) for index in range(19)])
+        with self.assertRaises(ValueError):
+            brute_force_max_cardinality([(float(index), float(index + 1), str(index)) for index in range(19)])
