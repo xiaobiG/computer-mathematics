@@ -11,7 +11,7 @@ experiment: "运行显式栈 DFS，验证发现/完成时间、环图不重复�
 
 ## 学习目标
 
-读完后，你能说明 DFS 的发现/完成状态；用时间戳验证一个顶点只处理一次；实现显式栈 DFS；并区分“无向图可达性”“有向图环检测”和递归深度的工程边界。
+读完后，你能说明 DFS 的发现/完成状态；用时间戳验证一个顶点只处理一次；实现显式栈 DFS；从灰色回边构造一条有向环证据；并区分“无向图可达性”“有向图环检测”和递归深度的工程边界。
 
 ## 从递归栈溢出开始
 
@@ -23,22 +23,35 @@ experiment: "运行显式栈 DFS，验证发现/完成时间、环图不重复�
 
 不变量是：`times` 中每个顶点恰好被发现一次；栈中的完成标记只属于已发现顶点；一个顶点完成时其可达的所有未发现后继已被处理。于是起点可达的点都会被发现，而 DFS 不沿不存在的边移动，发现集合恰为起点所在可达部分。
 
-## 可运行实现
+## 为什么灰色边给出有向环
+
+在有向 DFS 中，灰色顶点正是当前显式栈上的祖先。若扫描边 $u\to v$ 时 $v$ 为灰色，则栈中已有一条树边路径 $v\rightsquigarrow u$；加上 $u\to v$ 就得到闭合有向环。黑色邻居则已经完成，不能仅凭这条边断言有环；白色邻居会成为新的子搜索。
+
+例如 `a → b → c → a` 中，扫描 `c → a` 时 `a` 仍灰色，因此输出证据 `(a, b, c, a)`。证据应当是可检查的：相邻顶点对都必须是原图中的有向边，首尾必须相同。
+
+## 算法实现
 
 ```python
-from projects.algorithm_lab.dfs_trace import dfs_trace, dfs_trace_certificate
+from projects.algorithm_lab.dfs_trace import (
+    dfs_trace, dfs_trace_certificate,
+    directed_cycle_certificate, directed_cycle_report,
+)
 
 graph = {"a": ["b", "c"], "b": ["d"], "c": [], "d": []}
 times, events = dfs_trace(graph, "a")
 assert all(discovered < finished for discovered, finished in times.values())
 assert dfs_trace_certificate(graph, "a", times, events)
+
+cycle_report = directed_cycle_report({"a": ["b"], "b": ["c"], "c": ["a"]}, "a")
+assert cycle_report["cycle"] == ("a", "b", "c", "a")
+assert directed_cycle_certificate({"a": ["b"], "b": ["c"], "c": ["a"]}, "a", cycle_report)
 ```
 
 ```bash
 python -m unittest projects.algorithm_lab.test_dfs_trace
 ```
 
-每个顶点至多发现/完成一次，每条邻接边至多检查一次，所以邻接表下时间为 $O(V+E)$、额外空间为 $O(V)$。事件数恰为已访问顶点数的两倍，这也成为项目测试的守恒量。`dfs_trace_certificate` 从原图和起点重新运行显式栈契约，并要求发现/完成时间与每个事件后的栈快照完全一致；篡改时间戳、邻接顺序或栈快照会被拒绝。这是对一次有限执行的审计，不能替代“可达顶点为何必被访问”的归纳证明。
+每个顶点至多发现/完成一次，每条邻接边至多检查一次，所以邻接表下时间为 $O(V+E)$、额外空间为 $O(V)$。事件数恰为已访问顶点数的两倍，这也成为项目测试的守恒量。`dfs_trace_certificate` 从原图和起点重新运行显式栈契约，并要求发现/完成时间与每个事件后的栈快照完全一致；篡改时间戳、邻接顺序或栈快照会被拒绝。`directed_cycle_report` 使用“节点 + 下一个邻居索引”的显式栈保留灰色祖先链；遇到灰边时沿父指针回溯并返回闭合环，`directed_cycle_certificate` 会独立重放该证据。这是对一次有限执行的审计，不能替代“可达顶点为何必被访问”的归纳证明。
 
 ## 正确性与复杂度
 
@@ -46,7 +59,7 @@ python -m unittest projects.algorithm_lab.test_dfs_trace
 
 ## 失败案例与工程边界
 
-- **灰色边与有向环**：在有向图遇到灰色邻居才是回边和环的证据；无向图要排除指向父节点的反向边。
+- **灰色边与有向环**：在有向图遇到灰色邻居才是回边和环的证据；无向图要排除指向父节点的反向边。这里的报告只从指定起点的可达部分找第一个环；全图检查须从每个白色顶点发起一次搜索。
 - **递归深度**：教学递归易读，深图应用显式栈或经过验证的库。
 - **隐式顶点**：邻居未作为键出现会让图定义不完整；实现明确拒绝。
 - **遍历顺序**：DFS 树依赖邻接顺序，若需要可复现输出须固定排序规则。
@@ -62,14 +75,14 @@ python -m unittest projects.algorithm_lab.test_dfs_trace
 
 1. **基础题**：为一条长度 4 的链写出发现与完成时间的相对次序。
 2. **推导题**：证明事件数等于两倍已访问顶点数。
-3. **编码题**：篡改一条 `DfsEvent` 的时间或栈快照，确认 `dfs_trace_certificate` 拒绝；再扩展轨迹以在有向图发现灰色边时返回一条环证据。
+3. **编码题**：篡改一条 `DfsEvent` 的时间或栈快照，确认 `dfs_trace_certificate` 拒绝；再篡改 `directed_cycle_report` 的闭合环，确认 `directed_cycle_certificate` 拒绝。
 4. **开放题**：设计百万节点图的 DFS 资源预算，说明内存、输入流和遍历顺序的取舍。
 
 ## 练习答案提示
 
 1. 链上的发现时间从起点依次递增，完成时间从末点反向递增；只需比较相对顺序，不依赖具体时钟起值。
 2. 每个已访问顶点恰有一次发现事件和一次完成事件；归纳检查新发现点不会重复、完成只在其邻居任务结束后发生。
-3. 先确认重放证书能拒绝时间/栈篡改；环扩展时维护灰色栈或父指针，遇到灰色邻居时沿父指针回溯到该邻居，再反向输出即可形成有向环。
+3. 先确认重放证书能拒绝时间/栈篡改；环报告维护灰色栈和父指针，遇到灰色邻居时沿父指针回溯到该邻居，再反向输出并补上起点即可形成闭合有向环。
 4. 显式栈避免递归限制；预算应分别估计顶点状态、边输入、栈深与排序代价，并说明流式输入为何会限制回溯。
 
 ## 延伸

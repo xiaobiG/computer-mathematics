@@ -2,7 +2,12 @@ import unittest
 
 from dataclasses import replace
 
-from projects.algorithm_lab.dfs_trace import dfs_trace, dfs_trace_certificate
+from projects.algorithm_lab.dfs_trace import (
+    dfs_trace,
+    dfs_trace_certificate,
+    directed_cycle_certificate,
+    directed_cycle_report,
+)
 
 
 class DfsTraceTests(unittest.TestCase):
@@ -33,6 +38,25 @@ class DfsTraceTests(unittest.TestCase):
             dfs_trace({"a": []}, "missing")
         with self.assertRaises(ValueError):
             dfs_trace({"a": ["missing"]}, "a")
+
+    def test_directed_cycle_report_returns_a_closed_gray_back_edge_witness(self):
+        graph = {"a": ["b"], "b": ["c"], "c": ["a", "d"], "d": []}
+        report = directed_cycle_report(graph, "a")
+        self.assertTrue(report["has_cycle"])
+        self.assertEqual(report["back_edge"], ("c", "a"))
+        self.assertEqual(report["cycle"], ("a", "b", "c", "a"))
+        self.assertTrue(directed_cycle_certificate(graph, "a", report))
+        tampered = dict(report)
+        tampered["cycle"] = ("a", "c", "a")
+        self.assertFalse(directed_cycle_certificate(graph, "a", tampered))
+
+    def test_directed_cycle_report_distinguishes_a_dag_from_a_cycle(self):
+        graph = {"a": ["b", "c"], "b": ["d"], "c": ["d"], "d": []}
+        report = directed_cycle_report(graph, "a")
+        self.assertEqual(report["reachable"], ("a", "b", "d", "c"))
+        self.assertFalse(report["has_cycle"])
+        self.assertIsNone(report["back_edge"])
+        self.assertIsNone(report["cycle"])
 
 
 if __name__ == "__main__":
