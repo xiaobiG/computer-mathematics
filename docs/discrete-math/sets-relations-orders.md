@@ -38,16 +38,64 @@ description: 用集合与二元关系描述程序状态，推导等价类划分�
 
 **偏序**满足自反、反对称、传递。偏序元素不必都可比较：两个独立任务既非 \(a\preceq b\)，也非 \(b\preceq a\)，这正是可以并行的空间。
 
+## 从定义推导：为什么等价类一定是划分
+
+这不是一个应当记住的结论，而是三个性质共同强迫出的结构。设 \(R\) 是 \(S\) 上的等价关系。
+
+1. **覆盖全集。** 对任意 \(a\in S\)，自反性给出 \(aRa\)，所以 \(a\in[a]\)。每个元素至少属于一个等价类。
+2. **相交则相等。** 假设 \(c\in[a]\cap[b]\)。则 \(aRc\) 与 \(bRc\)；由对称性得到 \(cRb\)。任取 \(x\in[a]\)，有 \(aRx\)，再由对称性得到 \(xRa\)，结合 \(aRc\) 和 \(cRb\) 可推出 \(xRb\)，故 \(x\in[b]\)。反向同理，于是 \([a]=[b]\)。
+3. **因此没有部分重叠。** 两个类若有共同元素就相等，否则不相交；再结合第一步，所有等价类正好把 \(S\) 切成一个划分。
+
+这也解释并查集的 API：`find(x)` 返回的是一个类的代表元，`union(x, y)` 只有在把两个类合并时才改变划分。它不需要保存“所有元素两两等价”的 \(O(n^2)\) 个关系对。
+
 ## 从偏序到拓扑排序
 
 有限偏序可看成 DAG 的可达关系。拓扑排序给出一个线性序，使 \(a\prec b\) 时 \(a\) 一定出现在 \(b\) 之前；它称为偏序的线性扩展。独立元素的相对位置可以不同，所以拓扑序通常不唯一。
 
 若依赖图有环，则存在 \(a\prec b\prec\cdots\prec a\)，违反反对称性；这解释了为什么 [拓扑排序](/discrete-math/graph-foundations-topological-sort) 能把“无输出顺序”作为环的证据。
 
-## 可运行验证
+## 从定义实现验证器
+
+有限集合上可以把量词直接翻译成 `all`。下面的代码故意不追求大规模性能：它让每个循环都对应一条数学定义，因此既可做单元测试，也可用于发现输入关系没有满足的性质。
 
 ```python
-from projects.algorithm_lab.relations import equivalence_classes, relation_report
+def relation_report(items, relation):
+    """检查有限集合上的 R 是否满足定义；集合外端点是输入错误。"""
+    if any(left not in items or right not in items for left, right in relation):
+        raise ValueError("relation contains an item outside the domain")
+
+    reflexive = all((item, item) in relation for item in items)
+    symmetric = all((right, left) in relation for left, right in relation)
+    antisymmetric = all(
+        left == right or (right, left) not in relation
+        for left, right in relation
+    )
+    transitive = all(
+        (left, last) in relation
+        for left in items for middle in items for last in items
+        if (left, middle) in relation and (middle, last) in relation
+    )
+    return {
+        "reflexive": reflexive,
+        "symmetric": symmetric,
+        "antisymmetric": antisymmetric,
+        "transitive": transitive,
+        "equivalence": reflexive and symmetric and transitive,
+        "partial_order": reflexive and antisymmetric and transitive,
+    }
+
+
+def equivalence_classes(items, relation):
+    if not relation_report(items, relation)["equivalence"]:
+        raise ValueError("equivalence_classes requires an equivalence relation")
+    unseen, result = set(items), []
+    while unseen:
+        representative = next(iter(unseen))
+        current = {item for item in items if (representative, item) in relation}
+        result.append(current)
+        unseen -= current
+    return result
+
 
 items = {1, 2, 3, 4, 5, 6}
 same_parity = {(a, b) for a in items for b in items if a % 2 == b % 2}
@@ -55,9 +103,19 @@ assert relation_report(items, same_parity)["equivalence"]
 assert {frozenset(group) for group in equivalence_classes(items, same_parity)} == {
     frozenset({1, 3, 5}), frozenset({2, 4, 6}),
 }
+
+# “相差不超过 1”有自反性和对称性，却缺少传递性。
+near = {(a, b) for a in {0, 1, 2} for b in {0, 1, 2} if abs(a - b) <= 1}
+assert not relation_report({0, 1, 2}, near)["transitive"]
 ```
 
-运行 `python -m unittest projects.algorithm_lab.test_relations`。`relation_report` 分别返回自反、对称、反对称、传递、等价和偏序六项布尔证据；测试将奇偶关系验证为等价关系，将 $\le$ 验证为偏序而非等价关系，并拒绝引用集合外元素的关系。代码用 \(O(|S|^3)\) 直接检查定义，适合教学和小输入；真实的“同组”关系常由图连通性或 DSU 增量维护，而不显式存储所有有序对。
+`relation_report` 分别返回自反、对称、反对称、传递、等价和偏序六项证据；其中三重循环就是传递性量词的逐项检查，时间为 \(O(|S|^3)\)，空间除输入外为 \(O(1)\)。`equivalence_classes` 依次选择一个尚未分类的代表元；等价关系保证所得类彼此不重叠，所以每个元素只会被移出 `unseen` 一次。运行 `python -m unittest projects.algorithm_lab.test_relations` 可再验证奇偶关系、\(\le\) 和非法域元素。真实的“同组”关系常由图连通性或 DSU 增量维护，而不显式存储所有有序对。
+
+## 正确性：代码为何得到真正的等价类
+
+`relation_report` 的每个布尔值都是定义的有限域全称量词：例如 `reflexive` 遍历每个 `item`，只有全部 \((item,item)\) 都在 `relation` 中才为真；传递性同理遍历全部三元组。因此它返回 `equivalence=True` 当且仅当输入关系满足三项定义。
+
+对 `equivalence_classes`，循环不变量是：`result` 中的集合两两不交，且它们的并集恰为原始 `items - unseen`。初始时显然成立。每次选择代表元得到完整的 \([a]\)，由上节“相交则相等”的结论，它不会与已有类部分重叠；移除后不变量仍成立。`unseen` 严格变小，循环终止时为空，于是 `result` 是全集的划分。
 
 ## 常见误区与边界
 
