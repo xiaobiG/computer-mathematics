@@ -29,8 +29,11 @@ $$D^{(k)}[i,j]=\min\left(D^{(k-1)}[i,j],D^{(k-1)}[i,k]+D^{(k-1)}[k,j]\right).$$
 
 ```python
 from projects.algorithm_lab.floyd_warshall import (
+    floyd_warshall_path_certificate,
     floyd_warshall_trace,
     floyd_warshall_trace_certificate,
+    floyd_warshall_with_paths,
+    recover_floyd_warshall_path,
 )
 
 edges = [(0, 1, 4), (0, 2, 11), (1, 2, -2)]
@@ -44,6 +47,21 @@ python -m unittest projects.algorithm_lab.test_floyd_warshall
 ```
 
 初始化取平行边的最小权重，故不会因输入顺序改变答案。`floyd_warshall_trace` 记录每个 `middle` 完成后的完整距离矩阵；证书从初始边表独立重放三重循环，并拒绝任何被篡改的层。若最后存在 $D[i,i]<0$，则有从 $i$ 回到自己的负长度闭路，任意绕行次数都能使路径更小，最短距离无定义，项目会显式拒绝。NaN 和无穷边权也会在输入处被拒绝，而非进入比较后静默污染状态。
+
+## 距离从哪里来：用 `next` 矩阵恢复路径
+
+只报告 `distance[0][2] == 2` 还不能说明这条最短路经过哪些顶点。初始化时对一条边 $i\to j$ 令 `next[i][j] = j`；当通过 `middle` 改善 $i\to j$ 时，第一跳应更新为 `next[i][middle]`，而不是 `middle` 本身。这样从源点不断读取 `next[current][target]`，便能沿最短路走到目标：
+
+```python
+distance, next_hop = floyd_warshall_with_paths(3, edges)
+path = recover_floyd_warshall_path(next_hop, 0, 2)
+
+assert path == [0, 1, 2]
+assert floyd_warshall_path_certificate(3, edges, distance, next_hop, 0, 2, path)
+assert recover_floyd_warshall_path(next_hop, 2, 0) is None
+```
+
+`floyd_warshall_path_certificate` 从边表重算距离和下一跳矩阵，再绑定指定源、目标与恢复路径；将第一跳篡改为直达 `2` 或报告一条不存在的边都会失败。若存在负环，路径和距离都没有定义，函数与原算法一样拒绝输入。
 
 ## 正确性与复杂度
 
@@ -67,14 +85,14 @@ python -m unittest projects.algorithm_lab.test_floyd_warshall
 
 1. **基础题**：手算上例在允许中间点 1 前后的 `distance[0][2]`。
 2. **推导题**：完成状态转移的归纳正确性证明。
-3. **编码题**：增加 `next` 矩阵恢复路径，并测试不可达点与平行边。
+3. **编码题**：阅读 `floyd_warshall_with_paths` 的 `next` 更新，篡改一条第一跳并确认路径证书拒绝；再测试不可达点与平行边。
 4. **开放题**：为稀疏地图、多源查询服务和小型课程依赖图分别选择算法，并列出要测量的规模指标。
 
 ## 练习答案提示
 
 1. 分别比较直达边与经允许中间点的两段距离；写出更新前后值，并保持不可达为无穷而不是任意大整数。
 2. 归纳状态是“中间点只取自前 $k$ 个顶点的最短距离”；新路径要么不用 $k$，要么经过 $k$ 并分成两段。
-3. `next[i][j]` 应保存从 $i$ 到 $j$ 的下一跳；平行边初始化取最小权重，不可达点的路径恢复必须终止且返回明确缺失结果。
+3. `next[i][j]` 应保存从 $i$ 到 $j$ 的第一跳；经 `k` 改善时取 `next[i][k]`。平行边初始化取最小权重，不可达点的路径恢复必须终止且返回明确缺失结果，证书应重放这两个矩阵。
 4. 记录顶点数、边数、查询批量、权重符号与内存预算；稀疏地图通常不适合 $V^2$ 表，多源服务才可能摊销全源预处理。
 
 ## 延伸
