@@ -6,6 +6,17 @@
 
 每篇正文含有前置知识、推导、手算、代码、工程边界和三级练习。建议每周完成一篇，并在最后用[线性代数实验室](/projects/linear-algebra-lab)复现矩阵乘法、消元与投影。
 
+## 按层进入
+
+| 层级 | 先学什么 | 达成的能力 | 建议入口 |
+| --- | --- | --- | --- |
+| 0 · 预备 | 求和、函数与 Python 索引契约 | 能把符号翻译为循环与数组操作 | [符号、函数、求和与 Python](/foundations/functions-summation-python) |
+| 1 · 核心 | 向量、基、空间与线性变换 | 看懂“方向、冗余与可达性” | [向量与点积](/linear-algebra/vectors-dot-product) → [线性组合、基与维度](/linear-algebra/linear-combinations-basis) |
+| 2 · 推导与算法 | 消元、投影、最小二乘、特征分解 | 推导并实现求解与降维算法 | [高斯消元](/linear-algebra/gaussian-elimination) → [最小二乘](/linear-algebra/least-squares) |
+| 3 · 工程与前沿 | SVD、低秩、自动微分 | 用误差证书处理真实数据与优化 | [SVD](/linear-algebra/svd) → [低秩图像压缩](/linear-algebra/low-rank-image-compression) → [线性代数实验室](/projects/linear-algebra-lab) |
+
+若已具备某层前置知识，可从该层入口开始；每篇顶部的课程信息卡会说明具体前置、时长与实验。
+
 ## 课程地图
 
 | 顺序 | 主题 | 你将解决的问题 | 状态 |

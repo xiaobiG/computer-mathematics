@@ -2,6 +2,17 @@
 
 计算机操作的是有限精度的近似值。深度版将表示误差、问题条件、算法稳定性和工程容差分开讨论，避免把数值问题误化为“多保留几位小数”。
 
+## 按层进入
+
+| 层级 | 先学什么 | 达成的能力 | 建议入口 |
+| --- | --- | --- | --- |
+| 0 · 预备 | 二进制、函数与有限求和 | 把数学计算映射为程序的有限操作 | [符号、函数、求和与 Python](/foundations/functions-summation-python) |
+| 1 · 核心 | 浮点表示、绝对/相对误差 | 解释舍入、NaN 与尺度差异 | [浮点数表示](/numerical-computing/floating-point) → [误差传播](/numerical-computing/error-propagation) |
+| 2 · 推导与算法 | 条件数、稳定性、求根与迭代 | 区分问题敏感性和算法误差 | [条件数](/numerical-computing/condition-number) → [牛顿法](/numerical-computing/newton-method) |
+| 3 · 工程与前沿 | 容差、属性测试、随机模拟 | 将误差分析固化为可复核工程契约 | [浮点比较、容差与属性测试](/numerical-computing/tolerances-property-testing) → [浮点数错误博物馆](/projects/floating-point-museum) |
+
+层 2 的算法课应在理解浮点表示后阅读；遇到“结果看似正确”但不稳定的代码时，直接回到层 1 的误差模型核对。
+
 ## 课程地图
 
 1. 二进制小数与 IEEE 754

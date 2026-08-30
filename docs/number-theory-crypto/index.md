@@ -2,6 +2,17 @@
 
 现代密码系统依靠严格的数学性质、清晰的安全假设和经审计的实现，而不是算法保密或“自己写出来能运行”。
 
+## 按层进入
+
+| 层级 | 先学什么 | 达成的能力 | 建议入口 |
+| --- | --- | --- | --- |
+| 0 · 预备 | 函数、求和、循环与整数契约 | 理解算法输入域、循环与复杂度 | [符号、函数、求和与 Python](/foundations/functions-summation-python) |
+| 1 · 核心 | 模运算、最大公约数与逆元 | 正确进行同余计算与重复平方 | [模运算与快速幂](/number-theory-crypto/modular-arithmetic) → [扩展欧几里得与模逆元](/number-theory-crypto/extended-euclid) |
+| 2 · 推导与算法 | CRT、有限群、RSA 与 DH | 推导公钥原语的正确性与前提 | [中国剩余定理](/number-theory-crypto/chinese-remainder-theorem) → [RSA](/number-theory-crypto/rsa) → [Diffie–Hellman](/number-theory-crypto/diffie-hellman) |
+| 3 · 工程与前沿 | 密码存储、MAC、椭圆曲线边界 | 将数学原语放回协议与威胁模型 | [哈希与密码存储](/number-theory-crypto/hashing-passwords) → [椭圆曲线密码学预备](/number-theory-crypto/elliptic-curve-prelude) → [密码学玩具箱](/projects/crypto-toybox) |
+
+教学代码只用于验证数学结构；它不是生产密码学实现。进入层 3 前请先建立层 1–2 中的逆元、群与安全前提语言。
+
 ## 课程地图
 
 1. 整除、质数与最大公约数

@@ -2,6 +2,17 @@
 
 概率论为不确定性提供语言；统计学让我们从有限数据推断未知规律。深度版的主线是“证据如何更新判断，数据如何估计参数，结论如何量化不确定性”。
 
+## 按层进入
+
+| 层级 | 先学什么 | 达成的能力 | 建议入口 |
+| --- | --- | --- | --- |
+| 0 · 预备 | 事件、函数与有限求和 | 用可枚举样本空间表达概率 | [符号、函数、求和与 Python](/foundations/functions-summation-python) → [概率空间与事件](/probability-ml/probability-space-events) |
+| 1 · 核心 | 条件概率、随机变量、期望与方差 | 正确解释概率与平均行为 | [条件概率与贝叶斯更新](/probability-ml/bayes) → [期望与方差](/probability-ml/expectation-variance) |
+| 2 · 推导与算法 | 似然、先验、交叉熵与估计 | 从数据推导参数与预测规则 | [最大似然](/probability-ml/maximum-likelihood) → [共轭先验与后验预测](/probability-ml/conjugate-priors-predictive) |
+| 3 · 工程与前沿 | 校准、重要性采样、MCMC | 审计不确定性、相关样本与模型分数 | [概率校准与可靠性曲线](/probability-ml/calibration-reliability) → [Metropolis–Hastings](/probability-ml/metropolis-hastings) → [垃圾邮件分类项目](/projects/naive-bayes-spam) |
+
+若你的目标是机器学习建模，至少完成层 1 后再进入最大似然；层 3 的实验仍依赖前面建立的概率语义与边界。
+
 ## 课程地图
 
 1. 条件概率与贝叶斯公式

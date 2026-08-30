@@ -2,6 +2,17 @@
 
 离散数学研究可数、可枚举、可证明的结构，也是算法正确性与复杂度分析的语言。深度版以“前提—不变量—终止—复杂度—反例”为共同骨架。
 
+## 按层进入
+
+| 层级 | 先学什么 | 达成的能力 | 建议入口 |
+| --- | --- | --- | --- |
+| 0 · 预备 | 函数、有限求和与程序索引 | 读懂规格、循环区间与计数 | [符号、函数、求和与 Python](/foundations/functions-summation-python) |
+| 1 · 核心 | 逻辑、集合、关系与图表示 | 用量词和结构准确描述问题 | [命题逻辑、量词与归纳法](/discrete-math/logic-induction-proofs) → [集合、关系、等价类与偏序](/discrete-math/sets-relations-orders) |
+| 2 · 推导与算法 | 循环不变量、BFS/DFS、最短路 | 证明算法正确并分析复杂度 | [循环不变量](/discrete-math/loop-invariants) → [BFS](/discrete-math/breadth-first-search) → [Dijkstra](/discrete-math/dijkstra) |
+| 3 · 工程与前沿 | 负边、网络流、归约与测试 | 在前提变化时选择或审计算法 | [Bellman–Ford](/discrete-math/bellman-ford) → [最大流最小割](/discrete-math/max-flow-min-cut) → [算法实验室](/projects/algorithm-lab) |
+
+可以从熟悉的层级开始，但图算法前请先补齐循环不变量与图表示；专题首页的每篇元信息会给出更细的前置条件。
+
 ## 课程地图
 
 1. 命题逻辑与程序条件
