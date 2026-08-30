@@ -4,7 +4,7 @@ from math import sqrt
 from projects.linear_algebra_lab.main import (
     classify_linear_system, compress_grayscale, dominant_right_singular_vector, frobenius_error, image_cosine_similarity,
     compressed_image_search, least_squares_comparison_report, least_squares_normal_equations, low_rank_parameter_report,
-    matmul, norm, project, least_squares_qr, rank_k_approximation, rank_one_approximation,
+    matmul, matrix_composition_certificate, norm, project, least_squares_qr, rank_k_approximation, rank_one_approximation,
     pivot_trace_certificate, solve, solve_with_pivot_trace, truncated_svd_frobenius_error,
 )
 
@@ -15,6 +15,13 @@ class LinearAlgebraLabTests(unittest.TestCase):
         rotate = [[0, -1], [1, 0]]
         self.assertEqual(matmul(rotate, scale), [[0, -1], [2, 0]])
         self.assertNotEqual(matmul(rotate, scale), matmul(scale, rotate))
+        self.assertTrue(matrix_composition_certificate(rotate, scale, [1, 1], [[0, -1], [2, 0]]))
+
+    def test_matrix_composition_certificate_rejects_wrong_order_or_vector_shape(self):
+        scale = [[2, 0], [0, 1]]
+        rotate = [[0, -1], [1, 0]]
+        self.assertFalse(matrix_composition_certificate(rotate, scale, [1, 1], matmul(scale, rotate)))
+        self.assertFalse(matrix_composition_certificate(rotate, scale, [1], matmul(rotate, scale)))
 
     def test_matrix_shape_error(self):
         with self.assertRaises(ValueError):

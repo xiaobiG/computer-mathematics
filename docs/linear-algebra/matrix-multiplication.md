@@ -38,18 +38,17 @@ $$RS=\begin{bmatrix}0&-1\\2&0\end{bmatrix},\qquad SR=\begin{bmatrix}0&-2\\1&0\en
 ## 把公式实现为代码
 
 ```python
-def matmul(a, b):
-    if not a or not b or len(a[0]) != len(b):
-        raise ValueError("incompatible matrix shapes")
-    if any(len(row) != len(a[0]) for row in a + b):
-        raise ValueError("matrices must be rectangular")
-    return [[sum(a[i][k] * b[k][j] for k in range(len(b)))
-             for j in range(len(b[0]))] for i in range(len(a))]
+from projects.linear_algebra_lab.main import matmul, matrix_composition_certificate
 
-assert matmul([[1, 2]], [[3], [4]]) == [[11]]
+scale = [[2, 0], [0, 1]]
+rotate = [[0, -1], [1, 0]]
+product = matmul(rotate, scale)
+
+assert product == [[0, -1], [2, 0]]
+assert matrix_composition_certificate(rotate, scale, [1, 1], product)
 ```
 
-朴素算法耗时 $O(mnp)$、输出占 $O(mp)$ 空间。大规模计算应交给 BLAS/NumPy；这里的实现用于核对公式与维度。
+`matrix_composition_certificate` 不只重算每一个行乘列条目，还分别展开 $A(Bx)$ 和 $(AB)x$；若把 `rotate @ scale` 错记成 `scale @ rotate`，乘积字段会被拒绝。朴素算法耗时 $O(mnp)$、输出占 $O(mp)$ 空间。大规模计算应交给 BLAS/NumPy；这里的实现用于核对公式与维度。
 
 ## 失败案例与工程边界
 
@@ -64,14 +63,14 @@ assert matmul([[1, 2]], [[3], [4]]) == [[11]]
 ## 练习
 
 1. 验证 $RS$、$SR$ 对点 $(1,1)$ 的结果。
-2. 为不规则行和维度不符增加测试。
+2. 为不规则行、维度不符和被交换顺序的组合矩阵增加测试。
 3. 解释神经网络的行批量约定为何常需转置。
 4. 为一个“特征变换后接分类头”的两层线性模型写出矩阵形状，比较合成矩阵与逐层计算；再说明何时不应预先合成（例如中间层需要非线性、监控或稀疏优化）。
 
 ## 练习答案提示
 
 1. 分别把点写成齐次或列向量，再按右侧矩阵先作用的顺序计算；只要交换次序，旋转与缩放等变换通常不会相同。
-2. 不规则行应在访问元素前拒绝，维度不符应检查左矩阵列数是否等于右矩阵行数；两个错误分别测试。
+2. 不规则行应在访问元素前拒绝，维度不符应检查左矩阵列数是否等于右矩阵行数；再将 $AB$ 换成 $BA$，确认复合证书拒绝；三个错误分别测试。
 3. 行批量常写成 $X\in\mathbb R^{batch\times features}$，而线性层权重可能采用 $features\times outputs$；转置来自约定，不是数学必然。
 4. 若 $X$ 为 $b\times d$、隐藏权重为 $d\times h$、分类头为 $h\times c$，无非线性时可合成为 $d\times c$；加入激活、日志或稀疏层后则不能等价折叠。
 

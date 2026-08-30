@@ -18,9 +18,38 @@ def matmul(left, right):
         raise ValueError("incompatible matrix shapes")
     return [
         [sum(left[i][k] * right[k][j] for k in range(left_width))
-         for j in range(right_width)]
+        for j in range(right_width)]
         for i in range(len(left))
     ]
+
+
+def matrix_composition_certificate(left, right, vector, product, tolerance=EPSILON):
+    """Check that a recorded product represents applying ``right`` then ``left``.
+
+    The matrix equality checks every row-column sum against ``matmul``.  The
+    second check independently expands both ``left @ (right @ vector)`` and
+    ``product @ vector``.  It makes the order of composition observable rather
+    than treating the symbol ``AB`` as a memorised rule.
+    """
+    try:
+        if tolerance <= 0 or not isfinite(tolerance):
+            return False
+        expected_product = matmul(left, right)
+        if product != expected_product or len(vector) != len(right[0]):
+            return False
+        sequential = [
+            sum(left[i][k] * sum(right[k][j] * vector[j] for j in range(len(vector)))
+                for k in range(len(right)))
+            for i in range(len(left))
+        ]
+        composed = [
+            sum(product[i][j] * vector[j] for j in range(len(vector)))
+            for i in range(len(product))
+        ]
+        return all(abs(first - second) <= tolerance * max(1.0, abs(first), abs(second))
+                   for first, second in zip(sequential, composed))
+    except (IndexError, TypeError, ValueError):
+        return False
 
 
 def _validate_linear_system(matrix, target, epsilon):
