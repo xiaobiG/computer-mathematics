@@ -5,6 +5,7 @@ from projects.naive_bayes_spam.main import (
     classification_metrics,
     confusion_matrix,
     reliability_bins,
+    wilson_interval,
 )
 
 
@@ -49,10 +50,24 @@ class NaiveBayesSpamTests(unittest.TestCase):
         report = reliability_bins(self.model, [("cash prize", True), ("meeting", False)], bins=4)
         self.assertEqual(sum(row["count"] for row in report), 2)
         self.assertTrue(all(row["lower"] <= row["mean_prediction"] <= row["upper"] for row in report))
+        self.assertTrue(all(row["positive_count"] <= row["count"] for row in report))
+        self.assertTrue(all(row["wilson_low"] <= row["positive_rate"] <= row["wilson_high"] for row in report))
+
+    def test_wilson_interval_handles_a_single_observation_and_boundary_counts(self):
+        low, high = wilson_interval(1, 1)
+        self.assertAlmostEqual(low, 1 / (1 + 1.96**2), places=12)
+        self.assertEqual(high, 1.0)
+        low, high = wilson_interval(0, 1)
+        self.assertEqual(low, 0.0)
+        self.assertAlmostEqual(high, 1 - 1 / (1 + 1.96**2), places=12)
 
     def test_reliability_bins_reject_nonpositive_bin_count(self):
         with self.assertRaises(ValueError):
             reliability_bins(self.model, [("cash prize", True)], bins=0)
+        with self.assertRaises(ValueError):
+            wilson_interval(2, 1)
+        with self.assertRaises(ValueError):
+            wilson_interval(0, 1, z=0)
 
     def test_training_requires_both_classes(self):
         with self.assertRaises(ValueError):

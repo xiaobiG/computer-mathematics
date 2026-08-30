@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections import Counter
-from math import exp, log
+from math import exp, isfinite, log, sqrt
 from re import findall
 
 
@@ -84,6 +84,28 @@ def classification_metrics(model: NaiveBayesSpam, samples: list[tuple[str, bool]
     return {"precision": precision, "recall": recall, "f1": f1, "brier": brier}
 
 
+def wilson_interval(successes: int, total: int, z: float = 1.96) -> tuple[float, float]:
+    """Return the Wilson score interval for a Bernoulli proportion.
+
+    Unlike the symmetric Wald interval, this stays inside ``[0, 1]`` and is
+    meaningful at the boundary counts ``0`` and ``total``.  The default
+    ``z=1.96`` is the usual approximately 95% normal critical value; it is a
+    reporting convention, not a proof that a model is calibrated.
+    """
+    if not isinstance(successes, int) or isinstance(successes, bool) or not isinstance(total, int) or isinstance(total, bool):
+        raise ValueError("successes and total must be integers")
+    if total <= 0 or successes < 0 or successes > total:
+        raise ValueError("require 0 <= successes <= total and total > 0")
+    if not isinstance(z, (int, float)) or isinstance(z, bool) or not isfinite(z) or z <= 0:
+        raise ValueError("z must be a positive finite number")
+    proportion = successes / total
+    z_squared = z * z
+    denominator = 1.0 + z_squared / total
+    center = (proportion + z_squared / (2.0 * total)) / denominator
+    radius = z * sqrt((proportion * (1.0 - proportion) + z_squared / (4.0 * total)) / total) / denominator
+    return max(0.0, center - radius), min(1.0, center + radius)
+
+
 def reliability_bins(
     model: NaiveBayesSpam, samples: list[tuple[str, bool]], bins: int = 10
 ) -> list[dict[str, float | int]]:
@@ -106,11 +128,16 @@ def reliability_bins(
         if not group:
             continue
         count = len(group)
+        positive_count = sum(actual for _, actual in group)
+        wilson_low, wilson_high = wilson_interval(positive_count, count)
         result.append({
             "lower": index / bins,
             "upper": (index + 1) / bins,
             "count": count,
             "mean_prediction": sum(probability for probability, _ in group) / count,
-            "positive_rate": sum(actual for _, actual in group) / count,
+            "positive_count": positive_count,
+            "positive_rate": positive_count / count,
+            "wilson_low": wilson_low,
+            "wilson_high": wilson_high,
         })
     return result
