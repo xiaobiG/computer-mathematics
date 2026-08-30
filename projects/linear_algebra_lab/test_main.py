@@ -3,7 +3,7 @@ from math import sqrt
 
 from projects.linear_algebra_lab.main import (
     classify_linear_system, compress_grayscale, dominant_right_singular_vector, frobenius_error, image_cosine_similarity,
-    compressed_image_search, least_squares_comparison_report, least_squares_normal_equations, low_rank_parameter_report,
+    compressed_image_search, compressed_image_search_certificate, least_squares_comparison_report, least_squares_normal_equations, low_rank_parameter_report,
     matmul, matrix_composition_certificate, norm, project, least_squares_qr, rank_k_approximation, rank_one_approximation,
     pivot_trace_certificate, solve, solve_with_pivot_trace, truncated_svd_frobenius_error,
     truncated_svd_report, truncated_svd_report_certificate,
@@ -180,6 +180,15 @@ class LinearAlgebraLabTests(unittest.TestCase):
         self.assertTrue(report["certificate"]["compressed_ranking_is_a_permutation"])
         self.assertTrue(report["certificate"]["top_match_is_preserved"])
         self.assertTrue(report["certificate"]["full_ranking_is_preserved"])
+        self.assertTrue(compressed_image_search_certificate(query, [query, [[0.0, 3.0], [8.0, 0.0]]], 2, report, iterations=120)["valid"])
+
+        tampered = dict(report)
+        tampered["image_errors"] = [1.0, 0.0]
+        certificate = compressed_image_search_certificate(
+            query, [query, [[0.0, 3.0], [8.0, 0.0]]], 2, tampered, iterations=120,
+        )
+        self.assertFalse(certificate["fields_match_recomputed_report"])
+        self.assertFalse(certificate["valid"])
 
     def test_compressed_image_search_rejects_empty_gallery(self):
         with self.assertRaises(ValueError):

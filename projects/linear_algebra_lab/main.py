@@ -500,6 +500,56 @@ def compressed_image_search(query, images, rank, iterations=80, epsilon=EPSILON)
     }
 
 
+def compressed_image_search_certificate(query, images, rank, report, iterations=80, epsilon=EPSILON):
+    """Recompute a small compression--retrieval report instead of trusting it.
+
+    The certificate establishes only that this deterministic teaching pipeline
+    was reported faithfully for the supplied matrices and parameters.  It does
+    not establish semantic relevance or that low-rank compression is suitable
+    for a real image-search workload.
+    """
+    empty = {
+        "fields_match_recomputed_report": False,
+        "rankings_are_permutations": False,
+        "top_match_is_preserved": False,
+        "full_ranking_is_preserved": False,
+        "valid": False,
+    }
+    if not isinstance(report, dict):
+        return empty
+    try:
+        expected = compressed_image_search(query, images, rank, iterations, epsilon)
+        fields_match = all(report.get(field) == value for field, value in expected.items())
+        reported_certificate = report.get("certificate")
+        certificate_fields = expected["certificate"]
+        rankings_are_permutations = (
+            isinstance(reported_certificate, dict)
+            and reported_certificate.get("original_ranking_is_a_permutation") is True
+            and reported_certificate.get("compressed_ranking_is_a_permutation") is True
+            and certificate_fields["original_ranking_is_a_permutation"]
+            and certificate_fields["compressed_ranking_is_a_permutation"]
+        )
+        top_match_is_preserved = (
+            isinstance(reported_certificate, dict)
+            and reported_certificate.get("top_match_is_preserved") is True
+            and certificate_fields["top_match_is_preserved"]
+        )
+        full_ranking_is_preserved = (
+            isinstance(reported_certificate, dict)
+            and reported_certificate.get("full_ranking_is_preserved") is True
+            and certificate_fields["full_ranking_is_preserved"]
+        )
+        return {
+            "fields_match_recomputed_report": fields_match,
+            "rankings_are_permutations": rankings_are_permutations,
+            "top_match_is_preserved": top_match_is_preserved,
+            "full_ranking_is_preserved": full_ranking_is_preserved,
+            "valid": fields_match and rankings_are_permutations,
+        }
+    except (TypeError, ValueError, ZeroDivisionError):
+        return empty
+
+
 def frobenius_error(matrix, approximation):
     """Return ||matrix - approximation||_F after checking compatible shapes."""
     if (len(matrix) != len(approximation) or not matrix

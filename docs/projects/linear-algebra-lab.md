@@ -28,15 +28,16 @@ description: 用可测试的教学实现串起矩阵计算、消元、投影、�
 ## 压缩—检索实验
 
 ```python
-from projects.linear_algebra_lab.main import compressed_image_search
+from projects.linear_algebra_lab.main import compressed_image_search, compressed_image_search_certificate
 
 query = [[8.0, 0.0], [0.0, 3.0]]
 report = compressed_image_search(query, [query, [[0.0, 3.0], [8.0, 0.0]]], rank=2, iterations=120)
 assert report["ranking"][0][0] == 0
 assert report["query_error"] < 1e-9
+assert compressed_image_search_certificate(query, [query, [[0.0, 3.0], [8.0, 0.0]]], 2, report, iterations=120)["valid"]
 ```
 
-报告同时给出查询/图库各自的分量数、Frobenius 压缩误差与余弦相似度排序。测试验证精确重构的小例中原图排第一；当使用较低秩或有限迭代时，必须另外观察误差和排序是否改变，不能从“压缩误差小”直接推断语义检索仍正确。
+报告同时给出查询/图库各自的分量数、Frobenius 压缩误差与余弦相似度排序。`compressed_image_search_certificate` 从输入矩阵与参数独立重算整个报告，因而能拒绝被篡改的误差、组件数或排序。测试验证精确重构的小例中原图排第一；当使用较低秩或有限迭代时，必须另外观察误差和排序是否改变，不能从“压缩误差小”直接推断语义检索仍正确。
 
 ## 推荐实验
 
@@ -88,7 +89,7 @@ python -m unittest projects.linear_algebra_lab.test_randomized_range
 python -m unittest projects.linear_algebra_lab.test_recommendation
 ```
 
-测试覆盖矩阵形状错误、非交换变换、列独立性与基坐标重构、选主元、奇异系统、正规方程与 QR 的最小二乘一致性及 $A^Tr$ 证书、双数 JVP 与梯度点积、二维 PCA 的中心化/正交/舍弃方差证书、正交投影、幂迭代残差与失败边界、秩一矩阵重建、精确谱尾误差、低秩参数节省、更高保留秩不增加小例重构误差、压缩—检索联合报告、同形图像的余弦检索、MSE/RMSE/PSNR 报告与篡改拒绝、固定种子的随机范围发现及其轨迹篡改拒绝，以及 ALS 观测误差与轨迹篡改/冷启动边界。完整项目测试仍可通过 `npm run projects:test` 运行。
+测试覆盖矩阵形状错误、非交换变换、列独立性与基坐标重构、选主元、奇异系统、正规方程与 QR 的最小二乘一致性及 $A^Tr$ 证书、双数 JVP 与梯度点积、二维 PCA 的中心化/正交/舍弃方差证书、正交投影、幂迭代残差与失败边界、秩一矩阵重建、精确谱尾误差、低秩参数节省、更高保留秩不增加小例重构误差、压缩—检索联合报告及其篡改拒绝、同形图像的余弦检索、MSE/RMSE/PSNR 报告与篡改拒绝、固定种子的随机范围发现及其轨迹篡改拒绝，以及 ALS 观测误差与轨迹篡改/冷启动边界。完整项目测试仍可通过 `npm run projects:test` 运行。
 
 ## 挑战
 
