@@ -33,6 +33,8 @@ $$x_{k+1}=x_k-f(x_k)\frac{x_k-x_{k-1}}{f(x_k)-f(x_{k-1})}.$$
 
 ```python
 from projects.floating_point_museum.root_finding import (
+    secant_convergence_certificate,
+    secant_convergence_report,
     secant_solution_certificate,
     secant_trace,
     secant_trace_certificate,
@@ -44,6 +46,11 @@ assert abs(root * root - 2) <= 1e-12
 assert secant_trace_certificate(function, events)
 assert secant_solution_certificate(function, 1.0, 2.0, root, events)
 assert abs(events[-1].candidate_value) <= 1e-12
+
+# 只有在教学中已知 sqrt(2) 时，才能直接观测误差阶。
+order_report = secant_convergence_report(events, 2.0 ** 0.5)
+assert 1.5 < order_report["order_estimates"][-1][1] < 1.7
+assert secant_convergence_certificate(events, 2.0 ** 0.5, order_report)
 ```
 
 ```bash
@@ -51,6 +58,15 @@ python -m unittest projects.floating_point_museum.test_root_finding
 ```
 
 每个 `SecantEvent` 都保存两次插值输入、函数值和新候选点。`secant_trace_certificate` 独立重算割线公式、函数值和相邻事件的连接关系，因此可发现“最终根看起来正确、但某一轮更新公式被改错”的回归。`secant_solution_certificate` 更进一步从给定初值、容差和最大步数重放完整执行，并要求返回根与整段轨迹完全一致；替换根、首轮输入或停止条件都会被拒绝。求根实现每轮只计算一个新函数值，时间为 $O(k)$ 次函数评估、额外空间 $O(k)$ 用于保留轨迹（只调用 `secant_root` 时仍只保留 $O(1)$ 状态）。它检查初值函数值是否有限、分母是否为零、候选值是否有限、步长停滞时残差是否也已满足，以及最大迭代次数。
+
+若教学例已知真根 $r$，可令 $e_k=|x_k-r|$，并由三个连续递减误差估计局部阶：
+
+$$
+\widehat p_k=
+\frac{\log(e_{k+1}/e_k)}{\log(e_k/e_{k-1})}.
+$$
+
+`secant_convergence_report` 记录候选点误差和这些估计，平方根例最后一轮约为 $1.607$，接近 $\varphi$；`secant_convergence_certificate` 会重算该报告，避免图表或结论与轨迹脱节。这个量只是在已知根、进入局部渐近区后对单个运行的观测，不是一般收敛证明，也不应用于未知真根的生产求解。
 
 ## 收敛与正确性边界
 
@@ -62,21 +78,21 @@ python -m unittest projects.floating_point_museum.test_root_finding
 
 - **分母消失**：若连续两次函数值相同，无法定义下一条割线。
 - **跳出可行域**：割线可越过物理边界或函数定义域；无约束问题可改用带区间保护的混合方法。
-- **多重根**：像牛顿法一样会失去理想局部速度。
+- **多重根**：像牛顿法一样会失去理想局部速度；不要把一次误差阶观测当作所有初值、所有函数的固定承诺。
 - **“不用导数总更好”**：当导数便宜且可靠时，受保护牛顿法可能用更少迭代；比较应基于函数/导数评估成本与失败率。
 
 ## 练习
 
 1. **基础题**：对 $x^2-2$ 从 1 和 2 手算一次割线更新。
 2. **推导题**：从两点直线方程推导割线公式。
-3. **编码题**：用 `secant_solution_certificate` 篡改返回根、首轮输入或一条轨迹，确认拒绝；再构造一个分母接近零的失败输入。
+3. **编码题**：用 `secant_solution_certificate` 篡改返回根、首轮输入或一条轨迹，确认拒绝；再篡改 `secant_convergence_report` 的末轮阶估计，确认其证书拒绝，并构造一个分母接近零的失败输入。
 4. **开放题**：设计一个“二分保底 + 割线加速”策略，写出何时接受候选步、何时回退。
 
 ## 练习答案提示
 
 1. 用两点 $(1,-1),(2,2)$ 的割线与横轴交点公式；保持足够有效位，下一步约为 $4/3$。
 2. 将过两点的直线写成斜率式并令 $y=0$，整理为 $x_1-f(x_1)(x_1-x_0)/(f(x_1)-f(x_0))$。
-3. 保存每次两点、函数值和候选值；完整证书还应绑定初值、容差与最终根；常函数或几乎相等的函数值会使分母为零/很小，测试应断言明确失败而非巨大跳步。
+3. 保存每次两点、函数值和候选值；完整证书还应绑定初值、容差与最终根。误差阶实验需要外部真根，报告应只保留严格递减的三元组；常函数或几乎相等的函数值会使分母为零/很小，测试应断言明确失败而非巨大跳步。
 4. 只在候选值有限、落在含根区间且带来足够进展时接受割线步；否则二分并更新符号区间，停止同时检查区间、步长和残差。
 
 ## 延伸

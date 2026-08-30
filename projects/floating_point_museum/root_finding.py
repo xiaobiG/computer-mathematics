@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from math import isfinite
+from math import isfinite, log
 from typing import Callable
 
 
@@ -102,6 +102,68 @@ def secant_solution_certificate(
         )
         return root == expected_root and events == expected_events
     except (ArithmeticError, TypeError, ValueError, ZeroDivisionError):
+        return False
+
+
+def secant_convergence_report(events: list[SecantEvent], reference_root: float) -> dict[str, object]:
+    """Estimate local secant order from a known reference root for teaching.
+
+    If errors follow ``e[k+1] ~= C e[k]**p``, three consecutive decreasing
+    errors estimate ``p`` by ``log(e[k+1]/e[k]) / log(e[k]/e[k-1])``.  The
+    reference root is deliberately an *external* benchmark: a production root
+    finder normally does not know the exact root it seeks.
+    """
+    if not isinstance(reference_root, (int, float)) or isinstance(reference_root, bool) or not isfinite(reference_root):
+        raise ValueError("reference_root must be finite")
+    if not isinstance(events, list):
+        raise ValueError("events must be a list")
+    errors: list[float] = []
+    for event in events:
+        if not isinstance(event, SecantEvent) or not isfinite(event.candidate):
+            raise ValueError("events must contain finite SecantEvent candidates")
+        errors.append(abs(event.candidate - reference_root))
+    estimates: list[tuple[int, float]] = []
+    for index in range(2, len(errors)):
+        older, previous, current = errors[index - 2], errors[index - 1], errors[index]
+        if 0.0 < current < previous < older:
+            denominator = log(previous / older)
+            if denominator != 0.0:
+                estimates.append((events[index].iteration, log(current / previous) / denominator))
+    return {
+        "reference_root": float(reference_root),
+        "candidate_errors": tuple(errors),
+        "order_estimates": tuple(estimates),
+    }
+
+
+def secant_convergence_certificate(
+    events: list[SecantEvent], reference_root: float, report: dict[str, object], *, tolerance: float = 1e-12,
+) -> bool:
+    """Recompute an observational convergence-order report without trusting it."""
+    try:
+        if tolerance <= 0.0 or not isfinite(tolerance) or not isinstance(report, dict):
+            return False
+        expected = secant_convergence_report(events, reference_root)
+        if set(report) != set(expected):
+            return False
+        if abs(float(report["reference_root"]) - expected["reference_root"]) > tolerance:
+            return False
+        observed_errors = report["candidate_errors"]
+        observed_orders = report["order_estimates"]
+        if not isinstance(observed_errors, tuple) or not isinstance(observed_orders, tuple):
+            return False
+        if len(observed_errors) != len(expected["candidate_errors"]) or len(observed_orders) != len(expected["order_estimates"]):
+            return False
+        errors_match = all(isinstance(value, (int, float)) and isfinite(value)
+                           and abs(value - expected_value) <= tolerance * max(1.0, abs(expected_value))
+                           for value, expected_value in zip(observed_errors, expected["candidate_errors"]))
+        orders_match = all(isinstance(value, tuple) and len(value) == 2
+                           and value[0] == expected_value[0]
+                           and isinstance(value[1], (int, float)) and isfinite(value[1])
+                           and abs(value[1] - expected_value[1]) <= tolerance * max(1.0, abs(expected_value[1]))
+                           for value, expected_value in zip(observed_orders, expected["order_estimates"]))
+        return errors_match and orders_match
+    except (TypeError, ValueError):
         return False
 
 

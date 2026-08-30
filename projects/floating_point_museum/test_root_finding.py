@@ -3,6 +3,7 @@ from math import sqrt
 
 from projects.floating_point_museum.root_finding import (
     NewtonEvent, safeguarded_newton_trace, safeguarded_newton_trace_certificate,
+    secant_convergence_certificate, secant_convergence_report,
     secant_root, secant_solution_certificate, secant_trace, secant_trace_certificate,
 )
 
@@ -46,6 +47,17 @@ class SecantRootTests(unittest.TestCase):
             secant_root(lambda _: 1.0, 0.0, 1.0)
         with self.assertRaises(ValueError):
             secant_root(lambda value: value, 0.0, 1.0, max_steps=0)
+
+    def test_convergence_report_observes_local_superlinear_order_and_rejects_tampering(self):
+        _, events = secant_trace(lambda value: value * value - 2.0, 1.0, 2.0)
+        report = secant_convergence_report(events, sqrt(2.0))
+        self.assertTrue(report["order_estimates"])
+        self.assertGreater(report["order_estimates"][-1][1], 1.5)
+        self.assertLess(report["order_estimates"][-1][1], 1.7)
+        self.assertTrue(secant_convergence_certificate(events, sqrt(2.0), report))
+        tampered = dict(report)
+        tampered["order_estimates"] = report["order_estimates"][:-1] + ((6, 2.0),)
+        self.assertFalse(secant_convergence_certificate(events, sqrt(2.0), tampered))
 
     def test_safeguarded_newton_returns_a_sign_change_certificate(self):
         function = lambda value: value * value - 2.0
