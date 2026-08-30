@@ -16,11 +16,11 @@ description: 从不确定性建模到统计推断与机器学习损失函数的�
 | 0 | 集合、事件、计数、条件化 | [概率空间与事件](/probability-ml/probability-space-events) 已深化；连续条件化与测度论留作延伸 |
 | 1 | 条件概率、随机变量、期望、方差、协方差与分布 | [贝叶斯更新](/probability-ml/bayes)、[协方差与相关性](/probability-ml/covariance-correlation) 已深化 |
 | 2 | 全概率、抽样误差、置信区间、MLE/MAP、交叉熵、假设检验 | [抽样误差与置信区间](/probability-ml/confidence-intervals-sampling)、[共轭先验与后验预测](/probability-ml/conjugate-priors-predictive)、最大似然与假设检验已深化 |
-| 3 | 校准、再校准、数据漂移、蒙特卡洛、重要性采样、MCMC、生成模型 | [校准与可靠性曲线](/probability-ml/calibration-reliability)、[概率再校准](/probability-ml/recalibration)、[数据漂移监控](/probability-ml/data-drift-monitoring)、[生成模型与逻辑回归](/probability-ml/generative-discriminative-logistic)、[Metropolis–Hastings](/probability-ml/metropolis-hastings)、蒙特卡洛与重要性采样已深化；下一缺口是带标签窗口下的性能退化审计 |
+| 3 | 校准、再校准、数据漂移、带标签性能审计、蒙特卡洛、重要性采样、MCMC、生成模型 | [校准与可靠性曲线](/probability-ml/calibration-reliability)、[概率再校准](/probability-ml/recalibration)、[数据漂移监控](/probability-ml/data-drift-monitoring)、[带标签窗口性能审计](/probability-ml/labeled-window-performance-degradation)、[生成模型与逻辑回归](/probability-ml/generative-discriminative-logistic)、[Metropolis–Hastings](/probability-ml/metropolis-hastings)、蒙特卡洛与重要性采样已深化；下一缺口是分层子群体下的校准与性能不确定性 |
 
 ## 项目连接
 
-已提供[词袋朴素贝叶斯垃圾邮件分类器](/projects/naive-bayes-spam)：训练时以拉普拉斯平滑估计似然，预测时在对数域相加并稳定地转为后验，以混淆矩阵、Brier 分数与可靠性分箱审查结果。[概率再校准](/probability-ml/recalibration)进一步在独立验证集上拟合 Platt scaling，并保留测试集用于一次性报告。[数据漂移监控](/probability-ml/data-drift-monitoring)将参考期和当前期的类别频率转为 PSI 与总变差报告，并明确告警只触发人工审查。配套的最小逻辑回归实现以伯努利似然和批量梯度下降直接学习后验；有限状态 MH 实验则验证未归一化后验也能通过接受/拒绝采样。它们共同验证“后验高”与“模型校准良好”并非同一件事；下一步应加入带标签窗口的性能退化审计。
+已提供[词袋朴素贝叶斯垃圾邮件分类器](/projects/naive-bayes-spam)：训练时以拉普拉斯平滑估计似然，预测时在对数域相加并稳定地转为后验，以混淆矩阵、Brier 分数与可靠性分箱审查结果。[概率再校准](/probability-ml/recalibration)进一步在独立验证集上拟合 Platt scaling，并保留测试集用于一次性报告。[数据漂移监控](/probability-ml/data-drift-monitoring)将参考期和当前期的类别频率转为 PSI 与总变差报告，并明确告警只触发人工审查；[带标签窗口性能审计](/probability-ml/labeled-window-performance-degradation)再以固定窗口、准确率区间、概率损失与重放证书检查标签到达后的变化。配套的最小逻辑回归实现以伯努利似然和批量梯度下降直接学习后验；有限状态 MH 实验则验证未归一化后验也能通过接受/拒绝采样。它们共同验证“后验高”与“模型校准良好”并非同一件事；下一步应检查不同子群体下的不确定性，且不把有限样本信号写成自动决策。
 
 ## 练习
 

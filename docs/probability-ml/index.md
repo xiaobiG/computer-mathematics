@@ -9,7 +9,7 @@
 | 0 · 预备 | 事件、函数与有限求和 | 用可枚举样本空间表达概率 | [符号、函数、求和与 Python](/foundations/functions-summation-python) → [概率空间与事件](/probability-ml/probability-space-events) |
 | 1 · 核心 | 条件概率、随机变量、期望与方差 | 正确解释概率与平均行为 | [条件概率与贝叶斯更新](/probability-ml/bayes) → [期望与方差](/probability-ml/expectation-variance) |
 | 2 · 推导与算法 | 似然、先验、交叉熵与估计 | 从数据推导参数与预测规则 | [最大似然](/probability-ml/maximum-likelihood) → [共轭先验与后验预测](/probability-ml/conjugate-priors-predictive) |
-| 3 · 工程与前沿 | 校准、再校准、漂移监控、重要性采样、MCMC | 审计不确定性、相关样本与模型分数 | [概率校准与可靠性曲线](/probability-ml/calibration-reliability) → [概率再校准](/probability-ml/recalibration) → [数据漂移监控](/probability-ml/data-drift-monitoring) |
+| 3 · 工程与前沿 | 校准、再校准、漂移监控、带标签性能审计、重要性采样、MCMC | 审计不确定性、相关样本与模型分数 | [概率校准与可靠性曲线](/probability-ml/calibration-reliability) → [概率再校准](/probability-ml/recalibration) → [数据漂移监控](/probability-ml/data-drift-monitoring) → [带标签窗口性能审计](/probability-ml/labeled-window-performance-degradation) |
 
 若你的目标是机器学习建模，至少完成层 1 后再进入最大似然；层 3 的实验仍依赖前面建立的概率语义与边界。
 
@@ -43,6 +43,7 @@
 - [概率校准与可靠性曲线](/probability-ml/calibration-reliability)：把分类分数变为可审计的概率承诺；
 - [概率再校准：验证集把分数变回概率](/probability-ml/recalibration)：用独立验证集拟合 Platt scaling，避免测试集泄漏；
 - [数据漂移监控：何时不应再相信校准概率](/probability-ml/data-drift-monitoring)：用 PSI 与总变差距离报告输入变化，并把告警限定为人工审查触发器；
+- [带标签窗口：审计分类性能与概率退化](/probability-ml/labeled-window-performance-degradation)：在延迟标签到达后并列检查混淆矩阵、准确率区间、Brier 分数和对数损失；
 - [概率论深度版路线](/probability-ml/rewrite-plan)：分层学习和垃圾邮件分类项目。
 
 贯穿主线：模型给出的概率，究竟代表什么？
