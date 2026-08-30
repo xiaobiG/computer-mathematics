@@ -79,6 +79,13 @@ assert subtraction_condition_number(1e16 + 2.0, 1e16) == 1e16
 3. **编码**：为三项乘积写误差界，并与随机的小扰动样本核对其上界性质。
 4. **开放**：为 $\sqrt{x+1}-\sqrt{x}$ 在 $x\gg1$ 的计算写出相减条件分析和有理化改写，并说明仍需报告哪些误差证据。
 
+## 练习答案提示
+
+1. 两组绝对误差都为 $0.01$，但相对误差分别为 $0.005$ 与 $5$；这说明零附近不能只用相对误差。
+2. 展开得 $e_a+e_b+e_ae_b$；取绝对值并用 $|e_a|\le\delta_a,|e_b|\le\delta_b$，上界为 $\delta_a+\delta_b+\delta_a\delta_b$。
+3. 三项可逐步合并上界，或直接展开 $(1+e_1)(1+e_2)(1+e_3)-1$；随机样本只能检验实现未明显违反界，不能替代证明。
+4. 乘以共轭式得到 $1/(\sqrt{x+1}+\sqrt{x})$；仍要比较高精度基准、报告输入扰动和零/极大 $x$ 的边界行为。
+
 ## 延伸
 
 [浮点数表示](/numerical-computing/floating-point)解释误差从哪里进入；[条件数](/numerical-computing/condition-number)将敏感性扩展到线性方程组；[Kahan 求和](/numerical-computing/kahan-summation)展示如何改写算法以减少不必要的舍入放大。
