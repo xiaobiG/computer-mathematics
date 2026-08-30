@@ -44,30 +44,27 @@ description: 将误差模型变成 API 契约：设计尺度相关容差、残�
 
 例如计算结果是通过 \(k\) 次浮点运算得到，机器精度为 \(u\)，若算法的前向误差分析给出约 \(Cku\)，可以据此设置相对容差的数量级；若传感器本身精度为 0.01 mm，绝对容差应来自测量规格，而非机器精度。测试代码不能替代误差分析，但应把分析结果固定成可审阅的参数。
 
-## 一个可审计的比较函数
+## 算法实现：一个可审计的比较函数
 
 ```python
-from math import isfinite, isinf, isnan
+from projects.floating_point_museum.comparison import (
+    close_enough,
+    comparison_certificate,
+    comparison_report,
+)
 
+assert close_enough(0.1 + 0.2, 0.3)
+assert close_enough(1_000_000_000.0 + 0.5, 1_000_000_000.0, rel_tol=1e-9)
+assert not close_enough(1.0, 1.1, abs_tol=1e-12, rel_tol=1e-9)
+assert not close_enough(float("nan"), float("nan"))
 
-def close(a, b, *, abs_tol=1e-12, rel_tol=1e-9):
-    """比较两个有限实数；NaN 必定失败，同号无穷相等。"""
-    if abs_tol < 0 or rel_tol < 0:
-        raise ValueError("容差不能为负")
-    if isnan(a) or isnan(b):
-        return False
-    if isinf(a) or isinf(b):
-        return a == b
-    return abs(a - b) <= max(abs_tol, rel_tol * max(abs(a), abs(b)))
-
-
-assert close(0.1 + 0.2, 0.3)
-assert close(1_000_000_000.0 + 0.5, 1_000_000_000.0, rel_tol=1e-9)
-assert not close(1.0, 1.1, abs_tol=1e-12, rel_tol=1e-9)
-assert not close(float("nan"), float("nan"))
+report = comparison_report(1e12, 1e12 + 1.0, abs_tol=1e-6, rel_tol=1e-9)
+assert report["close"]
+assert report["threshold"] == 1000.000000001
+assert comparison_certificate(report)["valid"]
 ```
 
-第二个断言的容差是否合理，取决于应用：对金融余额，0.5 的偏差也许绝不能接受；对粗略仿真，它可能可接受。函数提供机制，不替调用者决定语义。
+`comparison_report` 显示差值、尺度相关阈值和最终判断，`comparison_certificate` 从四个输入字段重新计算契约，因此篡改阈值或 `close` 结论都会被拒绝。第二个断言的容差是否合理，取决于应用：对金融余额，0.5 的偏差也许绝不能接受；对粗略仿真，它可能可接受。函数提供机制，不替调用者决定语义。
 
 ## 残差、前向误差与测试预言
 
@@ -148,7 +145,7 @@ assert counterexample is not None
 
 1. 为温度（摄氏度）、账户余额（分）和单位向量长度分别设计比较策略，说明为什么容差不同。
 2. 构造两个接近 \(10^{12}\) 的数，使固定 `1e-6` 容差与相对容差给出不同判断；哪一个符合你的应用语义？
-3. 为 `close` 写测试，覆盖负容差、NaN、同号/异号无穷、零附近和大尺度输入。
+3. 为 `close_enough` 写测试，覆盖负容差、NaN、同号/异号无穷、零附近和大尺度输入；篡改 `comparison_report` 的阈值或结论，确认其证书拒绝。
 4. 对一个线性求解器同时编写残差测试与小规模前向误差测试；构造近奇异矩阵说明二者为何不能互相替代。
 5. 为 [浮点数错误博物馆](/projects/floating-point-museum) 设计一个可保存、可缩小的随机反例格式，包含种子、输入、容差和运行环境。
 
