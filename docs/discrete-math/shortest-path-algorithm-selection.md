@@ -46,6 +46,12 @@ $$w(P)=\lvert E(P)\rvert.$$
 
 展开“查看可重放输入与浏览器报告”后可以复制输入 JSON。复制的输入而不是浏览器显示的结论才是重放锚点：将它交给 Python 会重新计算所有算法卡片，并用证书拒绝被篡改的结果。
 
+## 查询数量：从“能用”到“该不该预处理”
+
+同一张图上的一次单源查询和 $Q$ 次独立单源查询不是同一个成本问题。交互面板的“查询数量与成本”区将 $Q$ 从 1 调到当前顶点数：BFS、Dijkstra、Bellman–Ford 的工作量会随 $Q$ 线性增加；Floyd–Warshall 的 $V^3$ 预处理则只付一次。这些数字是用于比较增长趋势的理论单位，不是不同电脑上不可复现的毫秒排名。
+
+Python 报告会重放同一份输入，记录真正被扫描的边、实际发生的成功松弛和 Floyd–Warshall 的候选矩阵格。这里的“查询”定义为一次完整的单源运行，而非目标出现后提前停止；这样四张卡才在相同的比较口径下成立。
+
 ## 可运行统一报告
 
 `shortest_path_comparison` 将前提、距离、路径和不变量放入同一报告，并从原始边表重放包括“拒绝卡”在内的全部结论。
@@ -57,6 +63,10 @@ from projects.algorithm_lab.shortest_path_comparison import (
     shortest_path_comparison_certificate,
     shortest_path_replay_certificate,
     shortest_path_replay_report,
+)
+from projects.algorithm_lab.shortest_path_workload import (
+    shortest_path_workload_certificate,
+    shortest_path_workload_report,
 )
 
 edges = [(0, 1, 2.0), (0, 2, 5.0), (2, 1, -10.0), (1, 3, 4.0)]
@@ -75,6 +85,11 @@ payload = {
 replay = shortest_path_replay_report(payload)
 assert replay["comparison"]["algorithms"]["bellman_ford"]["distance"] == -1.0
 assert shortest_path_replay_certificate(payload, replay)
+
+workload = shortest_path_workload_report(payload, query_count=2)
+assert workload["algorithms"]["dijkstra"]["status"] == "rejected"
+assert workload["algorithms"]["floyd_warshall"]["work"]["candidate_cells"] == 64
+assert shortest_path_workload_certificate(payload, 2, workload)
 ```
 
 运行：
@@ -83,7 +98,7 @@ assert shortest_path_replay_certificate(payload, replay)
 python -m unittest projects.algorithm_lab.test_shortest_path_comparison
 ```
 
-篡改距离、路径或“Dijkstra 可以处理负边”的理由都会使证书失败。重放合同还会拒绝第 9 个顶点、超过 20 条边、无穷权重、额外字段或错误合同版本；拒绝信息也必须被审计，因为它绑定了算法结论的适用范围。
+篡改距离、路径或“Dijkstra 可以处理负边”的理由都会使证书失败。重放合同还会拒绝第 9 个顶点、超过 20 条边、无穷权重、额外字段或错误合同版本；工作量证书还会拒绝被改写的扫描边数、查询源集合或 $V^3$ 候选格计数。拒绝信息也必须被审计，因为它绑定了算法结论的适用范围。
 
 ## 推导、复杂度与工程边界
 
@@ -94,7 +109,7 @@ python -m unittest projects.algorithm_lab.test_shortest_path_comparison
 | 单源、含负边 | Bellman–Ford | $O(VE)$，可检查可达负环 |
 | 大量源点对、小型或稠密图 | Floyd–Warshall | $O(V^3)$，一次得到全源矩阵 |
 
-这不是运行时魔法规则：稀疏性、查询数量、内存预算和是否需要路径证书都会改变选择。真实地图还需处理浮点权重、动态更新和输入契约。
+当 $Q$ 很小，重复单源算法通常不必支付全源矩阵成本；当 $Q$ 接近 $V$ 且图足够小，Floyd–Warshall 的一次预处理开始更容易解释。它不是运行时魔法规则：稀疏性、查询数量、内存预算和是否需要路径证书都会改变选择。真实地图还需处理浮点权重、动态更新和输入契约。
 
 ## 正确性、边界与反例
 
@@ -125,4 +140,4 @@ python -m unittest projects.algorithm_lab.test_shortest_path_comparison
 
 ## 延伸
 
-[BFS](/discrete-math/breadth-first-search)、[Dijkstra](/discrete-math/dijkstra)、[Bellman–Ford](/discrete-math/bellman-ford)和[Floyd–Warshall](/discrete-math/floyd-warshall)分别展开四条证明线；[算法可视化实验室](/projects/algorithm-lab)收录可重放实现。下一步将把同一报告扩展为复杂度实测，让“适用”之外的工程代价也能被比较。
+[BFS](/discrete-math/breadth-first-search)、[Dijkstra](/discrete-math/dijkstra)、[Bellman–Ford](/discrete-math/bellman-ford)和[Floyd–Warshall](/discrete-math/floyd-warshall)分别展开四条证明线；[算法可视化实验室](/projects/algorithm-lab)收录可重放实现。下一步将把固定图的查询模式推广为“密度、内存与目标提前停止”之间的选择边界。

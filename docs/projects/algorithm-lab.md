@@ -76,6 +76,8 @@ assert topological_trace({"a": ["b"], "b": ["a"]})[0] is None
 
 选择“自定义小图”后可输入最多 8 个顶点、20 条有向边，并复制稳定的 JSON 输入。`shortest_path_replay_report` 会按 `shortest-path-comparison/v1` 合同重放它；合同明确拒绝超限顶点、无穷权重、额外字段和错误版本，避免课堂输入悄悄变成无法比较的另一个问题。
 
+`shortest_path_workload_report(payload, query_count)` 在相同输入上统计重复单源查询的实际边扫描和成功松弛，并把它们与 $Q\cdot O(V+E)$、$Q\cdot O((V+E)\log V)$、$Q\cdot O(VE)$ 和 $O(V^3)$ 并列。它不把墙钟毫秒伪装为结论：计数可由 `shortest_path_workload_certificate` 完整重放。
+
 3-SAT 模块将变量写为非零整数，负号表示否定：
 
 ```python
