@@ -40,18 +40,41 @@ $$w(P)=\lvert E(P)\rvert.$$
 
 切换四类图，先看“适用”或“拒绝”，再看路径：无权图中四种算法都可运行；非负加权图中 BFS 被拒绝；有负边、无负环时 Dijkstra 被拒绝；出现负环时 Bellman–Ford 与 Floyd–Warshall 都拒绝有限最短路结论。拒绝不是算法失败，而是避免把不受保证的数字伪装成最优解。
 
+## 自定义小图：输入契约与可重放报告
+
+上面的“自定义小图”选项允许修改顶点数、起点、终点和边表。它刻意不是通用图编辑器：顶点必须从 $0$ 连续编号，数量限制为 $2\ldots8$；边数至多 20；每条边写成 `起点 终点 权重`，权重必须有限且绝对值不超过 10,000。点击“应用并审计”前，错误输入不会覆盖当前可用图。
+
+展开“查看可重放输入与浏览器报告”后可以复制输入 JSON。复制的输入而不是浏览器显示的结论才是重放锚点：将它交给 Python 会重新计算所有算法卡片，并用证书拒绝被篡改的结果。
+
 ## 可运行统一报告
 
 `shortest_path_comparison` 将前提、距离、路径和不变量放入同一报告，并从原始边表重放包括“拒绝卡”在内的全部结论。
 
 ```python
-from projects.algorithm_lab.shortest_path_comparison import shortest_path_comparison, shortest_path_comparison_certificate
+from projects.algorithm_lab.shortest_path_comparison import (
+    CONTRACT_VERSION,
+    shortest_path_comparison,
+    shortest_path_comparison_certificate,
+    shortest_path_replay_certificate,
+    shortest_path_replay_report,
+)
 
 edges = [(0, 1, 2.0), (0, 2, 5.0), (2, 1, -10.0), (1, 3, 4.0)]
 report = shortest_path_comparison(4, edges, source=0, target=3)
 assert report["algorithms"]["dijkstra"]["status"] == "rejected"
 assert report["algorithms"]["bellman_ford"]["distance"] == -1.0
 assert shortest_path_comparison_certificate(4, edges, 0, 3, report)
+
+payload = {
+    "contract_version": CONTRACT_VERSION,
+    "vertex_count": 4,
+    "edges": [[0, 1, 2], [0, 2, 5], [2, 1, -10], [1, 3, 4]],
+    "source": 0,
+    "target": 3,
+}
+replay = shortest_path_replay_report(payload)
+assert replay["comparison"]["algorithms"]["bellman_ford"]["distance"] == -1.0
+assert shortest_path_replay_certificate(payload, replay)
 ```
 
 运行：
@@ -60,7 +83,7 @@ assert shortest_path_comparison_certificate(4, edges, 0, 3, report)
 python -m unittest projects.algorithm_lab.test_shortest_path_comparison
 ```
 
-篡改距离、路径或“Dijkstra 可以处理负边”的理由都会使证书失败。拒绝信息也必须被审计，因为它绑定了算法结论的适用范围。
+篡改距离、路径或“Dijkstra 可以处理负边”的理由都会使证书失败。重放合同还会拒绝第 9 个顶点、超过 20 条边、无穷权重、额外字段或错误合同版本；拒绝信息也必须被审计，因为它绑定了算法结论的适用范围。
 
 ## 推导、复杂度与工程边界
 
@@ -102,4 +125,4 @@ python -m unittest projects.algorithm_lab.test_shortest_path_comparison
 
 ## 延伸
 
-[BFS](/discrete-math/breadth-first-search)、[Dijkstra](/discrete-math/dijkstra)、[Bellman–Ford](/discrete-math/bellman-ford)和[Floyd–Warshall](/discrete-math/floyd-warshall)分别展开四条证明线；[算法可视化实验室](/projects/algorithm-lab)收录可重放实现。下一步将允许读者输入小图，并在同一报告格式中检查数据契约。
+[BFS](/discrete-math/breadth-first-search)、[Dijkstra](/discrete-math/dijkstra)、[Bellman–Ford](/discrete-math/bellman-ford)和[Floyd–Warshall](/discrete-math/floyd-warshall)分别展开四条证明线；[算法可视化实验室](/projects/algorithm-lab)收录可重放实现。下一步将把同一报告扩展为复杂度实测，让“适用”之外的工程代价也能被比较。

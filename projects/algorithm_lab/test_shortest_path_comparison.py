@@ -2,8 +2,13 @@ import copy
 import unittest
 
 from projects.algorithm_lab.shortest_path_comparison import (
+    CONTRACT_VERSION,
+    normalize_shortest_path_input,
     shortest_path_comparison,
     shortest_path_comparison_certificate,
+    shortest_path_replay_certificate,
+    shortest_path_replay_json,
+    shortest_path_replay_report,
 )
 
 
@@ -42,3 +47,36 @@ class ShortestPathComparisonTests(unittest.TestCase):
         self.assertFalse(shortest_path_comparison_certificate(3, edges, 0, 2, tampered))
         with self.assertRaises(ValueError):
             shortest_path_comparison(2, [(0, 2, 1.0)], 0, 1)
+
+    def test_small_graph_replay_contract_is_json_safe_and_tamper_evident(self):
+        payload = {
+            "contract_version": CONTRACT_VERSION,
+            "vertex_count": 4,
+            "edges": [[0, 1, 5], [0, 2, 1], [2, 1, 1], [1, 3, 1]],
+            "source": 0,
+            "target": 3,
+        }
+        normalized = normalize_shortest_path_input(payload)
+        self.assertEqual(normalized["edges"][0], [0, 1, 5.0])
+        report = shortest_path_replay_report(payload)
+        self.assertEqual(report["input"], normalized)
+        self.assertTrue(shortest_path_replay_certificate(payload, report))
+        self.assertEqual(shortest_path_replay_json(payload), shortest_path_replay_json(payload))
+        tampered = copy.deepcopy(report)
+        tampered["comparison"]["algorithms"]["dijkstra"]["distance"] = 99.0
+        self.assertFalse(shortest_path_replay_certificate(payload, tampered))
+
+    def test_small_graph_contract_rejects_oversized_or_ambiguous_input(self):
+        payload = {
+            "contract_version": CONTRACT_VERSION,
+            "vertex_count": 9,
+            "edges": [],
+            "source": 0,
+            "target": 1,
+        }
+        with self.assertRaisesRegex(ValueError, "2 to 8"):
+            normalize_shortest_path_input(payload)
+        payload["vertex_count"] = 2
+        payload["unexpected"] = True
+        with self.assertRaisesRegex(ValueError, "exactly"):
+            normalize_shortest_path_input(payload)

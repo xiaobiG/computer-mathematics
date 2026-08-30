@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 from math import inf, isfinite
+from typing import Any
 
 from projects.algorithm_lab.bellman_ford_trace import bellman_ford_trace, reconstruct_path as bellman_path
 from projects.algorithm_lab.bfs_trace import bfs_trace_with_parents, reconstruct_path as bfs_path
@@ -11,6 +13,11 @@ from projects.algorithm_lab.floyd_warshall import floyd_warshall_with_paths, rec
 
 
 Edge = tuple[int, int, float]
+
+CONTRACT_VERSION = "shortest-path-comparison/v1"
+MAX_VERTICES = 8
+MAX_EDGES = 20
+MAX_ABSOLUTE_WEIGHT = 10_000.0
 
 
 def _validate(vertex_count: int, edges: list[Edge], source: int, target: int) -> None:
@@ -26,6 +33,77 @@ def _validate(vertex_count: int, edges: list[Edge], source: int, target: int) ->
                 or not isinstance(right, int) or isinstance(right, bool) or not 0 <= right < vertex_count
                 or not isinstance(weight, (int, float)) or isinstance(weight, bool) or not isfinite(weight)):
             raise ValueError("edges must have valid endpoints and finite weights")
+
+
+def normalize_shortest_path_input(payload: object) -> dict[str, object]:
+    """Validate the browser-facing small-graph contract and return its canonical JSON form.
+
+    The contract deliberately limits graphs to a readable teaching scale.  Its
+    output uses only JSON values, so it can be copied from a browser report and
+    replayed without relying on Python tuple syntax or incidental dictionary order.
+    """
+    if not isinstance(payload, dict):
+        raise ValueError("payload must be an object")
+    required = {"contract_version", "vertex_count", "edges", "source", "target"}
+    if set(payload) != required:
+        raise ValueError("payload must contain exactly contract_version, vertex_count, edges, source, target")
+    if payload["contract_version"] != CONTRACT_VERSION:
+        raise ValueError(f"contract_version must be {CONTRACT_VERSION!r}")
+    vertex_count, source, target, raw_edges = (
+        payload["vertex_count"], payload["source"], payload["target"], payload["edges"]
+    )
+    if (not isinstance(vertex_count, int) or isinstance(vertex_count, bool)
+            or not 2 <= vertex_count <= MAX_VERTICES):
+        raise ValueError(f"vertex_count must be an integer from 2 to {MAX_VERTICES}")
+    if not isinstance(raw_edges, list) or len(raw_edges) > MAX_EDGES:
+        raise ValueError(f"edges must be a list with at most {MAX_EDGES} entries")
+    edges: list[Edge] = []
+    for raw_edge in raw_edges:
+        if not isinstance(raw_edge, list) or len(raw_edge) != 3:
+            raise ValueError("each edge must be a JSON [source, target, weight] list")
+        left, right, weight = raw_edge
+        if (not isinstance(weight, (int, float)) or isinstance(weight, bool)
+                or not isfinite(weight) or abs(float(weight)) > MAX_ABSOLUTE_WEIGHT):
+            raise ValueError(f"each weight must be finite and have absolute value at most {MAX_ABSOLUTE_WEIGHT:g}")
+        edges.append((left, right, float(weight)))
+    _validate(vertex_count, edges, source, target)
+    return {
+        "contract_version": CONTRACT_VERSION,
+        "vertex_count": vertex_count,
+        "edges": [[left, right, weight] for left, right, weight in edges],
+        "source": source,
+        "target": target,
+    }
+
+
+def shortest_path_replay_report(payload: object) -> dict[str, object]:
+    """Return a JSON-safe report that binds a canonical small-graph input to its result."""
+    normalized = normalize_shortest_path_input(payload)
+    return {
+        "contract_version": CONTRACT_VERSION,
+        "input": normalized,
+        "comparison": shortest_path_comparison(
+            normalized["vertex_count"],  # type: ignore[arg-type]
+            [tuple(edge) for edge in normalized["edges"]],  # type: ignore[arg-type]
+            normalized["source"],  # type: ignore[arg-type]
+            normalized["target"],  # type: ignore[arg-type]
+        ),
+    }
+
+
+def shortest_path_replay_json(payload: object) -> str:
+    """Serialize a replay report deterministically for copying or fixture storage."""
+    return json.dumps(shortest_path_replay_report(payload), ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
+def shortest_path_replay_certificate(payload: object, report: object) -> bool:
+    """Reject any changed input, algorithm card, or contract version in a replay report."""
+    if not isinstance(report, dict):
+        return False
+    try:
+        return report == shortest_path_replay_report(payload)
+    except (TypeError, ValueError):
+        return False
 
 
 def _graph(vertex_count: int, edges: list[Edge]) -> dict[int, list[tuple[int, float]]]:

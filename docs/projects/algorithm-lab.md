@@ -74,6 +74,8 @@ assert topological_trace({"a": ["b"], "b": ["a"]})[0] is None
 
 面板在无权、非负权、负边和负环图之间切换，并将“拒绝前提”与“不可达”分开显示。配套的 `shortest_path_comparison.py` 会从同一边表重建四种算法的适用卡，证书也会检查被篡改的拒绝理由。
 
+选择“自定义小图”后可输入最多 8 个顶点、20 条有向边，并复制稳定的 JSON 输入。`shortest_path_replay_report` 会按 `shortest-path-comparison/v1` 合同重放它；合同明确拒绝超限顶点、无穷权重、额外字段和错误版本，避免课堂输入悄悄变成无法比较的另一个问题。
+
 3-SAT 模块将变量写为非零整数，负号表示否定：
 
 ```python
