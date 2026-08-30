@@ -83,6 +83,28 @@ def secant_trace_certificate(
     return True
 
 
+def secant_solution_certificate(
+    function: Callable[[float], float], left: float, right: float, root: float, events: list[SecantEvent], *,
+    residual_tol: float = 1e-12, step_tol: float = 1e-12, max_steps: int = 80,
+) -> bool:
+    """Replay a full secant run, including its stopping condition and result.
+
+    ``secant_trace_certificate`` checks algebraic consistency of event records.
+    This stronger certificate also binds the first pair, tolerances, finite
+    stopping rule and returned root to the supplied execution contract.
+    """
+    try:
+        expected_root, expected_events = secant_trace(
+            function, left, right,
+            residual_tol=residual_tol,
+            step_tol=step_tol,
+            max_steps=max_steps,
+        )
+        return root == expected_root and events == expected_events
+    except (ArithmeticError, TypeError, ValueError, ZeroDivisionError):
+        return False
+
+
 def secant_root(
     function: Callable[[float], float], left: float, right: float, *,
     residual_tol: float = 1e-12, step_tol: float = 1e-12, max_steps: int = 80,

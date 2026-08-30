@@ -3,7 +3,7 @@ from math import sqrt
 
 from projects.floating_point_museum.root_finding import (
     NewtonEvent, safeguarded_newton_trace, safeguarded_newton_trace_certificate,
-    secant_root, secant_trace, secant_trace_certificate,
+    secant_root, secant_solution_certificate, secant_trace, secant_trace_certificate,
 )
 
 
@@ -22,6 +22,7 @@ class SecantRootTests(unittest.TestCase):
         self.assertTrue(events)
         self.assertLess(abs(events[-1].candidate_value), 1e-12)
         self.assertTrue(secant_trace_certificate(function, events))
+        self.assertTrue(secant_solution_certificate(function, 1.0, 2.0, root, events))
         tampered = list(events)
         tampered[0] = tampered[0].__class__(
             tampered[0].iteration, tampered[0].previous, tampered[0].current,
@@ -29,6 +30,16 @@ class SecantRootTests(unittest.TestCase):
             tampered[0].candidate + 0.1, tampered[0].candidate_value,
         )
         self.assertFalse(secant_trace_certificate(function, tampered))
+        self.assertFalse(secant_solution_certificate(function, 1.0, 2.0, root, tampered))
+
+    def test_full_secant_certificate_binds_initial_points_and_returned_root(self):
+        function = lambda value: value * value - 2.0
+        root, events = secant_trace(function, 1.0, 2.0)
+        self.assertFalse(secant_solution_certificate(function, 1.0, 2.0, root + 0.1, events))
+        self.assertFalse(secant_solution_certificate(function, 1.1, 2.0, root, events))
+        endpoint_root, endpoint_events = secant_trace(lambda value: value - 3.0, 1.0, 3.0)
+        self.assertEqual(endpoint_events, [])
+        self.assertTrue(secant_solution_certificate(lambda value: value - 3.0, 1.0, 3.0, endpoint_root, endpoint_events))
 
     def test_rejects_vanishing_slope_and_invalid_contract(self):
         with self.assertRaises(RuntimeError):

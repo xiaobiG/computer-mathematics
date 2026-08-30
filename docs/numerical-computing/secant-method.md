@@ -32,12 +32,17 @@ $$x_{k+1}=x_k-f(x_k)\frac{x_k-x_{k-1}}{f(x_k)-f(x_{k-1})}.$$
 ## 可运行实现
 
 ```python
-from projects.floating_point_museum.root_finding import secant_trace, secant_trace_certificate
+from projects.floating_point_museum.root_finding import (
+    secant_solution_certificate,
+    secant_trace,
+    secant_trace_certificate,
+)
 
 function = lambda value: value * value - 2.0
 root, events = secant_trace(function, 1.0, 2.0)
 assert abs(root * root - 2) <= 1e-12
 assert secant_trace_certificate(function, events)
+assert secant_solution_certificate(function, 1.0, 2.0, root, events)
 assert abs(events[-1].candidate_value) <= 1e-12
 ```
 
@@ -45,7 +50,7 @@ assert abs(events[-1].candidate_value) <= 1e-12
 python -m unittest projects.floating_point_museum.test_root_finding
 ```
 
-每个 `SecantEvent` 都保存两次插值输入、函数值和新候选点。`secant_trace_certificate` 独立重算割线公式、函数值和相邻事件的连接关系，因此可发现“最终根看起来正确、但某一轮更新公式被改错”的回归。求根实现每轮只计算一个新函数值，时间为 $O(k)$ 次函数评估、额外空间 $O(k)$ 用于保留轨迹（只调用 `secant_root` 时仍只保留 $O(1)$ 状态）。它检查初值函数值是否有限、分母是否为零、候选值是否有限、步长停滞时残差是否也已满足，以及最大迭代次数。
+每个 `SecantEvent` 都保存两次插值输入、函数值和新候选点。`secant_trace_certificate` 独立重算割线公式、函数值和相邻事件的连接关系，因此可发现“最终根看起来正确、但某一轮更新公式被改错”的回归。`secant_solution_certificate` 更进一步从给定初值、容差和最大步数重放完整执行，并要求返回根与整段轨迹完全一致；替换根、首轮输入或停止条件都会被拒绝。求根实现每轮只计算一个新函数值，时间为 $O(k)$ 次函数评估、额外空间 $O(k)$ 用于保留轨迹（只调用 `secant_root` 时仍只保留 $O(1)$ 状态）。它检查初值函数值是否有限、分母是否为零、候选值是否有限、步长停滞时残差是否也已满足，以及最大迭代次数。
 
 ## 收敛与正确性边界
 
@@ -64,14 +69,14 @@ python -m unittest projects.floating_point_museum.test_root_finding
 
 1. **基础题**：对 $x^2-2$ 从 1 和 2 手算一次割线更新。
 2. **推导题**：从两点直线方程推导割线公式。
-3. **编码题**：为求根器返回迭代轨迹，并构造一个分母接近零的失败输入。
+3. **编码题**：用 `secant_solution_certificate` 篡改返回根、首轮输入或一条轨迹，确认拒绝；再构造一个分母接近零的失败输入。
 4. **开放题**：设计一个“二分保底 + 割线加速”策略，写出何时接受候选步、何时回退。
 
 ## 练习答案提示
 
 1. 用两点 $(1,-1),(2,2)$ 的割线与横轴交点公式；保持足够有效位，下一步约为 $4/3$。
 2. 将过两点的直线写成斜率式并令 $y=0$，整理为 $x_1-f(x_1)(x_1-x_0)/(f(x_1)-f(x_0))$。
-3. 保存每次两点、函数值和候选值；常函数或几乎相等的函数值会使分母为零/很小，测试应断言明确失败而非巨大跳步。
+3. 保存每次两点、函数值和候选值；完整证书还应绑定初值、容差与最终根；常函数或几乎相等的函数值会使分母为零/很小，测试应断言明确失败而非巨大跳步。
 4. 只在候选值有限、落在含根区间且带来足够进展时接受割线步；否则二分并更新符号区间，停止同时检查区间、步长和残差。
 
 ## 延伸
