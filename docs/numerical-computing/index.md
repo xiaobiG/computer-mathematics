@@ -32,6 +32,7 @@
 - [牛顿法](/numerical-computing/newton-method)：二次收敛、停止准则与区间保护；
 - [割线法](/numerical-computing/secant-method)：用两点函数值替代导数的快速求根；
 - [迭代解线性方程组](/numerical-computing/iterative-linear-systems)：Jacobi、Gauss–Seidel、残差与收敛/发散证据；
+- [预条件共轭梯度法](/numerical-computing/preconditioned-conjugate-gradient)：SPD 系统、Krylov 方向、对角预条件与可重放残差轨迹；
 - [数值微分](/numerical-computing/numerical-differentiation)：截断误差、舍入误差与步长选择；
 - [数值插值](/numerical-computing/interpolation)：差商、牛顿形式、Runge 现象与外推边界；
 - [数值积分](/numerical-computing/numerical-integration)：梯形法、Simpson 法与自适应切分边界；

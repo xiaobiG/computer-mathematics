@@ -96,6 +96,7 @@ const roadmapAnchors = {
     '/numerical-computing/algorithmic-stability',
     '/numerical-computing/kahan-summation',
     '/numerical-computing/iterative-linear-systems',
+    '/numerical-computing/preconditioned-conjugate-gradient',
     '/numerical-computing/newton-method',
     '/numerical-computing/secant-method',
     '/numerical-computing/numerical-differentiation',
