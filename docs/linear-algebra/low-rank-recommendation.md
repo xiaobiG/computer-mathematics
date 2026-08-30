@@ -89,6 +89,13 @@ assert rank_one_als_trace_certificate(ratings, report, iterations=20, regulariza
 3. **编码题**：为同一评分表比较不同正则系数，报告观测 RMSE 与未观测格预测；验证证书会拒绝篡改的某轮误差。
 4. **开放题**：设计一个带用户/物品偏置、时间切分与冷启动策略的离线评估协议，并说明哪些结果不能由 RMSE 单独推出。
 
+## 练习答案提示
+
+1. 固定 $q$ 后将两个残差平方和与 $\lambda p_u^2$ 写成一元二次式，分子是 $\sum r_{ui}q_i$、分母是 $\sum q_i^2+\lambda$。
+2. 展开平方后对 $p_u$ 求导并令零；正则项导数给出 $2\lambda p_u$，与误差项公共因子 2 可约去。
+3. 固定初始化和迭代次数；将观测集误差与未观测预测分开报告，并篡改保存轨迹中的一个误差以验证证书确实重放更新。
+4. 时间切分应避免用未来评分训练；冷启动需定义没有历史时的默认策略，RMSE 之外还要报告覆盖率、校准、群体差异和在线效应。
+
 ## 延伸
 
 [SVD](/linear-algebra/svd)解释完整矩阵的最佳低秩近似；[最小二乘](/linear-algebra/least-squares)给出本课每个固定因子子问题的语言；[概率校准](/probability-ml/calibration-reliability)提醒预测数值还需要解释与验证。继续学习可检索 matrix factorization、implicit feedback、Bayesian personalized ranking、temporal validation。

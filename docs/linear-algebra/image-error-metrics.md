@@ -99,6 +99,13 @@ assert image_quality_certificate(reference, approximation, report)
 3. **编码题**：为 `image_quality_report` 增加逐行 MSE 报告，并为篡改的一行结果写一个拒绝测试。
 4. **开放题**：设计一个压缩实验：同时报告 PSNR、最大误差、文件大小、主观评审与检索指标，并说明每一项回答的不同问题。
 
+## 练习答案提示
+
+1. 平方误差均为 1，故 MSE 为 1、RMSE 为 1、最大绝对误差也为 1；先确认像素数是 4。
+2. Frobenius 范数平方是全部误差平方和，除以像素数后开平方即 RMSE；面积增为四倍时，同样的逐像素误差会让原始 Frobenius 范数变为两倍。
+3. 每行报告应包含行像素数、平方误差和与该行 MSE；证书要重算聚合值，篡改任一行后应拒绝而非只比较最终均值。
+4. PSNR 测逐像素对数误差，最大误差测最坏局部偏差，文件大小测存储，主观评审和检索指标分别测感知与任务质量，不能互相替代。
+
 ## 延伸
 
 [低秩图像压缩](/linear-algebra/low-rank-image-compression)提供产生重构矩阵的低秩算法；[SVD](/linear-algebra/svd)说明何时 Frobenius 误差具有最优性；[浮点比较、容差与属性测试](/numerical-computing/tolerances-property-testing)解释为何证书比较需要明确容差。下一步可研究 SSIM、感知指标、随机 SVD 与真实文件编码，但应单独说明它们的模型假设与失效模式。

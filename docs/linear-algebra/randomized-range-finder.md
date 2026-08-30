@@ -91,6 +91,13 @@ assert randomized_range_certificate(matrix, report, oversampling=1)
 3. **编码题**：比较同一矩阵在多个 seed、不同 oversampling 下的实际残差；保存最差种子为回归测试。
 4. **开放题**：为稀疏推荐矩阵设计一份随机 SVD 实验报告，包含数据切分、随机分布、种子、矩阵遍历数、误差、内存和与精确/迭代基线的比较。
 
+## 练习答案提示
+
+1. 利用 $Q^TQ=I$：$P^T=(QQ^T)^T=QQ^T$，$P^2=Q(Q^TQ)Q^T=P$；其像空间正是 $Q$ 的列空间。
+2. 代入 SVD 后 $AA^T=U\Sigma^2U^T$，所以每次幂迭代为第 $i$ 个方向再乘 $\sigma_i^2$，连同原来的 $A$ 得 $\sigma_i^{2q+1}$。
+3. 用同一输入扫多个种子和过采样量，比较 $\lVert A-QQ^TA\rVert$；保存最坏案例及配置，而不是只展示一个好看的随机结果。
+4. 报告应区分训练观察项和留出项，说明草图分布与随机种子；矩阵遍历数、内存上限和精确/迭代基线让误差—成本取舍可复核。
+
 ## 延伸
 
 [SVD](/linear-algebra/svd)给出精确低秩最优性的参照；[低秩图像压缩](/linear-algebra/low-rank-image-compression)把投影连接到重构；[随机模拟的误差与可复现性](/numerical-computing/stochastic-simulation-reproducibility)解释为何种子和重复报告不可省略。继续学习可检索 randomized SVD、Halko–Martinsson–Tropp、subspace iteration、TSQR 与 streaming PCA。
