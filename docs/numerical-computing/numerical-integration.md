@@ -60,6 +60,32 @@ assert 15.5 < report.simpson_error_ratio < 16.5
 
 固定网格适合曲率分布相对均匀且预算清楚的函数。自适应算法比较一个区间的粗估计与二分后的细估计，将更多点放在高曲率或疑似奇异区域；它不是“自动更正确”，仍需最大深度、误差预算和函数异常处理。
 
+### 自适应 Simpson：把误差预算传给子区间
+
+对一个区间，记粗 Simpson 估计为 $S$、二分后的两个估计之和为 $S_2$。在函数足够光滑时，第四阶主误差的比例给出 Richardson 估计：
+
+$$\widehat E=\frac{|S_2-S|}{15},\qquad S_{\mathrm{corrected}}=S_2+\frac{S_2-S}{15}.$$
+
+当 $\widehat E\leq\tau$ 时接受该叶区间；否则把区间和预算都平分，两个子问题各用 $\tau/2$。因此已接受叶子的误差估计之和不超过最初预算。下面的实现将估计值、采样次数、接受叶子数和是否耗尽深度都放进报告：
+
+```python
+from math import pi, sin
+
+from projects.floating_point_museum.integration import adaptive_simpson
+
+report = adaptive_simpson(sin, 0.0, pi, absolute_tolerance=1e-10)
+assert report.converged
+assert report.certificate["valid"]
+assert abs(report.estimate - 2.0) < 1e-10
+
+# 不允许把预算耗尽伪装成成功。
+limited = adaptive_simpson(sin, 0.0, pi, absolute_tolerance=1e-14, max_depth=0)
+assert not limited.converged
+assert not limited.certificate["valid"]
+```
+
+这里的 `estimated_error` 是**光滑函数模型下的估计**，而不是对任意黑盒函数的数学保证。遇到跳变、尖峰或噪声时，应把可疑断点显式分段，并把 `converged=False` 视为需要进一步诊断的结果，而不是增大深度后盲信一个数字。
+
 蒙特卡洛积分在高维中常比张量网格更可行，但收敛通常是 $O(N^{-1/2})$，与维度和方差强相关。不要把一维 Simpson 的高阶收敛外推到高维问题。
 
 ## 失败案例与工程边界
@@ -81,14 +107,14 @@ assert 15.5 < report.simpson_error_ratio < 16.5
 1. **基础题**：由端点线性插值推导单个小区间的梯形面积公式。
 2. **推导题**：若梯形误差为 $Ch^2$，证明分段数翻倍时误差比趋于 $4$。
 3. **编码题**：对 `sin` 比较 $n=8,16,32,64$ 的两种方法，输出误差比；再对 $|x|$ 在 $[-1,1]$ 上重复并解释结果。
-4. **开放题**：为一个昂贵且带尖峰的仿真函数设计自适应积分的停止规则、最大预算和异常值策略。
+4. **开放题**：为一个昂贵且带尖峰的仿真函数设计自适应积分的停止规则、最大预算和异常值策略；说明为何 `estimated_error` 不能替代对尖峰是否被采样到的审计。
 
 ## 练习答案提示
 
 1. 在区间两端取函数值，用底乘平均高近似线性插值下的面积，得到 $h(f(a)+f(b))/2$。
 2. $h$ 减半后 $Ch^2$ 变为 $C(h/2)^2$，所以旧误差与新误差之比趋于 4；前提是渐近区间且函数足够光滑。
 3. 对每个 $n$ 记录绝对误差与相邻比；$|x|$ 在 0 不光滑，理论高阶比可能不出现，不能将此当实现失败。
-4. 用粗细估计差分配局部误差预算，设函数调用/递归深度上限；遇到 NaN、尖峰或不连续信号时记录区间并按契约分段、回退或失败。
+4. 用粗细估计差分配局部误差预算，设函数调用/递归深度上限；`|S_2-S|/15` 只在光滑假设下可解释为误差估计。遇到 NaN、尖峰或不连续信号时记录区间并按契约分段、回退或失败。
 
 ## 延伸
 
