@@ -273,6 +273,27 @@ if (!maturity.includes(`所有 ${actualCourses} 篇实际课程文章`)) {
   errors.push(`course-maturity.md: 实际课程数应为 ${actualCourses}`)
 }
 
+// The public maturity table also reports each topic's actual course count.
+// Verify the source-derived values so the roadmap remains an honest planning
+// surface as new lessons are added.
+const maturityTopicLabels = {
+  foundations: '预备知识',
+  'linear-algebra': '线性代数',
+  'discrete-math': '离散数学',
+  'probability-ml': '概率论',
+  'numerical-computing': '数值计算',
+  'number-theory-crypto': '数论与密码学',
+}
+for (const [folder, topic] of Object.entries(maturityTopicLabels)) {
+  const count = files.filter((path) => {
+    const label = relative(docsRoot, path).replace(/\\/g, '/')
+    return label.startsWith(`${folder}/`) && !label.endsWith('rewrite-plan.md')
+  }).length
+  if (!maturity.includes(`| ${topic} | ${count} 篇 |`)) {
+    errors.push(`course-maturity.md: ${topic} 的实际课程数应为 ${count} 篇`)
+  }
+}
+
 if (errors.length) {
   console.error('内容校验失败：\n' + errors.map((error) => `- ${error}`).join('\n'))
   process.exit(1)
