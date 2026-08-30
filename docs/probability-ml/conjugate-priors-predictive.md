@@ -74,6 +74,13 @@ python -m unittest projects.naive_bayes_spam.test_beta_bernoulli
 3. **编码题**：为后验预测加入“先验强度”参数化测试，比较相同均值、不同总强度的结果。
 4. **开放题**：为低基率垃圾邮件事件选择一组先验，写明领域依据、敏感性分析和何时应重新估计。
 
+## 练习答案提示
+
+1. 后验参数为 $(2+4,3+1)$，下一次成功的后验预测是 $\alpha'/(\alpha'+\beta')$；区分后验参数与 MAP。
+2. 相乘后幂次分别为成功数加 $\alpha-1$、失败数加 $\beta-1$，正是 Beta 核；归一化常数由积分有限且参数为正保证。
+3. 保持先验均值 $\alpha/(\alpha+\beta)$ 不变，只改变总量；小样本下强先验更难被数据拉动，数据很多时差异应减小。
+4. 写明基率来源和先验等效样本量，扫描合理区间并在时间漂移、标签定义或数据源改变后重新审计；先验不是替代验证的理由。
+
 ## 延伸
 
 [最大似然](/probability-ml/maximum-likelihood)提供没有先验时的极值估计；[贝叶斯更新](/probability-ml/bayes)给出一般公式；[垃圾邮件分类器](/projects/naive-bayes-spam)将平滑用于词条件概率。下一步可学习 Dirichlet–Categorical、层级模型和后验预测检查。

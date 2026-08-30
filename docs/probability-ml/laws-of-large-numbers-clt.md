@@ -72,6 +72,13 @@ assert report["certificate"]["observed_ratio_matches_inverse_sqrt_scaling"]
 3. **编码**：比较 $n=10,100,1000$ 的经验标准误，并记录不同 seed 的波动。
 4. **开放**：为按城市随机化的实验设计合适的重抽样/方差估计单位。
 
+## 练习答案提示
+
+1. 伯努利标准误为 $\sqrt{p(1-p)/n}$；代入 $p=0.2,n=400$，不要把单次观测方差直接当均值方差。
+2. 展开 $\operatorname{Var}(\sum_iX_i)$，得到各方差之和加两两协方差；独立性正是在协方差为零处使用。
+3. 对每个 $n$ 固定重复次数并记录种子，比较经验标准误与理论 $1/\sqrt n$ 比例；单个 seed 的偏离是模拟噪声，不是理论反例。
+4. 随机化在城市层就以城市/簇为重抽样或聚合单位；逐用户重抽样会错误假定同城用户独立，通常低估方差。
+
 ## 延伸
 
 [抽样误差、置信区间与覆盖率](/probability-ml/confidence-intervals-sampling)将 CLT 近似变成区间；[蒙特卡洛与重要性采样](/probability-ml/monte-carlo-importance-sampling)把同一 $1/\sqrt n$ 规律用于随机积分。

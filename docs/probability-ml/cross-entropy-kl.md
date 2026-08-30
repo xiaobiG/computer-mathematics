@@ -70,6 +70,13 @@ assert abs(report["cross_entropy"] - report["entropy"] - report["kl_divergence"]
 3. **编码**：扩展实验，使其将自然对数结果换算为 bit，并测试有正概率事件被预测为零时返回无穷。
 4. **开放**：比较两套垃圾邮件模型的准确率、交叉熵和可靠性曲线；构造一个准确率更高但交叉熵更差的情形并解释原因。
 
+## 练习答案提示
+
+1. 交叉熵是 $-0.5\log0.9-0.5\log0.1$；KL 再减去 $H(P)=\log2$，保留符号可避免小数舍入。
+2. 代入定义后 $-\sum P\log Q+\sum P\log P=\sum P\log(P/Q)$；当 $P=Q$ 每项对数为 0。
+3. bit 单位用自然对数结果除以 $\log2$；若 $P(x)>0,Q(x)=0$ 直接返回无穷，不能用静默截断掩盖数学事件。
+4. 准确率只看最终类别，交叉熵还惩罚高置信错误；可靠性曲线检查分桶概率是否兑现，三者需要在相同留出集和分组上报告。
+
 ## 延伸
 
 [最大似然](/probability-ml/maximum-likelihood)说明为何训练最小化负对数似然；[概率校准与可靠性曲线](/probability-ml/calibration-reliability)审查概率承诺能否兑现；[蒙特卡洛与重要性采样](/probability-ml/monte-carlo-importance-sampling)则会在更复杂分布上估计期望。
