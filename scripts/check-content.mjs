@@ -21,10 +21,21 @@ async function filesIn(directory) {
   return files.flat()
 }
 
-const files = (await filesIn(docsRoot)).filter((path) => {
+const allMarkdownFiles = await filesIn(docsRoot)
+const files = allMarkdownFiles.filter((path) => {
   const [folder, filename] = relative(docsRoot, path).split(/[/\\]/)
   return courseFolders.has(folder) && filename !== 'index.md'
 })
+
+// VitePress serves `index.md` as a directory URL and every other Markdown
+// file without its extension.  Keep this map in the content checker so a
+// course link cannot silently become a reader-facing 404 after a rename.
+const pageUrls = new Set(allMarkdownFiles.map((path) => {
+  const normalized = relative(docsRoot, path).replace(/\\/g, '/')
+  if (normalized === 'index.md') return '/'
+  if (normalized.endsWith('/index.md')) return `/${normalized.slice(0, -'index.md'.length)}`
+  return `/${normalized.slice(0, -'.md'.length)}`
+}))
 
 const errors = []
 for (const path of files) {
@@ -109,6 +120,21 @@ for (const path of files) {
     }
     if (!/```(?:python)?\r?\n[\s\S]*?```/.test(source)) {
       errors.push(`${label}: v0.2 深度文章缺少可运行代码块`)
+    }
+  }
+}
+
+for (const path of allMarkdownFiles) {
+  const source = await readFile(path, 'utf8')
+  const prose = source.replace(/^```[^\n]*\r?\n[\s\S]*?^```\s*$/gm, '')
+  const label = relative(docsRoot, path)
+  // Links are intentionally checked only after stripping fenced examples:
+  // snippets may demonstrate arbitrary URLs or unfinished exercise paths.
+  const links = prose.matchAll(/\[[^\]]*\]\((\/[^\s)#]+)(?:#[^\s)]*)?\)/g)
+  for (const match of links) {
+    const target = decodeURIComponent(match[1])
+    if (!pageUrls.has(target)) {
+      errors.push(`${label}: 内部链接 ${match[1]} 找不到对应 Markdown 页面`)
     }
   }
 }
