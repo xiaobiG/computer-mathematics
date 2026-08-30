@@ -137,6 +137,18 @@ npm run build
 - 引入没有可复跑验证的动画；
 - 脱离既有 BFS、Dijkstra、Bellman–Ford、Floyd–Warshall 学习路径的随机新主题。
 
+## v1.2 增量记录
+
+### v1.2-a：同图最短路算法对照（已完成）
+
+| 字段 | 记录 |
+| --- | --- |
+| 目标 | 读者能在四类图上先核对算法前提，再解释路径、距离或拒绝结论。 |
+| 范围 | 新增[最短路算法选择](/discrete-math/shortest-path-algorithm-selection)课程、统一 Python 对照报告/证书，以及浏览器内同图对照面板。 |
+| 验证 | `python -m unittest projects.algorithm_lab.test_shortest_path_comparison`、`npm run build`、负边/负环案例的浏览器交互验证。 |
+| 差异 | 原项目仅分别展示轨迹；现在同一边表能并列审计 BFS、Dijkstra、Bellman–Ford 和 Floyd–Warshall 的适用性与拒绝理由。 |
+| 下一决策 | 在不扩展到通用图数据库的前提下，为 v1.2-b 设计受限的小图输入契约与可重放报告。 |
+
 ## 读者如何使用
 
 - 先沿专题首页完成当前主线；

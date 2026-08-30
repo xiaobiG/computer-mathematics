@@ -37,6 +37,7 @@
 - [动态规划](/discrete-math/dynamic-programming-dag)：状态设计、加权活动选择与 DAG 视角；
 - [Bellman–Ford](/discrete-math/bellman-ford)：负边、路径边数不变量与负环检测；
 - [Floyd–Warshall](/discrete-math/floyd-warshall)：全源动态规划、负边与负环边界；
+- [最短路算法选择：同图对照](/discrete-math/shortest-path-algorithm-selection)：在同一规模图上检查四种算法的前提、路径与拒绝边界；
 - [最大流最小割](/discrete-math/max-flow-min-cut)：残量边、增广路与可审计的最优证书；
 - [P、NP 与多项式归约](/discrete-math/p-np-reductions)：候选解验证、指数搜索与归约方向；
 - [离散数学深度版路线](/discrete-math/rewrite-plan)：后续文章、项目和验收标准。

@@ -68,6 +68,12 @@ assert topological_trace({"a": ["b"], "b": ["a"]})[0] is None
 
 这个交互面板用于重放固定的小图，而非替代仓库中的 `projects/algorithm_lab/bfs_trace.py`。真实图输入应继续由 Python 模块的轨迹证书和单元测试检查；浏览器面板的价值是让不变量在每一轮可见。
 
+## 浏览器内最短路算法对照
+
+<ShortestPathComparisonExplorer />
+
+面板在无权、非负权、负边和负环图之间切换，并将“拒绝前提”与“不可达”分开显示。配套的 `shortest_path_comparison.py` 会从同一边表重建四种算法的适用卡，证书也会检查被篡改的拒绝理由。
+
 3-SAT 模块将变量写为非零整数，负号表示否定：
 
 ```python
