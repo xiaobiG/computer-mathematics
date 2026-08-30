@@ -282,6 +282,62 @@ def rsa_round_trip_report(messages: list[int], key: RsaKeyPair) -> dict[str, obj
     }
 
 
+def rsa_round_trip_certificate(p: int, q: int, key: RsaKeyPair, report: dict[str, object]) -> dict[str, bool]:
+    """Replay a finite teaching RSA report, including its CRT residue claims.
+
+    The certificate is intentionally given the private factors.  It checks the
+    theorem assumptions and verifies that every reported representative agrees
+    modulo both primes after decrypting.  This is a classroom correctness
+    witness, never a real-key validation API.
+    """
+    key_certificate = rsa_keypair_certificate(p, q, key)
+    empty = {
+        "key_preconditions": key_certificate["valid"],
+        "checks_are_well_formed": False,
+        "ciphertexts_match_public_exponent": False,
+        "decryption_matches_private_exponent": False,
+        "crt_residues_recover_each_message": False,
+        "non_coprime_messages_are_classified": False,
+        "valid": False,
+    }
+    if not key_certificate["valid"] or not isinstance(report, dict):
+        return empty
+    checks = report.get("checks")
+    classified = report.get("non_coprime_messages")
+    if not isinstance(checks, list) or not isinstance(classified, list) or not checks:
+        return empty
+    try:
+        for check in checks:
+            if not isinstance(check, tuple) or len(check) != 3:
+                return empty
+            message, ciphertext, recovered = check
+            if any(not isinstance(value, int) or isinstance(value, bool) for value in check):
+                return empty
+            if not 0 <= message < key.modulus or not 0 <= ciphertext < key.modulus or not 0 <= recovered < key.modulus:
+                return empty
+    except TypeError:
+        return empty
+    expected_non_coprime = [message for message, _, _ in checks if gcd(message, key.modulus) != 1]
+    ciphertexts_match = all(ciphertext == mod_pow(message, key.public_exponent, key.modulus) for message, ciphertext, _ in checks)
+    decryptions_match = all(recovered == mod_pow(ciphertext, key.private_exponent, key.modulus) for _, ciphertext, recovered in checks)
+    crt_residues_match = all(
+        recovered % p == message % p and recovered % q == message % q
+        for message, _, recovered in checks
+    )
+    classifications_match = classified == expected_non_coprime
+    all_recovered_matches = report.get("all_recovered") == all(message == recovered for message, _, recovered in checks)
+    valid = all((ciphertexts_match, decryptions_match, crt_residues_match, classifications_match, all_recovered_matches))
+    return {
+        "key_preconditions": True,
+        "checks_are_well_formed": True,
+        "ciphertexts_match_public_exponent": ciphertexts_match,
+        "decryption_matches_private_exponent": decryptions_match,
+        "crt_residues_recover_each_message": crt_residues_match,
+        "non_coprime_messages_are_classified": classifications_match,
+        "valid": valid,
+    }
+
+
 def toy_rsa_sign(representative: int, key: RsaKeyPair) -> int:
     """Sign a small integer representative with the toy private exponent.
 

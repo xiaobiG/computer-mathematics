@@ -13,6 +13,7 @@ from projects.crypto_toybox.main import (
     raw_rsa_properties,
     RsaKeyPair,
     rsa_keypair_certificate,
+    rsa_round_trip_certificate,
     rsa_round_trip_report,
     toy_rsa_keypair,
 )
@@ -91,6 +92,19 @@ class CryptoToyboxTests(unittest.TestCase):
         self.assertTrue(report["all_recovered"])
         self.assertEqual(report["non_coprime_messages"], [0, 5, 11, 50])
         self.assertEqual([recovered for _, _, recovered in report["checks"]], [0, 5, 7, 11, 50])
+        self.assertTrue(rsa_round_trip_certificate(5, 11, key, report)["valid"])
+
+    def test_round_trip_certificate_rejects_tampered_crt_witness(self):
+        key = toy_rsa_keypair(5, 11, 3)
+        report = rsa_round_trip_report([5, 7, 11], key)
+        tampered = dict(report)
+        tampered["checks"] = list(report["checks"])
+        message, ciphertext, recovered = tampered["checks"][1]
+        tampered["checks"][1] = (message, ciphertext, (recovered + 1) % key.modulus)
+        certificate = rsa_round_trip_certificate(5, 11, key, tampered)
+        self.assertFalse(certificate["decryption_matches_private_exponent"])
+        self.assertFalse(certificate["crt_residues_recover_each_message"])
+        self.assertFalse(certificate["valid"])
 
     def test_invalid_message_is_rejected(self):
         key = toy_rsa_keypair(61, 53, 17)

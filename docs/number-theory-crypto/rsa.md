@@ -57,7 +57,7 @@ $$c=7^3\bmod55=13,\qquad m'=13^{27}\bmod55=7.$$
 ```python
 from projects.crypto_toybox.main import (
     decrypt, encrypt, raw_rsa_properties, rsa_keypair_certificate,
-    rsa_round_trip_report, toy_rsa_keypair,
+    rsa_round_trip_certificate, rsa_round_trip_report, toy_rsa_keypair,
 )
 
 key = toy_rsa_keypair(5, 11, 3)
@@ -70,9 +70,10 @@ assert raw_rsa_properties(2, 3, key) == {"deterministic": True, "multiplicative"
 report = rsa_round_trip_report([0, 5, 7, 11, 50], key)
 assert report["all_recovered"]
 assert report["non_coprime_messages"] == [0, 5, 11, 50]
+assert rsa_round_trip_certificate(5, 11, key, report)["valid"]
 ```
 
-运行 `python -m unittest projects.crypto_toybox.test_main`。`toy_rsa_keypair` 会先拒绝非质数因子和不满足 $1<e<\varphi(n)$、互素条件的指数，避免把证明前提静默留给调用者。`rsa_keypair_certificate(5, 11, key)` 则独立重算这些教学前提，并审计 $ed\bmod\varphi(n)=1$；篡改私钥指数会使证书失效。它要求传入 $p,q$，正是为了强调这不是可以安全暴露给真实系统的密钥检查方式。`rsa_round_trip_report` 还明确包含 $m=5,11,50$ 等与 $n$ 不互素的代表元：它把 CRT 覆盖的那部分正确性变成有限样例审计。`raw_rsa_properties` 不产生攻击载荷或自制填充，它只核对同一明文总产生同一密文，以及 $E(m_1m_2\bmod n)=E(m_1)E(m_2)\bmod n$。这些为真的断言正是“数学可解密”并不足以构成安全加密的可执行证据。
+运行 `python -m unittest projects.crypto_toybox.test_main`。`toy_rsa_keypair` 会先拒绝非质数因子和不满足 $1<e<\varphi(n)$、互素条件的指数，避免把证明前提静默留给调用者。`rsa_keypair_certificate(5, 11, key)` 则独立重算这些教学前提，并审计 $ed\bmod\varphi(n)=1$；篡改私钥指数会使证书失效。它要求传入 $p,q$，正是为了强调这不是可以安全暴露给真实系统的密钥检查方式。`rsa_round_trip_report` 还明确包含 $m=5,11,50$ 等与 $n$ 不互素的代表元；`rsa_round_trip_certificate` 会重新计算每条密文与解密值，并分别检查结果在模 $p$、模 $q$ 下与原消息相同。它把 CRT 覆盖的那部分正确性变成可篡改检测的有限样例审计。`raw_rsa_properties` 不产生攻击载荷或自制填充，它只核对同一明文总产生同一密文，以及 $E(m_1m_2\bmod n)=E(m_1)E(m_2)\bmod n$。这些为真的断言正是“数学可解密”并不足以构成安全加密的可执行证据。
 
 重复平方需要 $O(\log e)$ 次模乘；大整数模乘本身有成本。真实 RSA 使用经过审计的库和 CRT 等优化，但优化也需要防止故障攻击与计时泄漏。
 
@@ -90,14 +91,14 @@ assert report["non_coprime_messages"] == [0, 5, 11, 50]
 
 1. **基础**：用 $p=3,q=11,e=3$ 求 $n,\varphi(n),d$，并验证一个消息的加解密。
 2. **推导**：用中国剩余定理补全 $m$ 与 $n$ 不互素时的正确性论证。
-3. **编码**：为 `encrypt_toy` 添加负数、等于 $n$、大于 $n$ 的输入测试。
+3. **编码**：篡改 `rsa_round_trip_report` 中的一条密文或恢复消息，确认 `rsa_round_trip_certificate` 拒绝它；再为 `encrypt_toy` 添加负数、等于 $n$、大于 $n$ 的输入测试。
 4. **开放**：查阅 OAEP 要解决的确定性/可塑性问题，并解释为何“自己实现填充”仍不安全。
 
 ## 练习答案提示
 
 1. 先算 $n=33$、$\varphi(n)=20$，再解 $3d\equiv1\pmod{20}$；选择 $0\le m<n$ 的消息，并用重复平方核验两次模幂。
 2. 分别证明 $m^{ed}\equiv m\pmod p$ 与 $\pmod q$：若对应素数整除 $m$，同余立即成立；否则用费马小定理，最后由 CRT 合并。
-3. 明确教学 API 的消息域是 $0\le m<n$；三类输入都应断言拒绝方式一致，并保留一个边界内的正常回归用例。
+3. 明确教学 API 的消息域是 $0\le m<n$；证书需重新计算公钥幂、私钥幂和模 $p,q$ 的残余；三类越界输入都应断言拒绝方式一致，并保留一个边界内的正常回归用例。
 4. OAEP 的随机编码阻止同明文得到同密文，并破坏裸 RSA 的直接可乘关系；安全性还依赖经过审计的参数、随机数和恒定时间实现，因此不能自行拼接填充。
 
 ## 延伸与下一步
