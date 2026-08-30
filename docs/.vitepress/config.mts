@@ -277,6 +277,10 @@ export default defineConfig({
               text: "子群体性能：样本量与不确定性",
               link: "/probability-ml/subgroup-performance-uncertainty",
             },
+            {
+              text: "分组校准：总体可信，局部为何失真",
+              link: "/probability-ml/subgroup-calibration-uncertainty",
+            },
           ],
         },
       ],

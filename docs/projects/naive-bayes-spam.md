@@ -21,7 +21,7 @@ python -m unittest discover -s projects/naive_bayes_spam -p "test_*.py"
 
 $$P(w\mid y)=\frac{\operatorname{count}(w,y)+1}{\sum_{w'}\operatorname{count}(w',y)+|V|}.$$
 
-预测时累加 $\log P(y)+\sum_w\log P(w\mid y)$，避免小概率相乘下溢。两类分数的差经稳定 sigmoid 转为 $P(y=1\mid x)$；项目会计算精确率、召回率、F1、Brier 分数和可靠性分箱。每个非空箱还报告正例计数和 Wilson 区间，避免把计数为 1 的频率当作精确校准率。[Platt scaling 再校准器](/probability-ml/recalibration)只接收显式的验证分数与标签，以 logistic 后处理审计 Brier、对数损失与优化轨迹，避免把测试标签隐藏进 `fit`。[数据漂移报告](/probability-ml/data-drift-monitoring)用 PSI、总变差距离和独立重放证书比较参考期与当前期的类别频率；[带标签窗口报告](/probability-ml/labeled-window-performance-degradation)则在标签到达后比较混淆矩阵、准确率 Wilson 区间、Brier 分数和对数损失。两者都只报告风险信号，不自动决定重训。二元后验模块验证低基率下的证据归一化、无信息证据和条件独立的连续更新；配套伯努利模块验证 MLE、端点对数似然和 Beta 先验下的 MAP。测试覆盖两类训练前提、未见词平滑、概率归一化、混淆矩阵、分箱计数守恒、Wilson 边界、再校准输入契约、漂移报告与带标签窗口报告的篡改。
+预测时累加 $\log P(y)+\sum_w\log P(w\mid y)$，避免小概率相乘下溢。两类分数的差经稳定 sigmoid 转为 $P(y=1\mid x)$；项目会计算精确率、召回率、F1、Brier 分数和可靠性分箱。每个非空箱还报告正例计数和 Wilson 区间，避免把计数为 1 的频率当作精确校准率。[Platt scaling 再校准器](/probability-ml/recalibration)只接收显式的验证分数与标签，以 logistic 后处理审计 Brier、对数损失与优化轨迹，避免把测试标签隐藏进 `fit`。[数据漂移报告](/probability-ml/data-drift-monitoring)用 PSI、总变差距离和独立重放证书比较参考期与当前期的类别频率；[带标签窗口报告](/probability-ml/labeled-window-performance-degradation)则在标签到达后比较混淆矩阵、准确率 Wilson 区间、Brier 分数和对数损失。[分组校准报告](/probability-ml/subgroup-calibration-uncertainty)会在预先定义且样本充足的组内固定分箱，保留 ECE、Brier、阈值与重放证书，从而拒绝“总体 ECE 很低便代表每组可信”的推断。所有报告只产生复核信号，不自动决定重训。二元后验模块验证低基率下的证据归一化、无信息证据和条件独立的连续更新；配套伯努利模块验证 MLE、端点对数似然和 Beta 先验下的 MAP。测试覆盖两类训练前提、未见词平滑、概率归一化、混淆矩阵、分箱计数守恒、Wilson 边界、再校准输入契约、漂移报告、带标签窗口报告与分组校准报告的篡改。
 
 ## 工程边界
 
