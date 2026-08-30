@@ -38,3 +38,33 @@ def sum_of_squares_report(count: int) -> dict[str, float | int | dict[str, bool]
             "empty_sum_is_zero": count != 0 or enumerated == 0.0,
         },
     }
+
+
+def sum_of_squares_certificate(
+    count: int, report: dict[str, float | int | dict[str, bool]]
+) -> dict[str, bool]:
+    """Recompute the sigma loop and closed form without trusting a report."""
+    empty = {
+        "count_matches": False,
+        "enumeration_matches_half_open_sum": False,
+        "closed_form_matches": False,
+        "empty_sum_boundary_matches": False,
+        "valid": False,
+    }
+    try:
+        expected = sum_of_squares_report(count)
+        if not isinstance(report, dict):
+            return empty
+        fields_match = report.get("count") == expected["count"]
+        enumeration_matches = report.get("enumerated_sum") == expected["enumerated_sum"]
+        closed_form_matches = report.get("closed_form") == expected["closed_form"]
+        empty_boundary = count != 0 or report.get("enumerated_sum") == 0.0
+        return {
+            "count_matches": fields_match,
+            "enumeration_matches_half_open_sum": enumeration_matches,
+            "closed_form_matches": closed_form_matches,
+            "empty_sum_boundary_matches": empty_boundary,
+            "valid": fields_match and enumeration_matches and closed_form_matches and empty_boundary,
+        }
+    except (TypeError, ValueError):
+        return empty

@@ -40,15 +40,20 @@ $$S_n=\frac{n(n+1)(2n+1)}6.$$
 ## 算法实现：把索引约定写成 API
 
 ```python
-from projects.foundations_lab.summation import finite_sum, sum_of_squares_report
+from projects.foundations_lab.summation import (
+    finite_sum,
+    sum_of_squares_certificate,
+    sum_of_squares_report,
+)
 
 assert finite_sum(lambda i: i * i, 1, 4) == 14.0  # 1^2 + 2^2 + 3^2
 report = sum_of_squares_report(10)
 assert report["certificate"]["enumeration_matches_closed_form"]
+assert sum_of_squares_certificate(10, report)["valid"]
 assert sum_of_squares_report(0)["certificate"]["empty_sum_is_zero"]
 ```
 
-运行 `python -m unittest projects.foundations_lab.test_summation`。`finite_sum` 明确采用半开区间 `[start, stop)` 并拒绝倒置区间、非有限项；报告把枚举和闭式放在一起。枚举时间为 $O(n)$、额外空间为 $O(1)$，闭式为 $O(1)$；大数组中应先理解这一语义，再使用 NumPy 的向量化归约，而不是把索引错误加速。
+运行 `python -m unittest projects.foundations_lab.test_summation`。`finite_sum` 明确采用半开区间 `[start, stop)` 并拒绝倒置区间、非有限项；报告把枚举和闭式放在一起。`sum_of_squares_certificate` 会重新运行两条路径并检查 `n=0` 的空和边界，因此篡改枚举和或闭式不能通过。枚举时间为 $O(n)$、额外空间为 $O(1)$，闭式为 $O(1)$；大数组中应先理解这一语义，再使用 NumPy 的向量化归约，而不是把索引错误加速。
 
 ## 正确性、边界与常见误区
 
@@ -62,14 +67,14 @@ assert sum_of_squares_report(0)["certificate"]["empty_sum_is_zero"]
 
 1. **基础**：写出 `range(2, 5)` 对应的求和下标与结果 $\sum i$。
 2. **推导**：用归纳法证明平方和闭式从 $n$ 到 $n+1$ 的步骤。
-3. **编码**：实现 $\sum_{i=0}^{n-1}(2i+1)$ 并用 $n^2$ 验证。
+3. **编码**：篡改平方和报告中的枚举值或闭式，确认 `sum_of_squares_certificate` 拒绝；再实现 $\sum_{i=0}^{n-1}(2i+1)$ 并用 $n^2$ 验证。
 4. **开放**：比较 Python 循环与 NumPy `sum` 的语义、浮点累加顺序和性能边界。
 
 ## 练习答案提示
 
 1. `range(2, 5)` 给出 $2,3,4$；先写清半开区间，再做求和，避免把 5 误算进去。
 2. 基例代入 $n=0$（或题目约定的起点）；归纳步将 $S_{n+1}$ 写成 $S_n+(n+1)^2$，代入假设后通分化简。
-3. 用 `range(n)` 枚举 $0$ 到 $n-1$，并覆盖 $n=0$；比较枚举值与 $n*n$，不要只测试一个正整数。
+3. 先让证书重算 `[1,n+1)` 与闭式，再用 `range(n)` 枚举 $0$ 到 $n-1$，并覆盖 $n=0$；比较枚举值与 $n*n$，不要只测试一个正整数。
 4. 先确认两者处理的轴、空数组和数据类型是否相同；性能比较要包含数组创建成本，数值比较要注意归约顺序可能不同。
 
 ## 延伸
