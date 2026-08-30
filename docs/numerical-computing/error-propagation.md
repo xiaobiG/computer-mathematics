@@ -39,6 +39,26 @@ $$\varepsilon_a+\varepsilon_b+\varepsilon_a\varepsilon_b=(1+\varepsilon_a)(1+\va
 
 一阶近似常写成 $\varepsilon_a+\varepsilon_b$，但实验会保留二阶项，避免把“近似”误写成精确等式。
 
+## 从乘法推广到一阶误差传播
+
+前面的乘法并非孤例。若标量函数 $f(x_1,\ldots,x_m)$ 在当前输入附近可微，小扰动满足泰勒展开
+
+$$
+\delta f\approx \sum_{j=1}^{m}\frac{\partial f}{\partial x_j}\delta x_j,
+\qquad
+|\delta f|\lesssim\sum_{j=1}^{m}\left|\frac{\partial f}{\partial x_j}\right||\delta x_j|.
+$$
+
+右侧是一个**一阶敏感性尺度**：偏导数告诉我们每个输入单位误差会如何传到输出，绝对值和求和给出最坏方向的线性组合。它不是任意大扰动下的严格界，除非再控制二阶余项。
+
+例如 $f(a,b)=ab$ 在 $(100,50)$ 处的梯度为 $(50,100)$。若 $a,b$ 都有最多 1 的绝对误差，一阶尺度为 $50\times1+100\times1=150$；但把两者都增加 1 时，真实变化为
+
+$$
+(101)(51)-(100)(50)=151,
+$$
+
+多出的 1 正是 $\delta a\,\delta b$。这与上一节保留的相对误差二阶项完全一致：线性化很好地解释局部敏感性，却不能把它伪装成精确证书。
+
 ## 为什么相减特别危险
 
 函数 $f(a,b)=a-b$ 对输入相对扰动的相对条件数可写为
@@ -51,6 +71,7 @@ $$\kappa_{-}(a,b)=\frac{|a|+|b|}{|a-b|}.$$
 
 ```python
 from projects.floating_point_museum.error_analysis import (
+    first_order_absolute_change_scale,
     product_relative_error_bound,
     relative_error,
     subtraction_condition_number,
@@ -58,10 +79,11 @@ from projects.floating_point_museum.error_analysis import (
 
 assert relative_error(1000.0, 1001.0) == 0.001
 assert product_relative_error_bound(0.01, 0.02) == 0.0302
+assert first_order_absolute_change_scale([50.0, 100.0], [1.0, 1.0]) == 150.0
 assert subtraction_condition_number(1e16 + 2.0, 1e16) == 1e16
 ```
 
-运行 `python -m unittest projects.floating_point_museum.test_error_analysis`。模块拒绝非有限值，拒绝零真值的相对误差，并将完全相等的相减条件数显式返回无穷。所有公式均为 $O(1)$；重要的不是计算成本，而是先确认你报告的是问题的敏感性、近似值的误差，还是算法的稳定性。
+运行 `python -m unittest projects.floating_point_museum.test_error_analysis`。模块拒绝非有限值，拒绝零真值的相对误差，并将完全相等的相减条件数显式返回无穷；一阶传播函数还拒绝长度不一致和负绝对误差。所有公式均为 $O(m)$ 或更低，其中 $m$ 是输入变量数；重要的不是计算成本，而是先确认你报告的是问题的敏感性、近似值的误差，还是算法的稳定性。
 
 ## 正确性与工程边界
 
@@ -76,14 +98,14 @@ assert subtraction_condition_number(1e16 + 2.0, 1e16) == 1e16
 
 1. **基础**：比较真值 $2$ 的近似 $2.01$ 与真值 $0.002$ 的近似 $0.012$ 的绝对、相对误差。
 2. **推导**：从 $(1+e_a)(1+e_b)$ 展开乘法相对误差，并给出三项上界。
-3. **编码**：为三项乘积写误差界，并与随机的小扰动样本核对其上界性质。
+3. **编码**：为三项乘积写一阶敏感性尺度，并与精确展开比较二阶项何时不可忽略。
 4. **开放**：为 $\sqrt{x+1}-\sqrt{x}$ 在 $x\gg1$ 的计算写出相减条件分析和有理化改写，并说明仍需报告哪些误差证据。
 
 ## 练习答案提示
 
 1. 两组绝对误差都为 $0.01$，但相对误差分别为 $0.005$ 与 $5$；这说明零附近不能只用相对误差。
 2. 展开得 $e_a+e_b+e_ae_b$；取绝对值并用 $|e_a|\le\delta_a,|e_b|\le\delta_b$，上界为 $\delta_a+\delta_b+\delta_a\delta_b$。
-3. 三项可逐步合并上界，或直接展开 $(1+e_1)(1+e_2)(1+e_3)-1$；随机样本只能检验实现未明显违反界，不能替代证明。
+3. 偏导数给出一阶项，精确展开还包含两两乘积和三项乘积；随机样本只能检验实现未明显违背推导，不能把线性化当作严格有限扰动界。
 4. 乘以共轭式得到 $1/(\sqrt{x+1}+\sqrt{x})$；仍要比较高精度基准、报告输入扰动和零/极大 $x$ 的边界行为。
 
 ## 延伸

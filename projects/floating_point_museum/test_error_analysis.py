@@ -3,6 +3,7 @@ from math import inf
 
 from projects.floating_point_museum.error_analysis import (
     absolute_error,
+    first_order_absolute_change_scale,
     product_relative_error_bound,
     relative_error,
     subtraction_condition_number,
@@ -21,6 +22,17 @@ class ErrorAnalysisTests(unittest.TestCase):
         self.assertAlmostEqual(bound, 0.0302)
         actual = relative_error(100.0 * 50.0, (100.0 * 1.01) * (50.0 * 1.02))
         self.assertLessEqual(actual, bound + 1e-15)
+
+    def test_first_order_scale_is_explicitly_a_local_linearisation(self):
+        # For f(a, b)=ab at (100, 50), partials are (50, 100).
+        self.assertEqual(first_order_absolute_change_scale([50.0, 100.0], [1.0, 1.0]), 150.0)
+        # Both inputs increasing by one changes the exact product by 151;
+        # the extra one is the second-order delta_a * delta_b term.
+        self.assertEqual((101.0 * 51.0) - (100.0 * 50.0), 151.0)
+        with self.assertRaises(ValueError):
+            first_order_absolute_change_scale([1.0], [1.0, 2.0])
+        with self.assertRaises(ValueError):
+            first_order_absolute_change_scale([1.0], [-0.1])
 
     def test_subtraction_condition_number_exposes_cancellation_and_contracts(self):
         self.assertEqual(subtraction_condition_number(10.0, 0.0), 1.0)

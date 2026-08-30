@@ -35,6 +35,26 @@ def product_relative_error_bound(left_relative: float, right_relative: float) ->
     return (1.0 + left_relative) * (1.0 + right_relative) - 1.0
 
 
+def first_order_absolute_change_scale(partials: list[float], input_absolute_errors: list[float]) -> float:
+    """Return sum_i |df/dx_i| * |delta x_i| for a local linearisation.
+
+    This is a first-order sensitivity scale, not an exact finite-perturbation
+    bound: nonlinear second- and higher-order terms can make the actual change
+    larger.  Keeping that distinction in the API name prevents a common
+    numerical-analysis mistake in teaching code.
+    """
+    if not isinstance(partials, list) or not isinstance(input_absolute_errors, list):
+        raise ValueError("partials and input_absolute_errors must be lists")
+    if not partials or len(partials) != len(input_absolute_errors):
+        raise ValueError("partials and input_absolute_errors need the same nonzero length")
+    for index, (partial, error) in enumerate(zip(partials, input_absolute_errors)):
+        _finite(partial, f"partial[{index}]")
+        _finite(error, f"input_absolute_errors[{index}]")
+        if error < 0.0:
+            raise ValueError("input absolute errors must be non-negative")
+    return sum(abs(partial) * error for partial, error in zip(partials, input_absolute_errors))
+
+
 def subtraction_condition_number(left: float, right: float) -> float:
     """Return (|a|+|b|)/|a-b|, exposing cancellation sensitivity."""
     _finite(left, "left")
