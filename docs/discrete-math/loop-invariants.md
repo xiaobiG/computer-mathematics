@@ -64,6 +64,39 @@ assert steps[-1].next_left == steps[-1].next_right  # 终止时是空区间
 
 区间长度每轮至多约减半，时间复杂度为 $O(\log n)$，额外空间为 $O(1)$。这份证明同时解释了为何不能把更新写成 `left = mid`：当 `left == mid` 时区间可能不再缩小，终止性失效。
 
+## 从“找到一个”到“找到边界”：`lower_bound`
+
+真实程序更常问的是“应插到哪里”，或“重复值块从哪里开始”。定义
+
+$$
+p=\min\{i\in\{0,\ldots,n\}: i=n\ \text{或}\ a_i\ge target\}。
+$$
+
+这个定义允许 $p=0$ 和 $p=n$，所以空数组、全部元素较小和重复值都不需要额外分支。此时比“目标还在候选区间”更强、也更有用的不变量是：
+
+$$
+\forall i<left,\ a_i<target;\qquad
+\forall i\ge right,\ a_i\ge target;\qquad
+0\le left\le right\le n.
+$$
+
+取中点后，若 $a_{mid}<target$，则 `mid` 及其左侧都已证明不能是边界，更新 `left = mid + 1`；否则 `mid` 及右侧仍可能包含第一个不小于目标的元素，更新 `right = mid`。两种更新都保持上述三部分命题，且候选区间严格缩小。停止时 `left == right == p`，左右两个已排除区间恰好给出定义。
+
+```python
+from projects.algorithm_lab.binary_search_trace import (
+    lower_bound_trace,
+    lower_bound_trace_respects_invariant,
+)
+
+values = [1, 3, 3, 3, 7]
+index, steps = lower_bound_trace(values, 3)
+
+assert index == 1                 # 第一个 3，而不是任意一个 3
+assert lower_bound_trace_respects_invariant(values, 3, index, steps)
+```
+
+验证器重放每次更新，并检查 `left` 左侧严格小于目标、`right` 右侧不小于目标。它把“返回值看起来正确”升级为可独立核查的边界证书。
+
 ## 失败案例与工程边界
 
 二分查找的前提是数组按同一比较规则有序。实验实现会拒绝未排序输入；许多库为了性能不会做这一步，因此对未排序数组运行通常仍会终止，却没有正确性保证。浮点数、字符串本地化排序或比较器不满足传递性时，也必须先明确“有序”的语义。
@@ -78,14 +111,14 @@ assert steps[-1].next_left == steps[-1].next_right  # 终止时是空区间
 
 1. **基础**：写出寻找第一个不小于 `target` 的半开区间不变量。
 2. **推导**：证明上面程序最多执行 $\lceil\log_2(n+1)\rceil$ 次未命中的迭代。
-3. **编码**：实现 `lower_bound`，并测试空数组、重复元素和所有元素小于目标。
+3. **编码**：阅读 `lower_bound_trace` 的轨迹，篡改一次更新并让验证器拒绝它；再测试空数组、重复元素和所有元素小于目标。
 4. **开放**：为滑动窗口中“窗口和不超过阈值”的算法设计一个不变量和终止度量。
 
 ## 练习答案提示
 
 1. 用半开区间 `[left, right)` 表示仍可能成为答案的位置；分别说明左侧与右侧各排除了什么。
 2. 每次未命中后区间长度至少减半；从长度 $n$ 缩到零或一时再取上整。
-3. `lower_bound` 的返回值允许等于数组长度；把空数组、全小于和重复块当作三个独立契约。
+3. `lower_bound` 的返回值允许等于数组长度；验证器应同时检查左侧全小于、右侧全不小于和每步严格缩小；把空数组、全小于和重复块当作三个独立契约。
 4. 将“窗口合法”与“左端点只前进”分开写；终止度量可取左右指针到末端的剩余距离。
 
 ## 延伸与下一步
