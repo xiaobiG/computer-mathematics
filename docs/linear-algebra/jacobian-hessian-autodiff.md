@@ -95,6 +95,13 @@ assert all(item.absolute_error < 1e-6 for item in report)
 3. **编码题**：给 `central_gradient` 加入相对误差检查；故意把 `analytic_gradient` 的一个符号写错，验证测试能捕获它。
 4. **开放题**：比较前向模式和反向模式在“输入 3 维、输出 10 万维”与“输入 1 亿维、输出标量”两个问题上的选择。
 
+## 练习答案提示
+
+1. Jacobian 的第一行是 $(1,1)$、第二行是 $(y,x)$；在 $(2,3)$ 处乘 $(1,-1)$，逐行点积得到 JVP。
+2. 先写分量形式 $\partial h_i/\partial x_j=\sum_k(\partial g_i/\partial f_k)(\partial f_k/\partial x_j)$，再识别矩阵乘法的行列指标顺序。
+3. 相对误差分母需防止接近零，可与绝对误差联合；固定输入和步长后只翻转一个解析分量，断言该坐标失败而其余坐标仍通过。
+4. 前向模式的成本随输入方向数增长，反向模式随输出方向数增长；因此前者适合少输入多输出，后者适合标量损失对大量参数求梯度。
+
 ## 延伸
 
 可将 Jacobian 的局部线性模型与[数值微分](/numerical-computing/numerical-differentiation)的误差边界对照。继续学习 Gauss–Newton、Hessian-vector product 和计算图内存检查点；在工程实现中优先使用成熟自动微分框架，而不是手工维护大模型梯度。
