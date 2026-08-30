@@ -100,6 +100,13 @@ $$x\in A\iff f(x)\in B.$$
 3. **编码题**：为 `find_satisfying_assignment` 加入变量数上限，超限时抛出异常；测试该保护不会改变小公式答案。
 4. **开放题**：为一个课程排程系统设计“精确求解、近似/启发式、人工回退”的决策规则，并写明哪些指标触发回退。
 
+## 练习答案提示
+
+1. 对任意 $P$ 问题，验证器直接运行其多项式时间判定算法并忽略空证书；证书长度为 0，仍满足 NP 定义。
+2. 先用归约在多项式时间构造 $f(x)$，再运行 $B$ 的多项式算法；yes/no 双向等价保证输出正确，两段多项式时间相加/复合仍为多项式。
+3. 上限是教学枚举器的资源契约，不是复杂度证明；测试上限内的可满足与不可满足公式保持原结果，并断言超限异常。
+4. 将规模、时限、冲突率和可接受最优性差距写成明确阈值；回退时保留不可行/超时证据与人工可修改的约束解释。
+
 ## 延伸
 
 [渐进复杂度](/discrete-math/asymptotic-complexity)给出增长率语言；[命题逻辑与归纳法](/discrete-math/logic-induction-proofs)提供构造与双向证明的基础；[算法可视化实验室](/projects/algorithm-lab)还包含 BFS 与拓扑排序的可验证轨迹。若继续学习，可检索关键词：Cook–Levin theorem、Karp reduction、parameterized complexity、approximation algorithms。
