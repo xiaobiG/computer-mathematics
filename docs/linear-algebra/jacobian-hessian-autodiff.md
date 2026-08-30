@@ -52,7 +52,7 @@ $$J_h(x)=J_g(f(x))J_f(x).$$
 $$\frac{\partial L}{\partial x}=2z(y+\cos x),\qquad\frac{\partial L}{\partial y}=2zx.$$
 
 ```python
-from projects.linear_algebra_lab.forward_autodiff import demo_jvp_certificate
+from projects.linear_algebra_lab.forward_autodiff import demo_hvp_certificate, demo_jvp_certificate
 from projects.linear_algebra_lab.gradient_check import demo_loss, demo_loss_gradient, gradient_check
 
 point = [0.4, -1.2]
@@ -61,12 +61,17 @@ direction = [0.3, -0.4]
 # 前向模式在一次计算图遍历中给出 JVP；它应等于 grad(L)^T v。
 assert demo_jvp_certificate(point, direction)["matches"]
 
+# Hessian 不必显式用于优化；本例将 H @ v 与梯度的方向差分核对。
+hvp = demo_hvp_certificate(point, direction)
+assert hvp["matches"]
+assert abs(hvp["hessian"][0][1] - hvp["hessian"][1][0]) < 1e-12
+
 # 中心差分只作为独立的、小规模梯度检查。
 report = gradient_check(demo_loss, demo_loss_gradient, point)
 assert all(item.absolute_error < 1e-6 for item in report)
 ```
 
-`Dual(value, tangent)` 将一个数与沿指定方向的导数一起传播；加法与乘法分别执行链式法则和乘积法则。`demo_jvp_certificate` 将前向模式的结果与解析梯度点积比较，直接验证 $Jv=\nabla L^Tv$（标量损失时）。报告逐坐标记录解析值、数值值、绝对误差和尺度相关相对误差；测试还故意把第一个解析导数取反，确认只有该坐标的检查失败。中心差分用于**测试**而非训练：计算 $n$ 维梯度需约 $2n$ 次前向调用，步长还会遭受截断/舍入权衡。应只在小网络、小批量和固定随机种子下抽样检查若干参数。
+`Dual(value, tangent)` 将一个数与沿指定方向的导数一起传播；加法与乘法分别执行链式法则和乘积法则。`demo_jvp_certificate` 将前向模式的结果与解析梯度点积比较，直接验证 $Jv=\nabla L^Tv$（标量损失时）。`demo_hvp_certificate` 再以中心差分 $(\nabla L(x+hv)-\nabla L(x-hv))/(2h)$ 核对解析 $H(x)v$，并检查 Hessian 的对称非对角元；这把二阶泰勒模型与可运行的曲率方向连接起来。报告逐坐标记录解析值、数值值、绝对误差和尺度相关相对误差；测试还故意把第一个解析导数取反，确认只有该坐标的检查失败。中心差分用于**测试**而非训练：计算 $n$ 维梯度需约 $2n$ 次前向调用，步长还会遭受截断/舍入权衡。应只在小网络、小批量和固定随机种子下抽样检查若干参数。
 
 ## 算法与复杂度
 
@@ -92,14 +97,14 @@ assert all(item.absolute_error < 1e-6 for item in report)
 
 1. **基础题**：写出 $f(x,y)=(x+y,xy)$ 的 Jacobian，并计算它在 $(2,3)$ 处乘方向 $(1,-1)$ 的结果。
 2. **推导题**：从 $h=g\circ f$ 的分量链式法则推导 $J_h=J_gJ_f$。
-3. **编码题**：给 `central_gradient` 加入相对误差检查；故意把 `analytic_gradient` 的一个符号写错，验证测试能捕获它。
+3. **编码题**：给 `central_gradient` 加入相对误差检查；故意把 `analytic_gradient` 的一个符号写错，验证测试能捕获它；改变 HVP 差分步长，比较截断与舍入误差。
 4. **开放题**：比较前向模式和反向模式在“输入 3 维、输出 10 万维”与“输入 1 亿维、输出标量”两个问题上的选择。
 
 ## 练习答案提示
 
 1. Jacobian 的第一行是 $(1,1)$、第二行是 $(y,x)$；在 $(2,3)$ 处乘 $(1,-1)$，逐行点积得到 JVP。
 2. 先写分量形式 $\partial h_i/\partial x_j=\sum_k(\partial g_i/\partial f_k)(\partial f_k/\partial x_j)$，再识别矩阵乘法的行列指标顺序。
-3. 相对误差分母需防止接近零，可与绝对误差联合；固定输入和步长后只翻转一个解析分量，断言该坐标失败而其余坐标仍通过。
+3. 相对误差分母需防止接近零，可与绝对误差联合；固定输入和步长后只翻转一个解析分量，断言该坐标失败而其余坐标仍通过。HVP 检查应比较 $H v$ 与梯度的中心差分；步长过大有截断误差，过小会放大舍入误差。
 4. 前向模式的成本随输入方向数增长，反向模式随输出方向数增长；因此前者适合少输入多输出，后者适合标量损失对大量参数求梯度。
 
 ## 延伸

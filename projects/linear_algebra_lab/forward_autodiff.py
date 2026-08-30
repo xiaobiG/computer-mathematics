@@ -87,3 +87,48 @@ def demo_jvp_certificate(point: list[float], direction: list[float], tolerance: 
             1.0, abs(result.tangent), abs(reverse_identity),
         ),
     }
+
+
+def demo_loss_hessian(point: list[float]) -> list[list[float]]:
+    """Return the analytic Hessian of L(x,y)=(xy+sin(x))^2."""
+    if len(point) != 2 or any(not isinstance(value, (int, float)) or isinstance(value, bool) or not isfinite(value)
+                              for value in point):
+        raise ValueError("demo loss expects exactly two finite variables")
+    x, y = point
+    intermediate = x * y + sin(x)
+    slope_x = y + cos(x)
+    return [
+        [2.0 * slope_x * slope_x - 2.0 * intermediate * sin(x), 2.0 * x * slope_x + 2.0 * intermediate],
+        [2.0 * x * slope_x + 2.0 * intermediate, 2.0 * x * x],
+    ]
+
+
+def demo_hvp_certificate(
+    point: list[float], direction: list[float], *, step: float = 1e-5, tolerance: float = 1e-7,
+) -> dict[str, object]:
+    """Compare H(point) @ direction with a central difference of gradients.
+
+    The finite difference is a small-scale test oracle only: its step has both
+    truncation and round-off error, unlike the analytic Hessian product.
+    """
+    if (len(point) != 2 or len(direction) != 2
+            or any(not isinstance(value, (int, float)) or isinstance(value, bool) or not isfinite(value)
+                   for value in point + direction)
+            or not isfinite(step) or not isfinite(tolerance) or step <= 0 or tolerance <= 0):
+        raise ValueError("point, direction, step and tolerance must be finite valid values")
+    hessian = demo_loss_hessian(point)
+    analytic_hvp = [sum(row[column] * direction[column] for column in range(2)) for row in hessian]
+    plus = [coordinate + step * tangent for coordinate, tangent in zip(point, direction)]
+    minus = [coordinate - step * tangent for coordinate, tangent in zip(point, direction)]
+    plus_gradient = demo_loss_gradient(plus)
+    minus_gradient = demo_loss_gradient(minus)
+    numerical_hvp = [(upper - lower) / (2.0 * step) for upper, lower in zip(plus_gradient, minus_gradient)]
+    absolute_error = [abs(left - right) for left, right in zip(analytic_hvp, numerical_hvp)]
+    return {
+        "hessian": hessian,
+        "analytic_hvp": analytic_hvp,
+        "numerical_hvp": numerical_hvp,
+        "absolute_error": absolute_error,
+        "matches": all(error <= tolerance * max(1.0, abs(analytic), abs(numerical))
+                       for error, analytic, numerical in zip(absolute_error, analytic_hvp, numerical_hvp)),
+    }
