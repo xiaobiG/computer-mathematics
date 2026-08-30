@@ -44,21 +44,28 @@ $$P(X_{next}=1\mid D)=E[p\mid D]=\frac{\alpha+h}{\alpha+\beta+h+t}.$$
 ## 可运行实验
 
 ```python
-from projects.naive_bayes_spam.beta_bernoulli import posterior_parameters, posterior_predictive_success
+from projects.naive_bayes_spam.beta_bernoulli import beta_bernoulli_report
 
-assert posterior_parameters([1, 1, 0], 2, 3) == (4, 4)
-assert posterior_predictive_success([1], 1, 1) == 2 / 3
+report = beta_bernoulli_report([1, 1, 0], 2, 3)
+assert report["posterior"] == (4, 4)
+assert report["posterior_predictive_success"] == 1 / 2
+assert report["interior_map"] == 1 / 2
+assert report["certificate"]["valid"]
+
+endpoint_report = beta_bernoulli_report([1], 1, 1)
+assert endpoint_report["posterior_predictive_success"] == 2 / 3
+assert endpoint_report["interior_map"] is None
 ```
 
 ```bash
 python -m unittest projects.naive_bayes_spam.test_beta_bernoulli
 ```
 
-实现扫描观测一次，时间 $O(n)$、额外空间 $O(1)$。测试覆盖成功/失败计数、空数据下回到先验预测、MAP 的内部存在条件和非法输入。
+实现扫描观测一次，时间 $O(n)$、额外空间 $O(1)$。`beta_bernoulli_report` 显式交出成功/失败计数、后验参数、后验预测和（若存在）内部 MAP；`beta_bernoulli_certificate` 从观测重新计数并重算三个结论，因而篡改预测值、后验参数或将端点众数伪装成内部 MAP 都会被拒绝。测试覆盖成功/失败计数、空数据下回到先验预测、MAP 的内部存在条件、证书篡改与非法输入。
 
 ## 正确性与工程边界
 
-函数直接实现后验参数相加和后验均值公式，故在 $alpha,\beta>0$ 且数据为 0/1 时与推导一致。此模型假设观测在给定 $p$ 时独立同分布；邮件词频、用户行为和时间序列常违反这一假设。选择强先验会在小样本中显著影响结果，选择弱先验不会修复错误特征、标签偏差或部署分布变化。
+函数直接实现后验参数相加和后验均值公式，故在 $\alpha,\beta>0$ 且数据为 0/1 时与推导一致。报告证书只审计该模型内的代数关系：它不能证明数据独立同分布，也不能替你选择先验。邮件词频、用户行为和时间序列常违反独立假设；强先验会在小样本中显著影响结果，弱先验也不会修复错误特征、标签偏差或部署分布变化。
 
 ## 常见误区
 
@@ -71,14 +78,14 @@ python -m unittest projects.naive_bayes_spam.test_beta_bernoulli
 
 1. **基础题**：用 Beta$(2,3)$ 先验与 4 正 1 反计算后验参数和后验预测。
 2. **推导题**：从先验与似然相乘推导后验比例式，并说明归一化常数为何仍是 Beta 分布。
-3. **编码题**：为后验预测加入“先验强度”参数化测试，比较相同均值、不同总强度的结果。
+3. **编码题**：篡改 `beta_bernoulli_report` 的预测值、后验参数和 `interior_map`，确认 `beta_bernoulli_certificate` 分别拒绝；再为相同均值、不同总强度的先验编写对比测试。
 4. **开放题**：为低基率垃圾邮件事件选择一组先验，写明领域依据、敏感性分析和何时应重新估计。
 
 ## 练习答案提示
 
 1. 后验参数为 $(2+4,3+1)$，下一次成功的后验预测是 $\alpha'/(\alpha'+\beta')$；区分后验参数与 MAP。
 2. 相乘后幂次分别为成功数加 $\alpha-1$、失败数加 $\beta-1$，正是 Beta 核；归一化常数由积分有限且参数为正保证。
-3. 保持先验均值 $\alpha/(\alpha+\beta)$ 不变，只改变总量；小样本下强先验更难被数据拉动，数据很多时差异应减小。
+3. 证书应从原始观测重算成功/失败数、后验参数和预测均值；只有两个后验参数都大于 1 时才接受内部 MAP。保持先验均值 $\alpha/(\alpha+\beta)$ 不变，只改变总量；小样本下强先验更难被数据拉动，数据很多时差异应减小。
 4. 写明基率来源和先验等效样本量，扫描合理区间并在时间漂移、标签定义或数据源改变后重新审计；先验不是替代验证的理由。
 
 ## 延伸
