@@ -63,6 +63,13 @@ python -m unittest projects.algorithm_lab.test_dfs_trace
 3. **编码题**：扩展轨迹以在有向图发现灰色边时返回一条环证据。
 4. **开放题**：设计百万节点图的 DFS 资源预算，说明内存、输入流和遍历顺序的取舍。
 
+## 练习答案提示
+
+1. 链上的发现时间从起点依次递增，完成时间从末点反向递增；只需比较相对顺序，不依赖具体时钟起值。
+2. 每个已访问顶点恰有一次发现事件和一次完成事件；归纳检查新发现点不会重复、完成只在其邻居任务结束后发生。
+3. 维护灰色栈或父指针；遇到灰色邻居时沿父指针回溯到该邻居，再反向输出即可形成有向环。
+4. 显式栈避免递归限制；预算应分别估计顶点状态、边输入、栈深与排序代价，并说明流式输入为何会限制回溯。
+
 ## 延伸
 
 [图、树、二分图与拓扑排序](/discrete-math/graph-foundations-topological-sort)给出 DFS 的结构用途；[BFS](/discrete-math/breadth-first-search)说明最短层数为何需队列；[算法实验室](/projects/algorithm-lab)提供本课轨迹。继续学习可检索：edge classification、strongly connected components、iterative DFS。
