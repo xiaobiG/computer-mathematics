@@ -162,6 +162,45 @@ const workloadCards = computed(() => {
     { key: 'floyd-work', name: 'Floyd–Warshall', status: 'applicable', theory: 'O(V³)', units: vertices ** 3, note: '预处理一次；Q 增加不会再增加矩阵候选格。' },
   ]
 })
+function bfsBoundaryWork(stopAtTarget) {
+  if (!allUnit.value) return null
+  const graph = buildGraph(); const seen = new Set([scenario.value.start]); const queue = [scenario.value.start]
+  let edgeScans = 0; let settledVertices = 0
+  while (queue.length) {
+    const node = queue.shift(); settledVertices += 1
+    if (stopAtTarget && node === scenario.value.target) return { edgeScans, settledVertices, targetReached: true }
+    for (const { to } of graph[node]) { edgeScans += 1; if (!seen.has(to)) { seen.add(to); queue.push(to) } }
+  }
+  return { edgeScans, settledVertices, targetReached: seen.has(scenario.value.target) }
+}
+function dijkstraBoundaryWork(stopAtTarget) {
+  if (!allNonnegative.value) return null
+  const graph = buildGraph(); const distance = Object.fromEntries(scenario.value.nodes.map(node => [node.id, Infinity])); const queue = [{ node: scenario.value.start, distance: 0 }]
+  distance[scenario.value.start] = 0; let edgeScans = 0; let settledVertices = 0
+  while (queue.length) {
+    queue.sort((left, right) => left.distance - right.distance); const current = queue.shift()
+    if (current.distance !== distance[current.node]) continue
+    settledVertices += 1
+    if (stopAtTarget && current.node === scenario.value.target) return { edgeScans, settledVertices, targetReached: true }
+    for (const { to, weight } of graph[current.node]) { edgeScans += 1; const candidate = current.distance + weight; if (candidate < distance[to]) { distance[to] = candidate; queue.push({ node: to, distance: candidate }) } }
+  }
+  return { edgeScans, settledVertices, targetReached: Number.isFinite(distance[scenario.value.target]) }
+}
+const uniqueNonloopEdges = computed(() => new Set(scenario.value.edges.filter(([from, to]) => from !== to).map(([from, to]) => `${from}→${to}`)).size)
+const density = computed(() => uniqueNonloopEdges.value / (scenario.value.nodes.length * (scenario.value.nodes.length - 1)))
+const densityLabel = computed(() => density.value <= 0.5 ? '稀疏侧' : '稠密侧')
+const boundaryCards = computed(() => {
+  const bellman = cards.value.find(card => card.key === 'bellman_ford')?.result
+  const floyd = cards.value.find(card => card.key === 'floyd_warshall')?.result
+  const bfsFull = bfsBoundaryWork(false); const bfsTarget = bfsBoundaryWork(true)
+  const dijkstraFull = dijkstraBoundaryWork(false); const dijkstraTarget = dijkstraBoundaryWork(true)
+  return [
+    bfsFull && bfsTarget ? { key: 'bfs-boundary', name: 'BFS', status: 'safe', full: bfsFull.edgeScans, target: bfsTarget.edgeScans, note: bfsTarget.targetReached ? '目标首次出队后可安全停止。' : '目标不可达；队列清空才是结束证据。' } : { key: 'bfs-boundary', name: 'BFS', status: 'rejected', note: '非单位权下不能解释为加权最短路。' },
+    dijkstraFull && dijkstraTarget ? { key: 'dijkstra-boundary', name: 'Dijkstra', status: 'safe', full: dijkstraFull.edgeScans, target: dijkstraTarget.edgeScans, note: dijkstraTarget.targetReached ? '目标被定型后可安全停止。' : '目标不可达；堆清空才是结束证据。' } : { key: 'dijkstra-boundary', name: 'Dijkstra', status: 'rejected', note: '负边会破坏目标定型。' },
+    bellman?.status === 'applicable' ? { key: 'bellman-boundary', name: 'Bellman–Ford', status: 'not-safe', note: '不能只因暂时到达目标而停：后续轮次仍可能改善它。' } : { key: 'bellman-boundary', name: 'Bellman–Ford', status: 'rejected', note: '可达负环使有限最短路无定义。' },
+    floyd?.status === 'applicable' ? { key: 'floyd-boundary', name: 'Floyd–Warshall', status: 'not-safe', note: '它的状态本来就是全源矩阵，不是目标导向搜索。' } : { key: 'floyd-boundary', name: 'Floyd–Warshall', status: 'rejected', note: '负环使全源最短路无定义。' },
+  ]
+})
 const customInput = computed(() => ({
   contract_version: contractVersion,
   vertex_count: scenario.value.nodes.length,
@@ -204,6 +243,11 @@ async function copyInput() {
       <div class="query-control"><span id="query-count-label">独立源点查询数</span><output aria-live="polite">{{ queryCount }}</output><input v-model.number="requestedQueryCount" type="range" min="1" :max="scenario.nodes.length" step="1" aria-labelledby="query-count-label"></div>
       <div class="workload-cards"><article v-for="card in workloadCards" :key="card.key" :class="card.status"><h4>{{ card.name }}</h4><code>{{ card.theory }}</code><p v-if="card.status === 'applicable'">估计单位：<strong>{{ card.units }}</strong></p><p>{{ card.note }}</p></article></div>
     </section>
+    <section class="query-boundary" aria-labelledby="query-boundary-title">
+      <div><p class="eyebrow">目标查询与存储边界</p><h3 id="query-boundary-title">到当前目标后，哪些算法能安全停止？</h3><p>“完整单源”会继续处理所有可达顶点；“目标导向”只在证明允许时停止。两者不是可随意互换的运行模式。</p></div>
+      <dl class="graph-facts"><div><dt>有向密度</dt><dd>{{ uniqueNonloopEdges }} / {{ scenario.nodes.length * (scenario.nodes.length - 1) }} = {{ (density * 100).toFixed(0) }}%</dd><small>{{ densityLabel }}</small></div><div><dt>邻接表槽位</dt><dd>{{ scenario.nodes.length + scenario.edges.length }}</dd><small>顶点表头 + 边项</small></div><div><dt>全源矩阵格</dt><dd>{{ scenario.nodes.length ** 2 }}</dd><small>Floyd–Warshall 的核心状态</small></div></dl>
+      <div class="boundary-cards"><article v-for="card in boundaryCards" :key="card.key" :class="card.status"><h4>{{ card.name }}</h4><template v-if="card.status === 'safe'"><p>完整单源扫描：<strong>{{ card.full }}</strong></p><p>目标停止扫描：<strong>{{ card.target }}</strong></p></template><p>{{ card.note }}</p></article></div>
+    </section>
     <div class="comparison-grid"><div class="graph-panel"><svg viewBox="0 0 100 100" role="img" aria-label="当前加权有向图"><defs><marker id="compare-arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" /></marker></defs><g v-for="([from, to, weight]) in scenario.edges" :key="`${from}-${to}-${weight}`"><line :x1="nodeById.get(from).x" :y1="nodeById.get(from).y" :x2="nodeById.get(to).x" :y2="nodeById.get(to).y" marker-end="url(#compare-arrow)"/><text :x="(nodeById.get(from).x + nodeById.get(to).x) / 2" :y="(nodeById.get(from).y + nodeById.get(to).y) / 2 - 3">{{ weight }}</text></g><g v-for="node in scenario.nodes" :key="node.id" :transform="`translate(${node.x} ${node.y})`"><circle r="6.4" :class="{ endpoint: node.id === scenario.start || node.id === scenario.target }"/><text text-anchor="middle" dominant-baseline="central">{{ node.id }}</text></g></svg><p><strong>当前判断：</strong>{{ scenario.note }}</p></div><div class="property-panel"><span :class="allUnit ? 'ok' : 'warn'">{{ allUnit ? '全部边权为 1' : '含非单位权边' }}</span><span :class="allNonnegative ? 'ok' : 'warn'">{{ allNonnegative ? '全部边权非负' : '存在负边' }}</span><p>起点 <code>{{ scenario.start }}</code> → 目标 <code>{{ scenario.target }}</code></p><p>读卡顺序：先看状态，再看理由；“拒绝”是正确的前提检查，不是算法失败。</p></div></div>
     <div class="algorithm-cards"><article v-for="card in cards" :key="card.key" :class="card.result.status"><div class="card-top"><h3>{{ card.name }}</h3><code>{{ card.complexity }}</code></div><p class="status">{{ card.result.status === 'applicable' ? '适用' : '拒绝' }}</p><template v-if="card.result.status === 'applicable'"><p>距离：<strong>{{ card.result.distance ?? '不可达' }}</strong></p><p>路径：<code>{{ card.result.path ? card.result.path.join(' → ') : '—' }}</code></p><p class="invariant">{{ card.result.invariant }}</p></template><p v-else class="reason">{{ card.result.reason }}</p></article></div>
     <footer><strong>边界：</strong>BFS 的“拒绝”不表示它不能遍历该图，只表示它的层数结果不能解释为加权最短路；Floyd–Warshall 适合所有源点对，小型交互示例并不意味着它适合大规模稀疏图。</footer>
@@ -212,4 +256,20 @@ async function copyInput() {
 
 <style scoped>
 .shortest-path-comparison { margin:2rem 0; color:#15334f; }.shortest-path-comparison header { display:flex; justify-content:space-between; align-items:end; gap:1rem; margin-bottom:1rem; }.eyebrow { margin:0 0 .3rem; color:#2563eb; font-size:.75rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; }h2 { margin:0; color:#102e4c; font-size:clamp(1.55rem,3vw,2.1rem); letter-spacing:-.025em; }h3 { margin:.1rem 0; color:#102e4c; }header p:last-child,.custom-editor p,.workload-explorer p { margin:.38rem 0 0; color:#53677a; }header label,.custom-editor label { display:grid; gap:.28rem; color:#53677a; font-size:.82rem; font-weight:700; }header label { min-width:min(100%,16rem); }select,input,textarea { padding:.52rem .65rem; border:1px solid #b9c9d8; border-radius:.42rem; background:#fff; color:#15334f; font:inherit; }.custom-editor,.workload-explorer { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:1rem; margin:0 0 1rem; padding:1rem; border:1px solid #b9c9d8; border-radius:.65rem; background:#f8fbff; }.custom-fields { display:grid; grid-template-columns:repeat(3,5rem); gap:.65rem; align-content:start; }.custom-fields input { min-width:0; }.edge-input,.editor-actions,.replay-report,.workload-cards { grid-column:1 / -1; }.edge-input textarea { resize:vertical; font-family:var(--vp-font-family-mono); line-height:1.45; }.editor-actions { display:flex; flex-wrap:wrap; align-items:center; gap:.65rem; }.editor-actions button,.replay-report button { border:0; border-radius:.42rem; padding:.52rem .75rem; background:#2563eb; color:#fff; cursor:pointer; font:inherit; font-weight:700; }.editor-actions .secondary,.replay-report .secondary { border:1px solid #b9c9d8; background:#fff; color:#15334f; }.input-error { margin:0 !important; color:#b91c1c !important; font-weight:700; }.replay-report { color:#53677a; }.replay-report summary { cursor:pointer; color:#15334f; font-weight:800; }.replay-report pre { max-height:17rem; overflow:auto; margin:.75rem 0 0; padding:.75rem; border-radius:.45rem; background:#102e4c; color:#e8f1fb; font-size:.76rem; line-height:1.45; }.query-control { display:grid; gap:.28rem; align-content:end; min-width:15rem; color:#53677a; font-size:.82rem; font-weight:700; }.workload-explorer output { color:#102e4c; font-size:1.25rem; }.workload-explorer input[type="range"] { width:100%; padding:0; accent-color:#2563eb; }.workload-cards { display:grid; grid-template-columns:repeat(4,1fr); gap:.7rem; }.workload-cards article { padding:.8rem; border:1px solid #c7d4df; border-radius:.5rem; background:#fff; }.workload-cards article.applicable { border-top:3px solid #0f9d96; }.workload-cards article.rejected { border-top:3px solid #f97316; }.workload-cards h4 { margin:0; color:#102e4c; }.workload-cards code { color:#53677a; font-size:.75rem; }.workload-cards strong { color:#102e4c; }.comparison-grid { display:grid; grid-template-columns:minmax(0,1.08fr) minmax(16rem,.92fr); gap:1rem; }.graph-panel,.property-panel,.algorithm-cards article,footer { border:1px solid #c7d4df; border-radius:.65rem; background:#fff; }.graph-panel { padding:1rem; }.graph-panel svg { width:100%; min-height:15rem; }.graph-panel line { stroke:#355b7e; stroke-width:1.1; vector-effect:non-scaling-stroke; }.graph-panel marker path { fill:#355b7e; }.graph-panel text { fill:#102e4c; font-size:5px; font-weight:800; paint-order:stroke; stroke:#fff; stroke-width:1.2px; }.graph-panel circle { fill:#eaf4fb; stroke:#3f7ea7; stroke-width:1.1; }.graph-panel circle.endpoint { fill:#bfdbfe; stroke:#2563eb; }.graph-panel p { margin:.45rem 0 0; color:#53677a; }.property-panel { padding:1rem; display:flex; flex-direction:column; gap:.7rem; }.property-panel span { padding:.5rem .65rem; border-radius:.45rem; font-weight:800; }.ok { color:#0f766e; background:#effcf9; }.warn { color:#b45309; background:#fff7ed; }.property-panel p { margin:0; color:#53677a; line-height:1.55; }.algorithm-cards { display:grid; grid-template-columns:repeat(2,1fr); gap:1rem; margin-top:1rem; }.algorithm-cards article { padding:1rem; }.algorithm-cards article.applicable { border-top:4px solid #0f9d96; }.algorithm-cards article.rejected { border-top:4px solid #f97316; }.card-top { display:flex; justify-content:space-between; gap:.6rem; align-items:baseline; }.card-top h3 { margin:0; color:#102e4c; }.card-top code { color:#53677a; font-size:.78rem; }.status { display:inline-block; margin:.7rem 0; padding:.22rem .5rem; border-radius:999px; font-size:.8rem; font-weight:800; }.applicable .status { color:#0f766e; background:#effcf9; }.rejected .status { color:#b45309; background:#fff7ed; }.algorithm-cards p { margin:.38rem 0; color:#466078; }.algorithm-cards strong,.algorithm-cards code { color:#102e4c; }.invariant { font-size:.88rem; }.reason { color:#9a3412 !important; line-height:1.55; }footer { margin-top:1rem; padding:1rem 1.15rem; border-left:.32rem solid #2563eb; color:#53677a; line-height:1.65; }footer strong { color:#15334f; }select:focus-visible,input:focus-visible,textarea:focus-visible,button:focus-visible { outline:3px solid rgba(37,99,235,.3); outline-offset:2px; }@media(max-width:760px){ .shortest-path-comparison header { flex-direction:column; align-items:stretch; }.custom-editor,.workload-explorer { grid-template-columns:1fr; }.custom-fields { grid-template-columns:repeat(3,1fr); }.workload-cards,.comparison-grid,.algorithm-cards { grid-template-columns:1fr; } }
+</style>
+
+<style scoped>
+.query-boundary { display:grid; grid-template-columns:minmax(0,1fr); gap:1rem; margin:0 0 1rem; padding:1rem; border:1px solid #b9c9d8; border-radius:.65rem; background:#f8fbff; }
+.graph-facts,.boundary-cards { display:grid; grid-template-columns:repeat(3,1fr); gap:.7rem; margin:0; }
+.graph-facts div,.boundary-cards article { padding:.8rem; border:1px solid #c7d4df; border-radius:.5rem; background:#fff; }
+.graph-facts dt,.boundary-cards h4 { color:#102e4c; font-weight:800; }
+.graph-facts dd { margin:.35rem 0; color:#15334f; font-family:var(--vp-font-family-mono); }
+.graph-facts small,.boundary-cards p { color:#53677a; }
+.boundary-cards article.safe { border-top:3px solid #0f9d96; }
+.boundary-cards article.not-safe { border-top:3px solid #2563eb; }
+.boundary-cards article.rejected { border-top:3px solid #f97316; }
+.boundary-cards h4 { margin:0; }
+.boundary-cards p { margin:.42rem 0 0; }
+.boundary-cards strong { color:#102e4c; }
+@media(max-width:760px){ .graph-facts,.boundary-cards { grid-template-columns:1fr; } }
 </style>

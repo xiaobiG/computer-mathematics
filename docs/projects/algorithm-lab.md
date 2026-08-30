@@ -78,6 +78,8 @@ assert topological_trace({"a": ["b"], "b": ["a"]})[0] is None
 
 `shortest_path_workload_report(payload, query_count)` 在相同输入上统计重复单源查询的实际边扫描和成功松弛，并把它们与 $Q\cdot O(V+E)$、$Q\cdot O((V+E)\log V)$、$Q\cdot O(VE)$ 和 $O(V^3)$ 并列。它不把墙钟毫秒伪装为结论：计数可由 `shortest_path_workload_certificate` 完整重放。
 
+`shortest_path_query_boundary_report(payload)` 进一步把“完整单源”与“固定目标”拆开：在满足前提时，BFS 首次出队目标、Dijkstra 定型目标后可停止；Bellman–Ford 的后续轮次和 Floyd–Warshall 的全源矩阵则不能省略。报告同时给出有向密度、邻接表槽位和矩阵格，并以证书拒绝被篡改的提前停止或存储结论。
+
 3-SAT 模块将变量写为非零整数，负号表示否定：
 
 ```python
