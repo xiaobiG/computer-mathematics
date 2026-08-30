@@ -42,18 +42,25 @@ $$K_A=B^a=(g^b)^a=g^{ab}=(g^a)^b=A^b=K_B.$$
 ## 可运行实验：数学正确不代表安全
 
 ```python
-from projects.crypto_toybox.diffie_hellman import honest_exchange, mitm_exchange
+from projects.crypto_toybox.diffie_hellman import (
+    honest_exchange,
+    honest_exchange_certificate,
+    mitm_exchange,
+    mitm_exchange_certificate,
+)
 
 honest = honest_exchange(5, 23, 6, 15)  # 极小参数：仅用于手算和测试
 assert honest.alice_shared == honest.bob_shared
+assert honest_exchange_certificate(5, 23, 6, 15, honest)["valid"]
 
 intercepted = mitm_exchange(5, 23, 6, 15, 7, 8)
 assert intercepted.alice_shared_with_mallory == intercepted.mallory_with_alice
 assert intercepted.bob_shared_with_mallory == intercepted.mallory_with_bob
 assert intercepted.alice_shared_with_mallory != intercepted.bob_shared_with_mallory
+assert mitm_exchange_certificate(5, 23, 6, 15, 7, 8, intercepted)["valid"]
 ```
 
-转录测试验证两件不同的事：诚实交换的两个幂结果相同；中间人替换后，攻击者分别与两端拥有相同的会话值，而 Alice/Bob 没有共同会话值。这是代数模型，不包含任何消息加密、KDF 或身份认证。`pow` 的重复平方复杂度为 $O(\log q)$ 次群乘法。安全私钥不是“任取一个整数”：必须来自密码学安全随机源，长度和群阶必须满足目标安全级别，且私钥应是一次性的临时值以获得前向保密。
+转录测试验证两件不同的事：诚实交换的两个幂结果相同；中间人替换后，攻击者分别与两端拥有相同的会话值，而 Alice/Bob 没有共同会话值。`honest_exchange_certificate` 独立重算双方公开值与两条共享幂；`mitm_exchange_certificate` 则重放被替换的两条会话，并分别验证“攻击者与每一端一致”和“两端彼此不一致”。篡改公开值或其中一条会话值都会导致证书失败。这是代数模型，不包含任何消息加密、KDF 或身份认证。`pow` 的重复平方复杂度为 $O(\log q)$ 次群乘法。安全私钥不是“任取一个整数”：必须来自密码学安全随机源，长度和群阶必须满足目标安全级别，且私钥应是一次性的临时值以获得前向保密。
 
 ## 中间人攻击的逐步推演
 
@@ -85,14 +92,14 @@ $$K_{B,M}=M_A^b,\qquad K_{M,B}=B^{m_A}.$$
 
 1. **基础题**：在 $p=23,g=5,a=6,b=15$ 下手算 $A,B,K$，验证两端一致。
 2. **推导题**：用上面的四个等式写出 Mallory 如何分别与 Alice、Bob 共享不同密钥，并指出双方各自看到的异常为何为零。
-3. **编码题**：扩展示例模拟中间人转发和篡改一条“消息”；加入一个事先共享的 MAC 后，断言篡改会被发现（这仍只是教学模型）。
+3. **编码题**：篡改诚实转录的公开值和中间人转录的一条会话值，确认对应证书拒绝；再扩展示例模拟中间人转发和篡改一条“消息”，并讨论为何单独的 MAC 仍需要正确的身份密钥来源。
 4. **开放题**：阅读 TLS 1.3 的握手转录绑定概念，说明证书签名、密钥确认、前向保密分别解决哪个威胁。
 
 ## 练习答案提示
 
 1. 分别用快速幂算 $A=g^a,B=g^b$，再验证 $B^a\equiv A^b\pmod p$；小群只用于手算，不能推断真实参数安全。
 2. Mallory 用自己的指数与 Alice、Bob 分别交换公钥并转发替换值；每一方仍得到代数一致的共享值，所以纯 DH 本身没有认证告警。
-3. MAC 必须覆盖消息和会话上下文，收方用共享认证密钥验证；此教学模型不等同于已建立身份绑定或安全协议。
+3. 诚实证书需重算 $A,B,B^a,A^b$；中间人证书需验证两条攻击者会话各自一致但端点不同。MAC 必须覆盖消息和会话上下文，收方用共享认证密钥验证；此教学模型不等同于已建立身份绑定或安全协议。
 4. 证书签名绑定身份与公钥，密钥确认确认双方得到同一会话密钥，前向保密限制长期私钥泄露对过去会话的影响；三者不能互相替代。
 
 ## 延伸

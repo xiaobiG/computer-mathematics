@@ -49,6 +49,38 @@ def honest_exchange(generator: int, prime: int, alice_private: int, bob_private:
     )
 
 
+def honest_exchange_certificate(
+    generator: int, prime: int, alice_private: int, bob_private: int, exchange: HonestExchange,
+) -> dict[str, bool]:
+    """Replay a classroom DH transcript rather than trusting its shared value."""
+    empty = {
+        "public_values_match_exponents": False,
+        "alice_shared_matches_bob_public": False,
+        "bob_shared_matches_alice_public": False,
+        "shared_elements_agree": False,
+        "valid": False,
+    }
+    try:
+        if not isinstance(exchange, HonestExchange):
+            return empty
+        expected_alice_public = dh_public(generator, alice_private, prime)
+        expected_bob_public = dh_public(generator, bob_private, prime)
+        public_values_match = (exchange.alice_public == expected_alice_public
+                               and exchange.bob_public == expected_bob_public)
+        alice_shared_matches = exchange.alice_shared == dh_shared(exchange.bob_public, alice_private, prime)
+        bob_shared_matches = exchange.bob_shared == dh_shared(exchange.alice_public, bob_private, prime)
+        shared_agree = exchange.alice_shared == exchange.bob_shared
+        return {
+            "public_values_match_exponents": public_values_match,
+            "alice_shared_matches_bob_public": alice_shared_matches,
+            "bob_shared_matches_alice_public": bob_shared_matches,
+            "shared_elements_agree": shared_agree,
+            "valid": public_values_match and alice_shared_matches and bob_shared_matches and shared_agree,
+        }
+    except (TypeError, ValueError):
+        return empty
+
+
 @dataclass(frozen=True)
 class MitmExchange:
     alice_shared_with_mallory: int
@@ -68,6 +100,40 @@ def mitm_exchange(generator: int, prime: int, alice_private: int, bob_private: i
         dh_shared(honest.alice_public, mallory_to_alice, prime),
         dh_shared(honest.bob_public, mallory_to_bob, prime),
     )
+
+
+def mitm_exchange_certificate(
+    generator: int, prime: int, alice_private: int, bob_private: int,
+    mallory_to_alice: int, mallory_to_bob: int, exchange: MitmExchange,
+) -> dict[str, bool]:
+    """Replay the two substituted DH sessions and expose their identity failure."""
+    empty = {
+        "alice_session_matches_mallory": False,
+        "bob_session_matches_mallory": False,
+        "endpoints_lack_one_common_session": False,
+        "valid": False,
+    }
+    try:
+        if not isinstance(exchange, MitmExchange):
+            return empty
+        expected = mitm_exchange(
+            generator, prime, alice_private, bob_private, mallory_to_alice, mallory_to_bob,
+        )
+        alice_session = (exchange.alice_shared_with_mallory == expected.alice_shared_with_mallory
+                         and exchange.mallory_with_alice == expected.mallory_with_alice
+                         and exchange.alice_shared_with_mallory == exchange.mallory_with_alice)
+        bob_session = (exchange.bob_shared_with_mallory == expected.bob_shared_with_mallory
+                       and exchange.mallory_with_bob == expected.mallory_with_bob
+                       and exchange.bob_shared_with_mallory == exchange.mallory_with_bob)
+        endpoints_differ = exchange.alice_shared_with_mallory != exchange.bob_shared_with_mallory
+        return {
+            "alice_session_matches_mallory": alice_session,
+            "bob_session_matches_mallory": bob_session,
+            "endpoints_lack_one_common_session": endpoints_differ,
+            "valid": alice_session and bob_session and endpoints_differ,
+        }
+    except (TypeError, ValueError):
+        return empty
 
 
 def generator_order(generator: int, prime: int) -> int:
