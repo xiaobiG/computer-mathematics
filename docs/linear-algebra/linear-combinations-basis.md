@@ -37,7 +37,9 @@ $$b=c_1v_1+\cdots+c_kv_k.$$
 
 ```python
 from projects.linear_algebra_lab.basis import (
+    basis_coordinate_certificate,
     basis_coordinate_report,
+    column_independence_certificate,
     column_independence_report,
 )
 
@@ -46,14 +48,16 @@ report = column_independence_report([[1.0, 0.0], [0.0, 1.0], [1.0, 1.0]])
 assert report["rank"] == 2
 assert report["basis_indices"] == [0, 1]
 assert not report["is_linearly_independent"]
+assert column_independence_certificate([[1.0, 0.0], [0.0, 1.0], [1.0, 1.0]], report)["valid"]
 
 # 非标准基下，目标向量仍有唯一坐标。
 coordinates = basis_coordinate_report([[1.0, 1.0], [1.0, -1.0]], [4.0, 2.0])
 assert coordinates["coordinates"] == [3.0, 1.0]
 assert coordinates["reconstructs_target"]
+assert basis_coordinate_certificate([[1.0, 1.0], [1.0, -1.0]], [4.0, 2.0], coordinates)["valid"]
 ```
 
-`column_independence_report` 以改进 Gram–Schmidt 逐列观察“去掉已有方向后还剩多少长度”：残差非零就保留该列，接近零就标记为冗余。`basis_coordinate_report` 再把列向量排成矩阵、以选主元消元求解 $Ac=b$，并将 $Ac-b$ 作为重构证书。对 $d$ 维、$k$ 个候选方向，诊断约为 $O(kd^2)$；恰有 $d$ 个基向量时坐标求解为 $O(d^3)$。数据近似可表示时转向最小二乘，而不是强行判断“无解”。
+`column_independence_report` 以改进 Gram–Schmidt 逐列观察“去掉已有方向后还剩多少长度”：残差非零就保留该列，接近零就标记为冗余。`column_independence_certificate` 从原列和容差重新计算秩、保留列与残差，篡改“独立”标签或基索引会被拒绝。`basis_coordinate_report` 再把列向量排成矩阵、以选主元消元求解 $Ac=b$；`basis_coordinate_certificate` 独立重算基诊断、坐标、重构与残差。对 $d$ 维、$k$ 个候选方向，诊断约为 $O(kd^2)$；恰有 $d$ 个基向量时坐标求解为 $O(d^3)$。数据近似可表示时转向最小二乘，而不是强行判断“无解”。
 
 ## 正确性与数值边界
 
@@ -75,14 +79,14 @@ Gram–Schmidt 在第 $j$ 列上减去它在此前正交方向的投影。若残
 
 1. **基础**：求 $(2,3)$ 在 $(1,1)$、$(1,-1)$ 下的坐标。
 2. **推导**：说明 $(1,0)$、$(2,0)$ 为什么不能成为二维平面的基，并用“残差为零”重述证明。
-3. **编码**：为 `column_independence_report` 添加三个二维列向量的排列，比较为何基索引可变、秩不变。
+3. **编码**：为 `column_independence_report` 添加三个二维列向量的排列，比较为何基索引可变、秩不变；篡改基索引或坐标报告，确认两个证书拒绝。
 4. **开放**：构造三个高度相关但不严格相关的数据列，改变容差并报告有效秩和坐标变化；解释为什么这不是纯代数问题。
 
 ## 练习答案提示
 
 1. 令 $c_1(1,1)+c_2(1,-1)=(2,3)$，先相加、相减得到两个标量方程；不要把基向量当作标准坐标直接读取。
 2. 第二列减去第一列方向的投影后为零，说明它在前一列张成空间中；两列始终只能张成一条直线。
-3. 对每种列顺序分别记录保留列和残差；秩是张成空间维数，因而不随排列改变，但贪心保留的代表列可以改变。
+3. 对每种列顺序分别记录保留列和残差；秩是张成空间维数，因而不随排列改变，但贪心保留的代表列可以改变。证书必须从原输入重算诊断与 $Ac$，而不是只相信报告中的标签。
 4. 用小噪声扰动共线列并扫描容差；同时报告重构残差和坐标大小，显示“代数独立”并不保证数值坐标稳定。
 
 ## 下一步

@@ -51,6 +51,40 @@ def column_independence_report(columns: list[list[float]], tolerance: float = EP
     }
 
 
+def column_independence_certificate(
+    columns: list[list[float]], report: dict[str, object], tolerance: float = EPSILON,
+) -> dict[str, bool]:
+    """Recompute a Gram--Schmidt rank diagnostic instead of trusting its labels."""
+    empty = {
+        "fields_match_recomputed_diagnostic": False,
+        "rank_and_independence_agree": False,
+        "valid": False,
+    }
+    try:
+        expected = column_independence_report(columns, tolerance)
+        if not isinstance(report, dict):
+            return empty
+        diagnostic_fields = (
+            "ambient_dimension", "rank", "basis_indices", "residual_norms",
+            "is_linearly_independent", "is_basis_for_ambient_space",
+        )
+        fields_match = all(report.get(field) == expected[field] for field in diagnostic_fields)
+        rank = report.get("rank")
+        independence_agrees = (
+            isinstance(rank, int)
+            and report.get("is_linearly_independent") == (rank == len(columns))
+            and report.get("is_basis_for_ambient_space")
+            == (len(columns) == expected["ambient_dimension"] and rank == expected["ambient_dimension"])
+        )
+        return {
+            "fields_match_recomputed_diagnostic": fields_match,
+            "rank_and_independence_agree": fields_match and independence_agrees,
+            "valid": fields_match and independence_agrees,
+        }
+    except (TypeError, ValueError):
+        return empty
+
+
 def basis_coordinate_report(
     columns: list[list[float]], target: list[float], tolerance: float = EPSILON,
 ) -> dict[str, object]:
@@ -74,3 +108,38 @@ def basis_coordinate_report(
         "residual": residual,
         "reconstructs_target": all(abs(value) <= tolerance for value in residual),
     }
+
+
+def basis_coordinate_certificate(
+    columns: list[list[float]], target: list[float], report: dict[str, object], tolerance: float = EPSILON,
+) -> dict[str, bool]:
+    """Recompute coordinates and reconstruction; reject a changed basis report."""
+    empty = {
+        "basis_diagnostic_matches": False,
+        "coordinates_match_recomputed_solution": False,
+        "reconstruction_matches_target": False,
+        "valid": False,
+    }
+    try:
+        expected = basis_coordinate_report(columns, target, tolerance)
+        if not isinstance(report, dict):
+            return empty
+        basis_fields = (
+            "ambient_dimension", "rank", "basis_indices", "residual_norms",
+            "is_linearly_independent", "is_basis_for_ambient_space",
+        )
+        basis_matches = all(report.get(field) == expected[field] for field in basis_fields)
+        coordinates_match = report.get("coordinates") == expected["coordinates"]
+        reconstruction_match = (
+            report.get("reconstruction") == expected["reconstruction"]
+            and report.get("residual") == expected["residual"]
+            and report.get("reconstructs_target") is True
+        )
+        return {
+            "basis_diagnostic_matches": basis_matches,
+            "coordinates_match_recomputed_solution": basis_matches and coordinates_match,
+            "reconstruction_matches_target": basis_matches and coordinates_match and reconstruction_match,
+            "valid": basis_matches and coordinates_match and reconstruction_match,
+        }
+    except (TypeError, ValueError):
+        return empty
