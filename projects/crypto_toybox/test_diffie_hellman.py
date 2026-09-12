@@ -7,6 +7,7 @@ from projects.crypto_toybox.diffie_hellman import (
     generator_order,
     honest_exchange,
     honest_exchange_certificate,
+    key_confirmation_comparison,
     mitm_exchange,
     mitm_exchange_certificate,
 )
@@ -25,6 +26,16 @@ class DiffieHellmanTests(unittest.TestCase):
         self.assertEqual(exchange.bob_shared_with_mallory, exchange.mallory_with_bob)
         self.assertNotEqual(exchange.alice_shared_with_mallory, exchange.bob_shared_with_mallory)
         self.assertTrue(mitm_exchange_certificate(5, 23, 6, 15, 7, 8, exchange)["valid"])
+
+    def test_key_confirmation_can_succeed_on_each_substituted_session_without_identity(self):
+        comparison = key_confirmation_comparison(
+            honest_exchange(5, 23, 6, 15),
+            mitm_exchange(5, 23, 6, 15, 7, 8),
+        )
+        self.assertTrue(comparison.honest_endpoints_confirm_one_session)
+        self.assertTrue(comparison.mitm_alice_confirms_a_session_with_mallory)
+        self.assertTrue(comparison.mitm_bob_confirms_a_session_with_mallory)
+        self.assertFalse(comparison.mitm_endpoints_share_one_session)
 
     def test_exchange_certificates_reject_tampered_public_or_session_values(self):
         honest = honest_exchange(5, 23, 6, 15)

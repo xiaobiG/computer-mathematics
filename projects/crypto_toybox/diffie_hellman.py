@@ -89,6 +89,21 @@ class MitmExchange:
     mallory_with_bob: int
 
 
+@dataclass(frozen=True)
+class KeyConfirmationComparison:
+    """Abstract key-confirmation outcomes for honest and substituted sessions.
+
+    These booleans deliberately model only whether each endpoint's peer knows
+    the same session element.  They do not model a MAC, KDF, signature,
+    certificate, peer identity, message ordering, or a secure protocol.
+    """
+
+    honest_endpoints_confirm_one_session: bool
+    mitm_alice_confirms_a_session_with_mallory: bool
+    mitm_bob_confirms_a_session_with_mallory: bool
+    mitm_endpoints_share_one_session: bool
+
+
 def mitm_exchange(generator: int, prime: int, alice_private: int, bob_private: int, mallory_to_alice: int, mallory_to_bob: int) -> MitmExchange:
     """Show two matching attacker sessions, not a secure-message implementation."""
     honest = honest_exchange(generator, prime, alice_private, bob_private)
@@ -134,6 +149,32 @@ def mitm_exchange_certificate(
         }
     except (TypeError, ValueError):
         return empty
+
+
+def key_confirmation_comparison(
+    honest: HonestExchange, intercepted: MitmExchange,
+) -> KeyConfirmationComparison:
+    """Show why confirming a session element does not authenticate its peer.
+
+    In the attacker case each endpoint can receive a valid confirmation from
+    Mallory for *its own* substituted session, while Alice and Bob still lack
+    one common session element.  The result is an algebraic teaching model,
+    not a key-confirmation protocol or an identity-verification API.
+    """
+    if not isinstance(honest, HonestExchange) or not isinstance(intercepted, MitmExchange):
+        raise ValueError("compare a teaching honest transcript with a teaching intercepted transcript")
+    return KeyConfirmationComparison(
+        honest_endpoints_confirm_one_session=honest.alice_shared == honest.bob_shared,
+        mitm_alice_confirms_a_session_with_mallory=(
+            intercepted.alice_shared_with_mallory == intercepted.mallory_with_alice
+        ),
+        mitm_bob_confirms_a_session_with_mallory=(
+            intercepted.bob_shared_with_mallory == intercepted.mallory_with_bob
+        ),
+        mitm_endpoints_share_one_session=(
+            intercepted.alice_shared_with_mallory == intercepted.bob_shared_with_mallory
+        ),
+    )
 
 
 def generator_order(generator: int, prime: int) -> int:

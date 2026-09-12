@@ -895,3 +895,13 @@ v2.7–v2.9 的共同增量不是新增术语，而是把“可计算的输出�
 | 验证 | `python -m unittest projects.floating_point_museum.test_differentiation`、`npm run content:check`；发布前运行全项目测试、生产构建与 GitHub Pages 工作流。 |
 | 差异 | 原实验只扫描中心差分；现在 $e^x$ 在内部可并列显示中心误差更小，而 $\log x$ 的左侧点越界时中心结果为 `None`、前向结果仍可见但不被误标为准确。 |
 | 下一决策 | 该对照不提供单侧高阶公式、噪声估计、复步长或自动微分实现；下一审计应转向离散或密码学主线寻找同等真实的选择断点。 |
+
+### v4.3-a：DH 密钥确认与身份认证的分界（已完成）
+
+| 字段 | 记录 |
+| --- | --- |
+| 目标 | 读者能从相同的小参数转录区分“对端确认同一会话元素”与“对端是预期身份”，并看见中间人为何能满足前者而不能建立后者。 |
+| 范围 | 扩展[Diffie–Hellman 密钥交换](/number-theory-crypto/diffie-hellman)、密码学玩具箱说明与成熟度看板；扩展 `diffie_hellman.py` 和测试，不实现 MAC、KDF、签名或协议。 |
+| 验证 | `python -m unittest projects.crypto_toybox.test_diffie_hellman`、`npm run content:check`；发布前运行全项目测试、生产构建与 GitHub Pages 工作流。 |
+| 差异 | 原课程只有诚实/中间人会话值；现在同一中间人转录还显示 Alice—Mallory 与 Bob—Mallory 的确认同时为真，而 Alice—Bob 不共享一条会话。 |
+| 下一决策 | 这不是密钥确认、身份认证或密钥协商协议；下一轮应回到离散数学或进行 v4 Meta Review，审查当前“同输入对照”方法是否仍在产生真实学习增量。 |
