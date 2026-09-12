@@ -248,6 +248,88 @@ def norm(vector):
     return sqrt(sum(value * value for value in vector))
 
 
+def _validate_orthogonalization_columns(columns, epsilon):
+    if (not isinstance(columns, list) or not columns or not isinstance(epsilon, (int, float))
+            or isinstance(epsilon, bool) or not isfinite(epsilon) or epsilon <= 0.0):
+        raise ValueError("columns must be non-empty and epsilon must be finite and positive")
+    if (not all(isinstance(column, list) and column for column in columns)
+            or len({len(column) for column in columns}) != 1
+            or any(not isinstance(value, (int, float)) or isinstance(value, bool) or not isfinite(value)
+                   for column in columns for value in column)):
+        raise ValueError("columns must be non-empty, equally sized finite numeric vectors")
+
+
+def _gram_schmidt_columns(columns, *, modified, epsilon):
+    _validate_orthogonalization_columns(columns, epsilon)
+    basis, upper = [], [[0.0] * len(columns) for _ in columns]
+    for column_index, original in enumerate(columns):
+        work = [float(value) for value in original]
+        for basis_index, direction in enumerate(basis):
+            # Classical GS uses the original column in every coefficient;
+            # modified GS updates the residual after each projection.
+            source = work if modified else original
+            upper[basis_index][column_index] = sum(left * right for left, right in zip(direction, source))
+            work = [value - upper[basis_index][column_index] * direction[row]
+                    for row, value in enumerate(work)]
+        upper[column_index][column_index] = norm(work)
+        if upper[column_index][column_index] <= epsilon:
+            raise ValueError("columns are linearly dependent at this tolerance")
+        basis.append([value / upper[column_index][column_index] for value in work])
+    return basis, upper
+
+
+def _qr_reconstruction_error(columns, basis, upper):
+    squared_error = 0.0
+    for column_index, column in enumerate(columns):
+        for row, expected in enumerate(column):
+            actual = sum(basis[basis_index][row] * upper[basis_index][column_index]
+                         for basis_index in range(column_index + 1))
+            squared_error += (actual - expected) ** 2
+    return sqrt(squared_error)
+
+
+def _orthogonality_defect(basis):
+    return max(
+        (abs(sum(left * right for left, right in zip(basis[left_index], basis[right_index])))
+         for left_index in range(len(basis)) for right_index in range(left_index)),
+        default=0.0,
+    )
+
+
+def gram_schmidt_stability_report(columns, epsilon=1e-15):
+    """Compare classical and modified Gram--Schmidt on identical columns.
+
+    Both paths return a finite QR reconstruction.  The report makes the
+    separate floating-point question visible: how close are the computed Q
+    columns to mutually orthogonal directions?
+    """
+    classical_basis, classical_upper = _gram_schmidt_columns(columns, modified=False, epsilon=epsilon)
+    modified_basis, modified_upper = _gram_schmidt_columns(columns, modified=True, epsilon=epsilon)
+    classical_defect = _orthogonality_defect(classical_basis)
+    modified_defect = _orthogonality_defect(modified_basis)
+    return {
+        "classical": {
+            "orthogonality_defect": classical_defect,
+            "qr_reconstruction_error": _qr_reconstruction_error(columns, classical_basis, classical_upper),
+        },
+        "modified": {
+            "orthogonality_defect": modified_defect,
+            "qr_reconstruction_error": _qr_reconstruction_error(columns, modified_basis, modified_upper),
+        },
+        "modified_has_smaller_orthogonality_defect": modified_defect < classical_defect,
+    }
+
+
+def gram_schmidt_stability_certificate(columns, report, epsilon=1e-15):
+    """Replay an explicit stability comparison and reject altered defect claims."""
+    if not isinstance(report, dict):
+        return False
+    try:
+        return report == gram_schmidt_stability_report(columns, epsilon)
+    except (TypeError, ValueError):
+        return False
+
+
 def _validate_least_squares_input(matrix, target, epsilon):
     if (not matrix or not matrix[0] or len(target) != len(matrix)
             or any(len(row) != len(matrix[0]) for row in matrix)):

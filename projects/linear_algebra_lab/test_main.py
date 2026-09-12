@@ -4,6 +4,7 @@ from math import sqrt
 from projects.linear_algebra_lab.main import (
     classify_linear_system, compress_grayscale, diagnose_least_squares_case, dominant_right_singular_vector, frobenius_error, image_cosine_similarity,
     compressed_image_search, compressed_image_search_certificate, least_squares_comparison_report, least_squares_normal_equations, least_squares_report_certificate, low_rank_parameter_report,
+    gram_schmidt_stability_certificate, gram_schmidt_stability_report,
     matmul, matrix_composition_certificate, norm, project, least_squares_qr, rank_k_approximation, rank_one_approximation,
     elimination_invariant_certificate, pivot_trace_certificate, solve, solve_with_pivot_trace, truncated_svd_frobenius_error,
     truncated_svd_report, truncated_svd_report_certificate,
@@ -80,6 +81,20 @@ class LinearAlgebraLabTests(unittest.TestCase):
         self.assertAlmostEqual(solution[1], 7 / 6)
         self.assertAlmostEqual(sum(matrix[row][0] * residual[row] for row in range(3)), 0.0, places=12)
         self.assertAlmostEqual(sum(matrix[row][1] * residual[row] for row in range(3)), 0.0, places=12)
+
+    def test_modified_gram_schmidt_preserves_far_more_orthogonality_on_nearly_collinear_columns(self):
+        delta = 1e-8
+        columns = [[1.0, 1.0, 1.0], [1.0, 1.0 + delta, 1.0], [1.0, 1.0, 1.0 + delta]]
+        report = gram_schmidt_stability_report(columns)
+        self.assertGreater(report["classical"]["orthogonality_defect"], 0.9)
+        self.assertLess(report["modified"]["orthogonality_defect"], 1e-5)
+        self.assertTrue(report["modified_has_smaller_orthogonality_defect"])
+        self.assertLess(report["classical"]["qr_reconstruction_error"], 1e-12)
+        self.assertLess(report["modified"]["qr_reconstruction_error"], 1e-12)
+        self.assertTrue(gram_schmidt_stability_certificate(columns, report))
+        tampered = dict(report)
+        tampered["modified_has_smaller_orthogonality_defect"] = False
+        self.assertFalse(gram_schmidt_stability_certificate(columns, tampered))
 
     def test_reader_supplied_fit_diagnosis_separates_exact_projection_and_rank_cases(self):
         matrix = [[0.0, 1.0], [1.0, 1.0], [2.0, 1.0]]

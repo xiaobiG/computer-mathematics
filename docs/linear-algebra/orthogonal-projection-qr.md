@@ -76,6 +76,41 @@ assert abs(sum(a * b for a, b in zip(q[0], q[1]))) < 1e-12
 
 每次减去所有已有基上的投影，因此新残差与所有旧 $q_i$ 正交；归一化后得到正交单位列。展开投影系数即得到 $A=QR$。经典 Gram–Schmidt 在近线性相关列上会丢失正交性，改进版本较好但仍不如 Householder 反射；秩亏问题应使用列主元 QR 或 SVD，而不是将极小范数任意除掉。
 
+## 同一 QR 重构，为什么正交性仍会失效
+
+经典 Gram–Schmidt（CGS）与改进 Gram–Schmidt（MGS）的代数公式等价，但浮点计算的投影顺序不同。CGS 用原列 $a_j$ 一次算出所有 $q_i^Ta_j$，再一起相减；MGS 每减去一个投影，就用更新后的残差计算下一个系数。当列几乎共线时，这个顺序决定被消去的低位是否还能参与下一次投影。
+
+取三列
+
+$$
+a_1=(1,1,1)^T,quad a_2=(1,1+10^{-8},1)^T,quad a_3=(1,1,1+10^{-8})^T.
+$$
+
+它们仍线性无关，却会放大舍入影响。以下报告用同一输入分别运行两种算法，独立记录 QR 重构误差与最大非对角内积
+
+$$
+\max_{i<j}|q_i^Tq_j|.
+$$
+
+```python
+from projects.linear_algebra_lab.main import (
+    gram_schmidt_stability_certificate,
+    gram_schmidt_stability_report,
+)
+
+delta = 1e-8
+columns = [[1.0, 1.0, 1.0], [1.0, 1.0 + delta, 1.0], [1.0, 1.0, 1.0 + delta]]
+report = gram_schmidt_stability_report(columns)
+
+assert report["classical"]["qr_reconstruction_error"] < 1e-12
+assert report["modified"]["qr_reconstruction_error"] < 1e-12
+assert report["classical"]["orthogonality_defect"] > 0.9
+assert report["modified"]["orthogonality_defect"] < 1e-5
+assert gram_schmidt_stability_certificate(columns, report)
+```
+
+这个输入上 CGS 的正交缺陷约为 $0.998$，MGS 约为 $1.1\times10^{-7}$；两种 `QR` 重构误差却都接近零。故“$A\approx QR$”不足以证实 $Q^TQ\approx I$，而后者正是用 $Q^Tb$ 当投影坐标的前提。该对照不宣称 MGS 对任意病态矩阵足够稳定，也不替代 Householder QR、列主元或 SVD；它只提供一个可复现的理由，说明相同的代数恒等式在不同浮点路径上可有不同质量。
+
 ## 常见误区
 
 - 正交不必单位长；正交归一才使 $Q^TQ=I$。
@@ -86,15 +121,15 @@ assert abs(sum(a * b for a, b in zip(q[0], q[1]))) < 1e-12
 
 1. **基础**：计算 $(3,4)$ 在单位方向 $(1,0)$ 上的投影与残差。
 2. **推导**：证明投影残差与每个 $q_i$ 正交。
-3. **编码**：为 `modified_gram_schmidt` 添加重复列、近相关列和三列输入测试。
-4. **开放**：比较正规方程、改进 Gram–Schmidt、Householder QR 在病态数据上的残差与前向误差。
+3. **编码**：运行 `gram_schmidt_stability_report`，分别检查 CGS/MGS 的重构误差和正交缺陷；再改变扰动大小，观察何时两者都开始失效。
+4. **开放**：比较正规方程、改进 Gram–Schmidt、Householder QR 在病态数据上的残差、前向误差和 $Q^TQ-I$ 缺陷。
 
 ## 练习答案提示
 
 1. 投影为 $((3,4)\cdot(1,0))(1,0)=(3,0)$，残差是 $(0,4)$；先确认方向已单位化。
 2. 写 $r=v-\sum_i(q_i^Tv)q_i$，分别与任意 $q_j$ 点积；正交归一使除交叉项外只留下 $q_j^Tv-q_j^Tv$。
-3. 重复列应触发秩亏契约，近相关列应随容差改变结果；三列输入还要验证 $Q^TQ\approx I$ 与 $QR\approx A$。
-4. 固定同一病态矩阵，分开测后向残差和相对解误差；正规方程会放大条件数，Householder 通常是更稳的数值基线。
+3. 重构小不等于基仍正交：报告需同时看 $QR-A$ 与最大 $|q_i^Tq_j|$。改变扰动时还要记录何时算法按容差拒绝，而不是把数值噪声叫作新方向。
+4. 固定同一病态矩阵，分开测后向残差、相对解误差和 $Q^TQ-I$；正规方程会放大条件数，Householder 通常是更稳的数值基线。
 
 ## 延伸与下一步
 
