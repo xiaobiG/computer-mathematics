@@ -1,6 +1,7 @@
 import unittest
+from dataclasses import replace
 
-from projects.naive_bayes_spam.permutation_test import two_sided_permutation_test
+from projects.naive_bayes_spam.permutation_test import permutation_test_certificate, two_sided_permutation_test
 
 
 class PermutationTestTests(unittest.TestCase):
@@ -16,6 +17,14 @@ class PermutationTestTests(unittest.TestCase):
         self.assertEqual(first.observed_difference, 1.0)
         self.assertLess(first.p_value, 0.05)
         self.assertGreaterEqual(first.p_value, 1 / 2_001)
+        self.assertEqual(first.seed, 8)
+        self.assertTrue(permutation_test_certificate([0.0] * 6, [1.0] * 6, first))
+        self.assertFalse(permutation_test_certificate(
+            [0.0] * 6, [1.0] * 6, replace(first, extreme_permutations=0)
+        ))
+        self.assertFalse(permutation_test_certificate(
+            [0.0] * 6, [1.0] * 6, replace(first, seed=9)
+        ))
 
     def test_rejects_empty_nonfinite_or_nonpositive_round_inputs(self):
         with self.assertRaises(ValueError):
@@ -24,3 +33,5 @@ class PermutationTestTests(unittest.TestCase):
             two_sided_permutation_test([1.0], [float("nan")])
         with self.assertRaises(ValueError):
             two_sided_permutation_test([1.0], [2.0], rounds=0)
+        with self.assertRaises(ValueError):
+            two_sided_permutation_test([1.0], [2.0], seed=True)

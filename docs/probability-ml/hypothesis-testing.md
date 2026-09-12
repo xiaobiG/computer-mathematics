@@ -40,18 +40,23 @@ $$P_{H_0}(\text{拒绝 }H_0)\le\alpha.$$
 当 $H_0$ 认为组标签可交换时，把所有观测混合、随机重新分组，便模拟了零假设下统计量的分布。以“至少同样极端”的次数估计 p 值；加一修正避免得到不可能的零 p 值。
 
 ```python
-from projects.naive_bayes_spam.permutation_test import two_sided_permutation_test
+from projects.naive_bayes_spam.permutation_test import (
+    permutation_test_certificate,
+    two_sided_permutation_test,
+)
 
 result = two_sided_permutation_test([0.0] * 6, [1.0] * 6, rounds=2_000, seed=8)
 assert result.observed_difference == 1.0
 assert result.p_value < 0.05
 assert result.p_value >= 1 / 2_001  # 加一修正，不把有限模拟报成 p=0
+assert result.seed == 8
+assert permutation_test_certificate([0.0] * 6, [1.0] * 6, result)
 
 same = two_sided_permutation_test([0, 1, 0], [0, 1, 0], rounds=200, seed=4)
 assert same.p_value == 1.0
 ```
 
-结果还保留 `extreme_permutations`、轮数和观察到的效应量，因此可复查分子、分母与模拟误差来源。时间复杂度约为 $O(Bn)$：$B$ 为置换次数、$n$ 为总样本量。随机种子使教学实验可复现，但真实分析应报告 $B$、随机源和数据排除规则。
+结果还保留 `extreme_permutations`、轮数、种子和观察到的效应量，因此可复查分子、分母与模拟误差来源。`permutation_test_certificate` 会从两组原始观测、报告内轮数和种子独立重放统计量、极端次数及加一修正后的 p 值；篡改极端次数或种子会被拒绝。它证明的是这份固定种子教学报告忠实执行了声明的算法，**不**证明标签可交换、观测独立、零假设为真或分析计划已预注册。时间复杂度约为 $O(Bn)$：$B$ 为置换次数、$n$ 为总样本量。真实分析仍应报告 $B$、随机源和数据排除规则。
 
 ## 正确性、效应量与区间
 
