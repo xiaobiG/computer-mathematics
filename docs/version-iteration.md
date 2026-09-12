@@ -927,3 +927,13 @@ v2.7–v2.9 的共同增量不是新增术语，而是把“可计算的输出�
 | 验证 | `python -m unittest projects.linear_algebra_lab.test_main`、`npm run content:check`；发布前运行全项目测试、生产构建与 GitHub Pages 工作流。 |
 | 差异 | 原课程只比较给定良态矩阵的两条求解路径；现在读者输入会被分类为精确 $Ax=b$、不可达目标的 $A^Tr\approx0$、秩亏需解选择或欠定需先声明规则，不能再以小残差冒充唯一答案。 |
 | 下一决策 | 此工具不从自然语言提取特征，也不实现秩揭示 QR、SVD 或鲁棒回归；下一审计应检查离散“贪心—DP”链能否同样要求读者定义状态与验证不变量。 |
+
+### v5.1-a：贪心—DP 的任务合同与目标诊断（已完成）
+
+| 字段 | 记录 |
+| --- | --- |
+| 目标 | 读者能先把排程题意写成区间语义、优化目标、活动字段和验收不变量，再让这个合同选择贪心或 DP，而不从给定样例反推方法。 |
+| 范围 | 扩展[贪心算法](/discrete-math/greedy-exchange-arguments)、[动态规划](/discrete-math/dynamic-programming-dag)、算法实验室说明与成熟度看板；在 `weighted_activity.py` 新增 `diagnose_activity_task` 和测试，不新增执行证书。 |
+| 验证 | `python -m unittest projects.algorithm_lab.test_weighted_activity`、`npm run content:check`；发布前运行全项目测试、生产构建与 GitHub Pages 工作流。 |
+| 差异 | 原课程让读者对固定无权/加权表执行两条路径；现在同一时间窗在 `maximize_count` 下得到最早结束与最大基数不变量，在 `maximize_value` 下得到前缀 DAG、最大总价值不变量和最早结束的实际差距。目标与验收量错配、闭区间语义或不匹配字段会在选择算法前被拒绝。 |
+| 下一决策 | 这不是自然语言提取、真实排班器、多资源调度或大规模 oracle；下一轮应审计其他主线是否也仍把“任务目标/验收条件”留在文字中，而不是机械复制活动合同。 |

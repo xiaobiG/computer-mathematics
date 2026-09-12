@@ -3,15 +3,15 @@ title: 动态规划：状态设计、最优子结构与 DAG 视角
 description: 以加权活动选择为例推导动态规划递推、回溯重建与 DAG 最长路视角，解释它为何取代错误贪心。
 courseLevel: "2（算法设计与证明）"
 prerequisites: "递推、排序、贪心反例与渐进复杂度"
-estimatedMinutes: 60
-experiment: "实现加权活动选择并与穷举、最早结束贪心对拍"
+estimatedMinutes: 75
+experiment: "从任务合同选择贪心或加权活动选择 DP，并与穷举、最早结束贪心对拍"
 ---
 
 # 动态规划：状态设计、最优子结构与 DAG 视角
 
 ## 学习目标
 
-读完后，你能从问题目标设计状态和转移；推导加权活动选择的递推；实现价值最优解与具体选择的回溯；用归纳证明正确性；并区分“重叠子问题”与仅仅写递归的区别。
+读完后，你能从问题目标设计状态和转移；推导加权活动选择的递推；实现价值最优解与具体选择的回溯；用归纳证明正确性；并区分“重叠子问题”与仅仅写递归的区别。更重要的是，你会先把“最优”翻译为可检查的目标与不变量，而不是看到区间就默认使用某个算法。
 
 ## 从贪心反例到状态
 
@@ -56,6 +56,34 @@ assert weighted_activity_trace_certificate(activities, value, chosen, trace)
 
 实验室的 `brute_force_best_value` 明确限制在 18 个活动以内，作为 DP 的测试 oracle 而非算法替代；它验证回溯出的活动两两兼容，且价值确实达到小规模全局最优。`weighted_activity_trace` 还记录每个前缀的兼容前缀、跳过值、选取值与最终决策；独立证书会重放两条 DAG 边，拒绝被篡改的状态。二分搜索每个 $p(j)$ 需 $O(\log n)$，总时间 $O(n\log n)$（排序也相同），状态数组和回溯空间 $O(n)$。若只需最优值且能流式计算兼容关系，可讨论空间压缩；若要重建方案，必须保留足够决策信息。
 
+## 构造实验：先写任务合同，再让目标决定状态
+
+“安排会议”不是完整的算法输入。读者要明确：端点相碰能否共存、目标是最多完成多少项还是最大收益、以及什么结果算通过。`diagnose_activity_task` 不从自然语言猜这些选择；它要求你提交合同，然后把目标映射到方法、状态含义和验收不变量。
+
+```python
+from projects.algorithm_lab.weighted_activity import diagnose_activity_task
+
+task = {
+    "interval_semantics": "half_open",  # [finish, start] 相等时可以衔接
+    "objective": "maximize_value",
+    "acceptance_invariant": "compatible_schedule_and_maximum_total_value",
+    "activities": [
+        {"start": 0, "finish": 2, "value": 1, "name": "short"},
+        {"start": 0, "finish": 4, "value": 100, "name": "valuable"},
+        {"start": 4, "finish": 5, "value": 5, "name": "after"},
+    ],
+}
+diagnosis = diagnose_activity_task(task)
+assert diagnosis["recommended_method"] == "prefix_dag_dynamic_programming"
+assert diagnosis["chosen_names"] == ["valuable", "after"]
+assert diagnosis["objective_value"] == diagnosis["oracle_value"] == 105.0
+assert diagnosis["earliest_finish_value"] == 6.0
+```
+
+把同一组时间窗改成 `maximize_count` 时，去掉每项 `value`，并把验收量改为 `compatible_schedule_and_maximum_cardinality`；诊断器会选择最早结束贪心，状态是 `current_end`，而不是 $OPT(j)$。反过来，价值目标下即便这一个输入恰好让最早结束得到同样价值，诊断仍会指出**首先失效的前提**：交换一个结束更早的活动并不保证保持总价值。因此不能把一次幸运测试当成加权贪心的证明。
+
+小于等于 `oracle_limit`（默认 18）项时，结果还会与指数穷举比较；更大输入会保留“兼容且达到声明目标”的验收语义，但明确不运行穷举。合同拒绝闭区间语义、与目标不匹配的字段或验收量、重复名称及非法端点，避免把另一个问题偷偷送进原有证明。
+
 ## DAG 视角与正确性
 
 将每个前缀状态 $0,1,\ldots,n$ 看成 DAG 顶点：有边 $j-1\to j$ 权重 0（不选），有边 $p(j)\to j$ 权重 $w_j$（选）。递推正是在拓扑序上求最长路。DAG 无环保证已依赖状态都先被计算。
@@ -84,14 +112,14 @@ assert weighted_activity_trace_certificate(activities, value, chosen, trace)
 
 ## 练习
 
-1. **基础题**：手算三个活动的 $p(j)$ 和 `best` 数组。
+1. **基础题**：为“最多完成预约”与“最大化已确认收入”各写一个任务合同；说明两者为何需要不同的 `objective`、字段和验收不变量。
 2. **推导题**：写出上面归纳证明的基例、归纳假设和归纳步。
-3. **编码题**：实现穷举对拍器，随机验证 `weighted_activity_selection`；加入相同结束时间的测试。
+3. **编码题**：先用 `diagnose_activity_task` 构造一个会让最早结束亏损的收益任务，再实现穷举对拍器随机验证 `weighted_activity_selection`；加入相同结束时间的测试。
 4. **开放题**：将问题扩展为两间会议室，讨论状态是否仍是一维前缀，并提出可行算法方向。
 
 ## 练习答案提示
 
-1. 先按结束时间排序，再为每个活动找最后一个兼容前驱 $p(j)$；`best[0]=0`，随后逐项比较“跳过”和“选取”。
+1. 数量任务声明 `maximize_count`，活动没有价值字段，验收最大基数；收益任务声明 `maximize_value`，每项必须有非负价值，验收最大总价值。两者都先声明半开区间，但前者状态是结束边界，后者才需要前缀 $OPT(j)$。
 2. 基例是空前缀；归纳步按最优解是否含第 $j$ 个活动分为两类，并说明两种上界都能由已计算状态达到。
 3. 对拍器既要比较最优价值，也要检查回溯活动两两兼容；相同结束时间需固定平局规则，避免把不确定顺序误判成错误。
 4. 两间会议室时“最后结束时间”可能需要记录两个资源的状态或改用流/匹配模型；先评估状态数量是否仍可承受。

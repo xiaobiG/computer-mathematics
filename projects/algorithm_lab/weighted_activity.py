@@ -6,10 +6,15 @@ from bisect import bisect_right
 from dataclasses import dataclass
 from itertools import combinations
 from math import isfinite
+from typing import Any
 
 
 Activity = tuple[float, float, float, str]
 UnweightedActivity = tuple[float, float, str]
+
+
+def _finite_number(value: object) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and isfinite(value)
 
 
 @dataclass(frozen=True)
@@ -38,6 +43,108 @@ def _validate(activities: list[Activity]) -> None:
     for start, finish, value, _ in activities:
         if not all(isfinite(number) for number in (start, finish, value)) or start > finish or value < 0:
             raise ValueError("activities require finite start/finish/value, start <= finish, and nonnegative value")
+
+
+def _parse_reader_task(task: object) -> tuple[str, list[UnweightedActivity] | list[Activity]]:
+    """Validate a reader-authored interval-scheduling task contract.
+
+    A solver cannot infer whether "best schedule" means most appointments or
+    most value.  Requiring that choice, the half-open endpoint convention, and
+    an objective-specific acceptance invariant makes this distinction explicit
+    before an algorithm is selected.
+    """
+    if not isinstance(task, dict) or set(task) != {
+        "interval_semantics", "objective", "acceptance_invariant", "activities",
+    }:
+        raise ValueError("task must declare interval_semantics, objective, acceptance_invariant, and activities")
+    if task["interval_semantics"] != "half_open":
+        raise ValueError("this lesson accepts only the declared half_open interval semantics")
+    objective = task["objective"]
+    expected_invariant = {
+        "maximize_count": "compatible_schedule_and_maximum_cardinality",
+        "maximize_value": "compatible_schedule_and_maximum_total_value",
+    }
+    if objective not in expected_invariant:
+        raise ValueError("objective must be maximize_count or maximize_value")
+    if task["acceptance_invariant"] != expected_invariant[objective]:
+        raise ValueError("acceptance_invariant does not measure the declared objective")
+    raw_activities = task["activities"]
+    if not isinstance(raw_activities, list):
+        raise ValueError("activities must be a list of reader-authored activity records")
+
+    names: set[str] = set()
+    parsed: list[Any] = []
+    expected_keys = {"start", "finish", "name"}
+    if objective == "maximize_value":
+        expected_keys.add("value")
+    for raw in raw_activities:
+        if not isinstance(raw, dict) or set(raw) != expected_keys:
+            raise ValueError("activity fields do not match the declared objective")
+        start, finish, name = raw["start"], raw["finish"], raw["name"]
+        if not (_finite_number(start) and _finite_number(finish) and isinstance(name, str) and name):
+            raise ValueError("each activity needs finite endpoints and a nonempty string name")
+        if start > finish or name in names:
+            raise ValueError("activity endpoints must be ordered and names must be unique")
+        names.add(name)
+        if objective == "maximize_count":
+            parsed.append((float(start), float(finish), name))
+        else:
+            value = raw["value"]
+            if not _finite_number(value) or value < 0:
+                raise ValueError("a value objective needs a finite nonnegative value for every activity")
+            parsed.append((float(start), float(finish), float(value), name))
+    return objective, parsed
+
+
+def diagnose_activity_task(task: object, *, oracle_limit: int = 18) -> dict[str, object]:
+    """Choose a scheduling method from a reader-authored task and its invariant.
+
+    This is deliberately a modelling diagnostic, not a natural-language parser:
+    the reader supplies the mathematical contract.  Tiny inputs are checked
+    against exhaustive search; larger inputs keep the semantic invariant but
+    report that the exponential oracle was intentionally not run.
+    """
+    if not isinstance(oracle_limit, int) or isinstance(oracle_limit, bool) or oracle_limit < 0:
+        raise ValueError("oracle_limit must be a nonnegative integer")
+    objective, activities = _parse_reader_task(task)
+    oracle_checked = len(activities) <= oracle_limit
+    if objective == "maximize_count":
+        unweighted = activities  # Narrowed by the task contract above.
+        chosen, trace = activity_selection_trace(unweighted)
+        cardinality = len(chosen)
+        return {
+            "objective": objective,
+            "recommended_method": "earliest_finish_greedy",
+            "state_meaning": "current_end is the finish time of the latest selected activity",
+            "chosen_names": [activity[2] for activity in chosen],
+            "objective_value": cardinality,
+            "reader_invariant": "chosen intervals are compatible and have maximum cardinality",
+            "oracle_checked": oracle_checked,
+            "oracle_value": brute_force_max_cardinality(unweighted, max_activities=oracle_limit)
+            if oracle_checked else None,
+            "trace_steps": len(trace),
+            "first_broken_greedy_premise": None,
+        }
+
+    weighted = activities  # Narrowed by the task contract above.
+    value, chosen, trace = weighted_activity_trace(weighted)
+    greedy_chosen, _ = activity_selection_trace([(start, finish, name) for start, finish, _, name in weighted])
+    value_by_name = {name: activity_value for _, _, activity_value, name in weighted}
+    greedy_value = sum(value_by_name[activity[2]] for activity in greedy_chosen)
+    return {
+        "objective": objective,
+        "recommended_method": "prefix_dag_dynamic_programming",
+        "state_meaning": "OPT(j) is the maximum total value among the first j activities sorted by finish time",
+        "chosen_names": [activity[3] for activity in chosen],
+        "objective_value": value,
+        "reader_invariant": "chosen intervals are compatible and have maximum total value",
+        "oracle_checked": oracle_checked,
+        "oracle_value": brute_force_best_value(weighted, max_activities=oracle_limit) if oracle_checked else None,
+        "trace_steps": len(trace),
+        "earliest_finish_value": greedy_value,
+        "earliest_finish_is_optimal_on_this_input": greedy_value == value,
+        "first_broken_greedy_premise": "exchanging an activity must preserve the declared total-value objective",
+    }
 
 
 def _validate_unweighted(activities: list[UnweightedActivity]) -> None:

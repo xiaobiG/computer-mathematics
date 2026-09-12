@@ -34,8 +34,8 @@
 - [DFS](/discrete-math/depth-first-search)：发现/完成时间、显式栈与环检测边界；
 - [强连通分量](/discrete-math/strongly-connected-components)：互相可达等价类、Kosaraju 与凝聚 DAG；
 - [并查集](/discrete-math/union-find)：森林不变量、路径压缩与动态连通性边界；
-- [贪心算法](/discrete-math/greedy-exchange-arguments)：交换论证、活动选择与反例构造；
-- [动态规划](/discrete-math/dynamic-programming-dag)：状态设计、加权活动选择与 DAG 视角；
+- [贪心算法](/discrete-math/greedy-exchange-arguments)：从任务合同选择最大基数贪心、交换论证与反例构造；
+- [动态规划](/discrete-math/dynamic-programming-dag)：从最大收益合同构造状态、加权活动选择与 DAG 视角；
 - [Bellman–Ford](/discrete-math/bellman-ford)：负边、路径边数不变量与负环检测；
 - [Floyd–Warshall](/discrete-math/floyd-warshall)：全源动态规划、负边与负环边界；
 - [最短路算法选择：同图对照](/discrete-math/shortest-path-algorithm-selection)：在同一规模图上检查四种算法的前提、路径与拒绝边界；

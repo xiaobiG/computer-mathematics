@@ -26,7 +26,7 @@ description: 用图搜索、拓扑排序、最大流轨迹和 3-SAT 验证器连
 - [最短路边删除](/discrete-math/deletion-shortest-path)：限定单条非负边删除，重放新图并审计旧父路径失效与替代路径；它明确使用完整重算，不冒充动态加速算法。
 - [Bellman–Ford](/discrete-math/bellman-ford)：用冻结轮次的松弛轨迹验证负边正确性，并报告可达负环。
 - [最大流最小割](/discrete-math/max-flow-min-cut)：增广路和残量可达集如何构成最优证书。
-- [动态规划](/discrete-math/dynamic-programming-dag)：前缀 DAG 的最长路、回溯方案与小规模穷举对拍。
+- [贪心算法](/discrete-math/greedy-exchange-arguments) 与 [动态规划](/discrete-math/dynamic-programming-dag)：从读者声明的区间语义、目标和验收量选择最早结束贪心或前缀 DAG，回溯方案并在小输入上对拍。
 
 ## 运行
 
@@ -115,6 +115,7 @@ assert witness is not None and verify_assignment(formula, witness)
 11. 对含重复值的小数组穷举运行二分查找，检查每步候选区间保留目标且未命中时严格缩小；再传入未排序数组，确认前提被显式拒绝。
 12. 对不超过 18 个加权活动比较 DP 与穷举最优值；构造“最早结束但价值极低”的反例，并核对回溯活动彼此兼容。
 13. 对加权活动的 `weighted_activity_trace` 篡改一个 `take_value` 或兼容前缀，确认状态轨迹证书拒绝它；再说明该证书为何不能取代最优子结构证明。
+14. 自己写两个 `diagnose_activity_task` 合同：一个最大化预约数、一个最大化收入。让它们使用相同时间窗却得出不同方法；再故意把数量目标配上总价值验收量，确认合同在运行算法前拒绝该矛盾。
 
 ## 工程边界
 

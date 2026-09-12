@@ -3,8 +3,8 @@ title: 贪心算法：交换论证与反例构造
 description: 以活动选择问题推导贪心正确性，学习交换论证、保持最优子结构与系统地构造贪心反例。
 courseLevel: "2（算法证明）"
 prerequisites: "排序、循环不变量与反证法"
-estimatedMinutes: 55
-experiment: "实现活动选择并用穷举核对最优性；构造硬币系统反例"
+estimatedMinutes: 65
+experiment: "从任务合同选择活动选择贪心或 DP，用穷举核对目标；构造硬币系统反例"
 ---
 
 # 贪心算法：交换论证与反例构造
@@ -17,7 +17,7 @@ experiment: "实现活动选择并用穷举核对最优性；构造硬币系统�
 
 “每次选当前收益最大”听上去高效，却在背包、找零和调度中经常失败。贪心算法不是一种证明方法，而是一种承诺：在尚未知道未来细节时，永久选择一个局部选项。只有证明该选择总能嵌入某个全局最优解时，承诺才安全。
 
-活动选择是经典正例：给定互不必同时进行的活动区间 $[s_i,f_i)$，目标是选最多个不重叠活动。规则是每次选**结束最早**的可选活动，而不是持续时间最短、开始最早或编号最小。
+活动选择是经典正例：给定互不必同时进行的活动区间 $[s_i,f_i)$，目标是选最多个不重叠活动。规则是每次选**结束最早**的可选活动，而不是持续时间最短、开始最早或编号最小。这里“最多个”是定理的一部分；如果任务其实要最大化收入，不能沿用这个规则。
 
 ## 严格模型与算法
 
@@ -56,6 +56,30 @@ assert activity_selection_certificate(activities, chosen, trace)
 对很小的输入，枚举所有子集可作为独立预言：过滤兼容集合并取最大基数。`activity_selection_trace` 记录每个最早结束候选是否入选及当时的结束边界；`activity_selection_certificate` 重放整段贪心轨迹，再与受限的穷举最优基数交叉核对。篡改一个选取决定会使证书拒绝。穷举是 $O(2^n n\log n)$，不用于生产，却很适合抓住排序、边界和相等结束时间处理错误。
 
 还应测试性质：输出按结束时间非降；相邻选中活动满足前者结束不晚于后者开始；添加一个与全部活动冲突的活动不会让输出变得不兼容。
+
+## 从题意到选择：目标必须先进入合同
+
+用下面的数量合同把“最多预约”写成程序可检查的输入。它要求半开区间、明确目标和对应验收量；返回的状态含义也正是交换论证所维护的结束边界。
+
+```python
+from projects.algorithm_lab.weighted_activity import diagnose_activity_task
+
+task = {
+    "interval_semantics": "half_open",
+    "objective": "maximize_count",
+    "acceptance_invariant": "compatible_schedule_and_maximum_cardinality",
+    "activities": [
+        {"start": 0, "finish": 2, "name": "review"},
+        {"start": 2, "finish": 4, "name": "deploy"},
+        {"start": 1, "finish": 3, "name": "meeting"},
+    ],
+}
+diagnosis = diagnose_activity_task(task)
+assert diagnosis["recommended_method"] == "earliest_finish_greedy"
+assert diagnosis["reader_invariant"] == "chosen intervals are compatible and have maximum cardinality"
+```
+
+若写成 `maximize_value`，每条记录就必须有 `value`，验收量也必须改成总价值；诊断器会转到前缀 DAG DP，并报告交换论证首先不能保证“替换保持总价值”。这不是把错误的贪心实现调参修好，而是承认题目已经改变。详细的状态构造和回溯见[动态规划](/discrete-math/dynamic-programming-dag)。
 
 ## 反例构造：错误规则如何被击败
 
