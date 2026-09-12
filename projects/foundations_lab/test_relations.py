@@ -1,7 +1,10 @@
 import copy
 import unittest
 
-from projects.foundations_lab.relations import finite_relation_certificate, finite_relation_report, relation_reachability_certificate, relation_reachability_report
+from projects.foundations_lab.relations import (
+    boolean_relation_composition_certificate, boolean_relation_composition_report,
+    finite_relation_certificate, finite_relation_report, relation_reachability_certificate, relation_reachability_report,
+)
 
 
 class RelationTests(unittest.TestCase):
@@ -27,3 +30,17 @@ class RelationTests(unittest.TestCase):
         report = relation_reachability_report(["a", "b", "c"], [["a", "b"], ["b", "c"]])
         self.assertIn(["a", "c"], report["closure_pairs"])
         self.assertTrue(relation_reachability_certificate(["a", "b", "c"], [["a", "b"], ["b", "c"]], report))
+
+    def test_boolean_composition_matches_sparse_two_hop_scan_and_replays(self):
+        report = boolean_relation_composition_report(
+            ["a", "b", "c"], [["a", "b"], ["b", "c"]], [["b", "a"], ["c", "a"]],
+        )
+        self.assertEqual(report["composition_pairs"], [["a", "a"], ["b", "a"]])
+        self.assertTrue(report["verification"]["dense_and_sparse_pairs_match"])
+        self.assertTrue(boolean_relation_composition_certificate(
+            ["a", "b", "c"], [["a", "b"], ["b", "c"]], [["b", "a"], ["c", "a"]], report,
+        ))
+        altered = copy.deepcopy(report); altered["work"]["sparse_two_hop_scans"] = 0
+        self.assertFalse(boolean_relation_composition_certificate(
+            ["a", "b", "c"], [["a", "b"], ["b", "c"]], [["b", "a"], ["c", "a"]], altered,
+        ))

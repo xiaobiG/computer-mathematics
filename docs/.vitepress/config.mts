@@ -55,6 +55,7 @@ export default defineConfig({
             },
             { text: "有限关系与邻接矩阵", link: "/foundations/finite-relations-matrices" },
             { text: "关系复合与可达闭包", link: "/foundations/relation-composition-reachability" },
+            { text: "布尔矩阵乘法与稀疏图查询", link: "/foundations/boolean-matrix-sparse-queries" },
           ],
         },
       ],

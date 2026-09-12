@@ -3,6 +3,7 @@ from __future__ import annotations
 
 
 CONTRACT = "finite-relation-matrix/v1"
+BOOLEAN_COMPOSITION_CONTRACT = "boolean-relation-composition/v1"
 
 
 def _domain(value):
@@ -61,5 +62,54 @@ def relation_reachability_certificate(domain, pairs, report):
         return False
     try:
         return report == relation_reachability_report(domain, pairs)
+    except ValueError:
+        return False
+
+
+def boolean_relation_composition_report(domain, left_pairs, right_pairs):
+    """Compare boolean-matrix composition with sparse adjacency-list traversal."""
+    members = _domain(domain)
+    left, right = _pairs(left_pairs, members), _pairs(right_pairs, members)
+    left_set, right_set = set(left), set(right)
+    dense_checks = 0
+    composed = set()
+    for source in members:
+        for target in members:
+            exists = False
+            for middle in members:
+                dense_checks += 1
+                if (source, middle) in left_set and (middle, target) in right_set:
+                    exists = True
+                    break
+            if exists:
+                composed.add((source, target))
+    outgoing = {member: [] for member in members}
+    for middle, target in right:
+        outgoing[middle].append(target)
+    sparse_checks = 0
+    sparse_composed = set()
+    for source, middle in left:
+        for target in outgoing[middle]:
+            sparse_checks += 1
+            sparse_composed.add((source, target))
+    matrix = [[1 if (source, target) in composed else 0 for target in members] for source in members]
+    return {
+        "contract": BOOLEAN_COMPOSITION_CONTRACT,
+        "domain": members,
+        "left_pairs": [list(pair) for pair in left],
+        "right_pairs": [list(pair) for pair in right],
+        "composition_pairs": [list(pair) for pair in sorted(composed)],
+        "boolean_product_matrix": matrix,
+        "verification": {"dense_and_sparse_pairs_match": composed == sparse_composed},
+        "work": {"dense_candidate_checks": dense_checks, "sparse_two_hop_scans": sparse_checks},
+        "interpretation": "operation_counts_for_this_snapshot_not_a_general_performance_guarantee",
+    }
+
+
+def boolean_relation_composition_certificate(domain, left_pairs, right_pairs, report):
+    if not isinstance(report, dict):
+        return False
+    try:
+        return report == boolean_relation_composition_report(domain, left_pairs, right_pairs)
     except ValueError:
         return False
