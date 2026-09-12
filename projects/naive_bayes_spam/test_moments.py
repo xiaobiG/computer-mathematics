@@ -3,6 +3,7 @@ import unittest
 from projects.naive_bayes_spam.moments import (
     finite_expectation,
     finite_variance,
+    total_variance_certificate,
     total_variance_report,
     welford_population,
 )
@@ -27,7 +28,22 @@ class MomentTests(unittest.TestCase):
         self.assertAlmostEqual(report["overall_mean"], 7.0)
         self.assertAlmostEqual(report["within_variance"], 1.0)
         self.assertAlmostEqual(report["between_variance"], 12.0)
+        self.assertAlmostEqual(report["decomposition_total_variance"], 13.0)
+        self.assertAlmostEqual(report["direct_total_variance"], 13.0)
+        self.assertAlmostEqual(report["decomposition_gap"], 0.0)
         self.assertAlmostEqual(report["total_variance"], 13.0)
+        self.assertTrue(total_variance_certificate(
+            {"low": 0.25, "high": 0.75},
+            {"low": {0.0: 0.5, 2.0: 0.5}, "high": {8.0: 0.5, 10.0: 0.5}},
+            report,
+        ))
+
+    def test_total_variance_certificate_rejects_a_tampered_direct_check(self):
+        probabilities = {"low": 0.25, "high": 0.75}
+        groups = {"low": {0.0: 0.5, 2.0: 0.5}, "high": {8.0: 0.5, 10.0: 0.5}}
+        report = total_variance_report(probabilities, groups)
+        report["direct_total_variance"] = 12.0
+        self.assertFalse(total_variance_certificate(probabilities, groups, report))
 
     def test_rejects_invalid_probability_mass_and_nonfinite_streams(self):
         with self.assertRaises(ValueError):

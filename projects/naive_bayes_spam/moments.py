@@ -50,8 +50,9 @@ def welford_population(values: list[float]) -> tuple[float, float]:
 def total_variance_report(
     group_probabilities: dict[Hashable, float], groups: dict[Hashable, dict[float, float]],
 ) -> dict[str, float]:
-    """Certify Var(X)=E[Var(X|Y)]+Var(E[X|Y]) for finite groups."""
-    if not isinstance(group_probabilities, dict) or not group_probabilities or group_probabilities.keys() != groups.keys():
+    """Compare direct mixture variance with the total-variance decomposition."""
+    if (not isinstance(group_probabilities, dict) or not group_probabilities
+            or not isinstance(groups, dict) or group_probabilities.keys() != groups.keys()):
         raise ValueError("groups and group probabilities must be non-empty and share keys")
     if any(not isinstance(probability, (int, float)) or isinstance(probability, bool)
            or not isfinite(probability) or probability < 0.0 for probability in group_probabilities.values()):
@@ -63,5 +64,39 @@ def total_variance_report(
                  for group, distribution in groups.items())
     overall_mean = sum(group_probabilities[group] * means[group] for group in groups)
     between = sum(group_probabilities[group] * (means[group] - overall_mean) ** 2 for group in groups)
-    return {"overall_mean": overall_mean, "within_variance": within,
-            "between_variance": between, "total_variance": within + between}
+    mixture: dict[float, float] = {}
+    for group, distribution in groups.items():
+        for outcome, conditional_probability in distribution.items():
+            mixture[outcome] = mixture.get(outcome, 0.0) + group_probabilities[group] * conditional_probability
+    direct_total = finite_variance(mixture)
+    decomposition_total = within + between
+    return {
+        "overall_mean": overall_mean,
+        "within_variance": within,
+        "between_variance": between,
+        "decomposition_total_variance": decomposition_total,
+        "direct_total_variance": direct_total,
+        "decomposition_gap": direct_total - decomposition_total,
+        "total_variance": direct_total,
+    }
+
+
+def total_variance_certificate(
+    group_probabilities: dict[Hashable, float], groups: dict[Hashable, dict[float, float]], report: object,
+) -> bool:
+    """Replay both finite-table paths and reject a changed total-variance report."""
+    if not isinstance(report, dict):
+        return False
+    try:
+        expected = total_variance_report(group_probabilities, groups)
+    except (TypeError, ValueError):
+        return False
+    if report.keys() != expected.keys():
+        return False
+    return all(
+        isinstance(report[key], (int, float))
+        and not isinstance(report[key], bool)
+        and isfinite(report[key])
+        and isclose(report[key], value, rel_tol=0.0, abs_tol=1e-12)
+        for key, value in expected.items()
+    )
