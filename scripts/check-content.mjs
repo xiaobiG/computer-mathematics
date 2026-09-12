@@ -153,6 +153,7 @@ const priorityDeepLessons = new Set([
   'discrete-math/p-np-reductions.md',
   'probability-ml/bayes.md',
   'probability-ml/expectation-variance.md',
+  'probability-ml/laws-of-large-numbers-clt.md',
   'probability-ml/maximum-likelihood.md',
   'probability-ml/hypothesis-testing.md',
   'probability-ml/block-bootstrap-calibration.md',

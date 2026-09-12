@@ -1,6 +1,11 @@
 import unittest
 
-from projects.naive_bayes_spam.sampling_limit_laws import bernoulli_mean_report, sample_size_scaling_report
+from projects.naive_bayes_spam.sampling_limit_laws import (
+    bernoulli_mean_report,
+    duplicated_bernoulli_mean_report,
+    duplicated_bernoulli_mean_report_certificate,
+    sample_size_scaling_report,
+)
 
 
 class SamplingLimitLawTests(unittest.TestCase):
@@ -16,6 +21,17 @@ class SamplingLimitLawTests(unittest.TestCase):
         self.assertTrue(report["certificate"]["larger_sample_has_smaller_empirical_standard_error"])
         self.assertTrue(report["certificate"]["observed_ratio_matches_inverse_sqrt_scaling"])
 
+    def test_duplicated_records_expose_the_missing_independence_factor(self):
+        report = duplicated_bernoulli_mean_report(.5, 100, duplicates_per_draw=2, trials=4000, seed=13)
+        self.assertEqual(report["record_count"], 200)
+        self.assertAlmostEqual(report["expected_standard_error_inflation"], 2 ** .5)
+        self.assertTrue(report["certificate"]["cluster_aware_standard_error_exceeds_naive_iid"])
+        self.assertTrue(report["certificate"]["observed_inflation_matches_duplicate_structure"])
+        self.assertTrue(duplicated_bernoulli_mean_report_certificate(.5, 100, 2, 4000, 13, report))
+        tampered = dict(report)
+        tampered["naive_iid_standard_error"] = report["cluster_aware_standard_error"]
+        self.assertFalse(duplicated_bernoulli_mean_report_certificate(.5, 100, 2, 4000, 13, tampered))
+
     def test_invalid_probability_and_sample_size_contracts_are_rejected(self):
         with self.assertRaises(ValueError):
             bernoulli_mean_report(0.0, 20)
@@ -23,3 +39,5 @@ class SamplingLimitLawTests(unittest.TestCase):
             bernoulli_mean_report(0.5, 1)
         with self.assertRaises(ValueError):
             sample_size_scaling_report(0.5, 100, 25)
+        with self.assertRaises(ValueError):
+            duplicated_bernoulli_mean_report(.5, 20, duplicates_per_draw=1)
