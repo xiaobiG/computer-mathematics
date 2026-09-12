@@ -32,5 +32,15 @@ def simulation_report(samples: int, *, seeds: tuple[int, ...]) -> dict[str, floa
     }
 
 
+def simulation_report_certificate(samples: int, *, seeds: tuple[int, ...], report: object) -> bool:
+    """Recompute fixed-seed summary statistics instead of trusting a report."""
+    if not isinstance(report, dict):
+        return False
+    try:
+        return report == simulation_report(samples, seeds=seeds)
+    except (TypeError, ValueError):
+        return False
+
+
 if __name__ == "__main__":
     print(simulation_report(10_000, seeds=(2026, 2027, 2028, 2029)))

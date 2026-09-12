@@ -1,6 +1,6 @@
 import unittest
 
-from projects.floating_point_museum.simulation import estimate_pi, simulation_report
+from projects.floating_point_museum.simulation import estimate_pi, simulation_report, simulation_report_certificate
 
 
 class SimulationTests(unittest.TestCase):
@@ -19,6 +19,10 @@ class SimulationTests(unittest.TestCase):
         self.assertLess(report["mean"], 3.8)
         self.assertGreaterEqual(report["sample_std"], 0.0)
         self.assertGreaterEqual(report["standard_error"], 0.0)
+        self.assertTrue(simulation_report_certificate(1_000, seeds=(1, 2, 3), report=report))
+        tampered = dict(report)
+        tampered["mean"] = 3.141592653589793
+        self.assertFalse(simulation_report_certificate(1_000, seeds=(1, 2, 3), report=tampered))
 
     def test_report_rejects_missing_repetitions(self):
         with self.assertRaises(ValueError):

@@ -41,10 +41,11 @@ $$\operatorname{Var}(\hat\pi)=\frac{16p(1-p)}N,
 错误博物馆的模拟模块运行同一算法、不同预先指定种子，并报告重复运行的样本标准差和均值标准误：
 
 ```python
-from projects.floating_point_museum.simulation import simulation_report
+from projects.floating_point_museum.simulation import simulation_report, simulation_report_certificate
 
 report = simulation_report(10_000, seeds=(2026, 2027, 2028, 2029))
 print(report)
+assert simulation_report_certificate(10_000, seeds=(2026, 2027, 2028, 2029), report=report)
 print("报告含 runs、samples_per_run、mean、sample_std、standard_error")
 ```
 
@@ -63,7 +64,7 @@ $$s=\sqrt{\frac1{R-1}\sum_{r=1}^R(z_r-\bar z)^2},\qquad
 
 每次抽样做常数次随机数生成、乘法和比较，时间 $O(N)$、额外空间 $O(1)$。`estimate_pi` 固定使用局部 `Random(seed)`，因此相同 `(N, seed)` 产生相同序列；它不会污染全局随机状态。`simulation_report` 对每个 seed 调用一次估计，再按定义计算均值与样本标准差。
 
-正确性不等于某次接近 $\pi$：指标函数的期望证明估计量无偏；独立抽样假设给出方差公式；测试验证种子可重复、输入合法性与报告字段。若随机数产生器、抽样分布或代码实现不满足这些前提，代数推导便不再保证结论。
+正确性不等于某次接近 $\pi$：指标函数的期望证明估计量无偏；独立抽样假设给出方差公式；测试验证种子可重复、输入合法性与报告字段。`simulation_report_certificate` 还会用同一组种子重算完整汇总，篡改均值、标准差或标准误都会失败。它证明的是固定伪随机实验被如实报告，不证明该组种子代表所有随机流。若随机数产生器、抽样分布或代码实现不满足这些前提，代数推导便不再保证结论。
 
 ## 三类误差不要混报
 
