@@ -27,7 +27,7 @@ $$\hat R_{ui}=p_uq_i.$$
 
 $$
 J(p,q)=\sum_{(u,i)\in\Omega}(R_{ui}-p_uq_i)^2
-+\lambda\left(\sum_up_u^2+\sum_iq_i^2\right),\qquad\lambda>0.
++\lambda\left(\sum_u p_u^2+\sum_i q_i^2\right),\qquad\lambda>0.
 $$
 
 低秩假设说评分可由少数潜在偏好解释；它不是说所有用户或物品真的只有一个特征。秩一只用于让每个更新可手算、可审计。
@@ -46,7 +46,7 @@ $$
 p_u=\frac{\sum_iR_{ui}q_i}{\lambda+\sum_iq_i^2}.
 $$
 
-固定 $p$ 同理得到 $q_i=\sum_uR_{ui}p_u/(\lambda+\sum_up_u^2)$。交替更新 $p$、$q$ 是 **ALS**。每个子问题有唯一的正则化最小点；整个双线性目标却不是联合凸优化，不能把一条下降轨迹误当作全局最优证明。
+固定 $p$ 同理得到 $q_i=\sum_u R_{ui}p_u/(\lambda+\sum_u p_u^2)$。交替更新 $p$、$q$ 是 **ALS**。每个子问题有唯一的正则化最小点；整个双线性目标却不是联合凸优化，不能把一条下降轨迹误当作全局最优证明。
 
 ## 可运行实验：只拟合观测评分
 

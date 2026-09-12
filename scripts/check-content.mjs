@@ -262,6 +262,21 @@ for (const path of files) {
       errors.push(`${label}: v0.2 深度文章缺少可运行代码块`)
     }
   }
+
+  // Formula rendering may succeed even when a missing backslash or delimiter
+  // changes the mathematical meaning.  These two mistakes appeared in the
+  // SVD-to-low-rank learning chain: literal `qquad`, and an index glued to
+  // the following factor as `\\sum_up_u`.  Keep the checks deliberately
+  // narrow so ordinary TeX notation is not constrained by a fragile parser.
+  const formulaTypos = [
+    ['遗漏反斜杠的 qquad', /(^|[^\\])qquad/],
+    ['求和下标与因子粘连的 \\sum_up_', /\\sum_up_/],
+  ]
+  for (const [name, pattern] of formulaTypos) {
+    if (pattern.test(source)) {
+      errors.push(`${label}: 检测到公式拼写问题“${name}”`)
+    }
+  }
 }
 
 for (const path of allMarkdownFiles) {

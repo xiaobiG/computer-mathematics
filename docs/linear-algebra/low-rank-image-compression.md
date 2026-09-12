@@ -23,7 +23,7 @@ experiment: "对小型灰度矩阵逐次提取秩一分量，比较保留秩、F
 
 若
 
-$$A=U\Sigma V^T=\sum_{i=1}^r\sigma_i u_i v_i^T,qquad
+$$A=U\Sigma V^T=\sum_{i=1}^r\sigma_i u_i v_i^T,\qquad
 \sigma_1\ge\cdots\ge\sigma_r>0,$$
 
 则第 $k$ 个截断为
