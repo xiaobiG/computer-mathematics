@@ -604,6 +604,81 @@ def truncated_svd_frobenius_error(singular_values, rank):
     return sqrt(sum(value * value for value in singular_values[rank:]))
 
 
+def numerical_rank_report(singular_values, absolute_tolerance, relative_tolerance):
+    """Separate exact rank from two explicitly declared numerical conventions.
+
+    A nonzero singular value contributes to exact rank.  In floating-point
+    work, however, treating a small value as usable needs a tolerance and is
+    therefore not a scale-free mathematical fact.  This report keeps an
+    absolute and a scale-relative convention visible instead of silently
+    choosing one.
+    """
+    if not isinstance(singular_values, (list, tuple)) or not singular_values:
+        raise ValueError("singular values must be a non-empty sequence")
+    if (not isinstance(absolute_tolerance, (int, float)) or isinstance(absolute_tolerance, bool)
+            or not isfinite(absolute_tolerance) or absolute_tolerance < 0
+            or not isinstance(relative_tolerance, (int, float)) or isinstance(relative_tolerance, bool)
+            or not isfinite(relative_tolerance) or relative_tolerance < 0):
+        raise ValueError("rank tolerances must be finite non-negative numbers")
+    values = tuple(float(value) for value in singular_values)
+    if any(value < 0 or not isfinite(value) for value in values):
+        raise ValueError("singular values must be finite and non-negative")
+    if any(right > left for left, right in zip(values, values[1:])):
+        raise ValueError("singular values must be in non-increasing order")
+    absolute_tolerance = float(absolute_tolerance)
+    relative_tolerance = float(relative_tolerance)
+    scale = values[0]
+    relative_threshold = relative_tolerance * scale
+    return {
+        "singular_values": values,
+        "exact_rank": sum(value > 0.0 for value in values),
+        "absolute_tolerance": absolute_tolerance,
+        "relative_tolerance": relative_tolerance,
+        "largest_singular_value": scale,
+        "absolute_threshold": absolute_tolerance,
+        "relative_threshold": relative_threshold,
+        "absolute_numerical_rank": sum(value > absolute_tolerance for value in values),
+        "relative_numerical_rank": sum(value > relative_threshold for value in values),
+        "interpretation": "numerical_rank_requires_declared_tolerance_and_error_model",
+    }
+
+
+def numerical_rank_scale_comparison(singular_values, scale, absolute_tolerance, relative_tolerance):
+    """Show which declared numerical-rank convention survives unit scaling."""
+    if (not isinstance(scale, (int, float)) or isinstance(scale, bool)
+            or not isfinite(scale) or scale <= 0.0):
+        raise ValueError("scale must be a positive finite number")
+    original = numerical_rank_report(singular_values, absolute_tolerance, relative_tolerance)
+    scaled_values = tuple(value * float(scale) for value in original["singular_values"])
+    scaled = numerical_rank_report(scaled_values, absolute_tolerance, relative_tolerance)
+    return {
+        "original": original,
+        "scale": float(scale),
+        "scaled": scaled,
+        "exact_rank_is_scale_invariant": original["exact_rank"] == scaled["exact_rank"],
+        "absolute_rank_is_scale_invariant": (
+            original["absolute_numerical_rank"] == scaled["absolute_numerical_rank"]
+        ),
+        "relative_rank_is_scale_invariant": (
+            original["relative_numerical_rank"] == scaled["relative_numerical_rank"]
+        ),
+    }
+
+
+def numerical_rank_scale_comparison_certificate(
+    singular_values, scale, absolute_tolerance, relative_tolerance, report,
+):
+    """Replay the spectrum, tolerances and scale before trusting its rank labels."""
+    if not isinstance(report, dict):
+        return False
+    try:
+        return report == numerical_rank_scale_comparison(
+            singular_values, scale, absolute_tolerance, relative_tolerance,
+        )
+    except (TypeError, ValueError):
+        return False
+
+
 def low_rank_parameter_report(rows, columns, rank):
     """Compare dense and rank-k factor storage counts for a matrix shape."""
     if (not isinstance(rows, int) or isinstance(rows, bool) or rows <= 0

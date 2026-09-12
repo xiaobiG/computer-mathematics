@@ -7,7 +7,8 @@ from projects.linear_algebra_lab.main import (
     gram_schmidt_stability_certificate, gram_schmidt_stability_report,
     matmul, matrix_composition_certificate, norm, project, least_squares_qr, rank_k_approximation, rank_one_approximation,
     elimination_invariant_certificate, pivot_trace_certificate, solve, solve_with_pivot_trace, truncated_svd_frobenius_error,
-    truncated_svd_report, truncated_svd_report_certificate,
+    truncated_svd_report, truncated_svd_report_certificate, numerical_rank_report,
+    numerical_rank_scale_comparison, numerical_rank_scale_comparison_certificate,
 )
 
 
@@ -204,6 +205,31 @@ class LinearAlgebraLabTests(unittest.TestCase):
             truncated_svd_frobenius_error([1.0, float("nan")], rank=1)
         with self.assertRaises(ValueError):
             truncated_svd_frobenius_error([1.0], rank=2)
+
+    def test_numerical_rank_requires_a_declared_scale_aware_tolerance(self):
+        spectrum = [1.0, 1e-8, 1e-12]
+        report = numerical_rank_report(spectrum, absolute_tolerance=1e-9, relative_tolerance=1e-9)
+        self.assertEqual(report["exact_rank"], 3)
+        self.assertEqual(report["absolute_numerical_rank"], 2)
+        self.assertEqual(report["relative_numerical_rank"], 2)
+
+        comparison = numerical_rank_scale_comparison(
+            spectrum, 1e-6, absolute_tolerance=1e-9, relative_tolerance=1e-9,
+        )
+        self.assertTrue(comparison["exact_rank_is_scale_invariant"])
+        self.assertFalse(comparison["absolute_rank_is_scale_invariant"])
+        self.assertTrue(comparison["relative_rank_is_scale_invariant"])
+        self.assertEqual(comparison["scaled"]["absolute_numerical_rank"], 1)
+        self.assertTrue(numerical_rank_scale_comparison_certificate(
+            spectrum, 1e-6, 1e-9, 1e-9, comparison,
+        ))
+        tampered = dict(comparison)
+        tampered["relative_rank_is_scale_invariant"] = False
+        self.assertFalse(numerical_rank_scale_comparison_certificate(
+            spectrum, 1e-6, 1e-9, 1e-9, tampered,
+        ))
+        with self.assertRaises(ValueError):
+            numerical_rank_report([1.0, 2.0], 1e-9, 1e-9)
 
     def test_low_rank_parameter_report_makes_the_storage_tradeoff_explicit(self):
         report = low_rank_parameter_report(8, 8, rank=2)

@@ -144,6 +144,7 @@ const priorityDeepLessons = new Set([
   'linear-algebra/orthogonal-projection-qr.md',
   'linear-algebra/eigenvalues-pca.md',
   'linear-algebra/power-iteration.md',
+  'linear-algebra/svd.md',
   'linear-algebra/low-rank-recommendation.md',
   'discrete-math/loop-invariants.md',
   'discrete-math/sets-relations-orders.md',

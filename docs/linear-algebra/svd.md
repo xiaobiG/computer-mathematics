@@ -20,7 +20,7 @@ description: 用奇异值分解理解坐标旋转、低秩近似、压缩与 PCA
 
 图像矩阵或用户—物品矩阵很大，却常可由少数模式近似。怎样有原则地丢弃信息，并知道丢弃了多少误差？
 
-## 定义：三个彼此正交的步骤
+## 定义与推导：三个彼此正交的步骤
 
 任意 $A\in\mathbb R^{m\times n}$ 可写为
 
@@ -32,41 +32,33 @@ $$A=U\Sigma V^T,$$
 
 $$\lVert A-A_k\rVert_F^2=\sum_{i>k}\sigma_i^2.$$
 
-## 可验证的谱证书
+## 谱证书与数值秩：非零不等于应保留
 
-对谱 $[5,2,1]$ 保留一个模式时，误差不是“看起来少了两个方向”，而是
+对精确谱 $[5,2,1]$ 保留一个模式时，误差是
 
 $$\|A-A_1\|_F=\sqrt{2^2+1^2}=\sqrt5.$$
 
-教学实验室把这个**精确截断 SVD 的理论量**写成独立函数：输入必须是降序、非负且有限的奇异值；这防止无序特征值、`NaN` 或越界的秩悄悄产生一个貌似合理的答案。
+精确截断报告会重放能量分解、平方误差和参数量，避免把“保留能量多”误写成“文件一定更小”。但**精确秩不自动给出数值有效秩**：谱 $[1,10^{-8},10^{-12}]$ 的精确秩为 3。绝对、相对阈值同为 $10^{-9}$ 时，两者都保留前两个值；把矩阵缩放为 $10^{-6}A$ 后，几何方向和相对谱间隙不变，绝对阈值却只保留一个值，相对阈值仍保留两个。单位、噪声和允许误差未声明时，“数值秩是多少”没有唯一答案。
 
 ```python
 from projects.linear_algebra_lab.main import (
-    low_rank_parameter_report,
+    numerical_rank_scale_comparison,
+    numerical_rank_scale_comparison_certificate,
     truncated_svd_report,
     truncated_svd_report_certificate,
-    truncated_svd_frobenius_error,
 )
 
-assert truncated_svd_frobenius_error([5.0, 2.0, 1.0], rank=1) == 5 ** 0.5
-assert low_rank_parameter_report(8, 8, rank=2)["saved_parameters"] == 30
+report = numerical_rank_scale_comparison([1.0, 1e-8, 1e-12], 1e-6, 1e-9, 1e-9)
+assert report["original"]["exact_rank"] == 3
+assert report["scaled"]["absolute_numerical_rank"] == 1
+assert report["relative_rank_is_scale_invariant"]
+assert numerical_rank_scale_comparison_certificate([1.0, 1e-8, 1e-12], 1e-6, 1e-9, 1e-9, report)
 
-report = truncated_svd_report([5.0, 2.0, 1.0], rank=1, rows=8, columns=8)
-assert report["retained_spectral_energy"] == 25.0
-assert report["discarded_spectral_energy"] == 5.0
-assert truncated_svd_report_certificate([5.0, 2.0, 1.0], 1, 8, 8, report)["valid"]
+exact = truncated_svd_report([5.0, 2.0, 1.0], rank=1, rows=8, columns=8)
+assert truncated_svd_report_certificate([5.0, 2.0, 1.0], 1, 8, 8, exact)["valid"]
 ```
 
-对 $m\times n$ 矩阵，原始密集表示要 $mn$ 个数；$k$ 个奇异三元组约要 $k(m+n+1)$ 个数。后者更少才表示参数层面有节省；它仍未包含量化、编码和元数据。`truncated_svd_report` 将总谱能量、保留能量、舍弃能量、理论 Frobenius 误差和参数量放在同一份报告中；其证书会独立核对
-
-$$
-\sum_i\sigma_i^2
-=\sum_{i\le k}\sigma_i^2+\sum_{i>k}\sigma_i^2,
-\qquad
-\lVert A-A_k\rVert_F^2=\sum_{i>k}\sigma_i^2,
-$$
-
-以及 `saved_parameters = dense_parameters - low_rank_parameters`。因此“保留约 83.3% 谱能量”和“参数是否真有节省”可一起审查，而不会把其中任意一个误当成另一个的结论。
+秩 $k$ 因子约用 $k(m+n+1)$ 个数，少于 $mn$ 才有参数节省；量化、编码和元数据仍是另一问题。相对阈值的缩放不变性也不证明它正确：阈值应来自噪声、后向误差或下游允许损失，而不是从一次 SVD 输出反推。
 
 ## 手算解释与实现边界
 
@@ -84,7 +76,7 @@ print(len(components), measured_error)
 
 ## 失败案例与工程边界
 
-低秩近似只保证平方误差最优，不保证语义、安全或公平性保持。奇异值很接近时，对应方向会对噪声敏感；零奇异值表示确切冗余。大规模稀疏矩阵应使用迭代或随机 SVD，不要先转为密集矩阵。
+低秩近似只保证平方误差最优，不保证语义、安全或公平性保持。奇异值很接近时，对应方向会对噪声敏感；零奇异值表示确切冗余。非零但很小的值是否计入数值秩，必须报告绝对/相对阈值及其噪声或误差模型。大规模稀疏矩阵应使用迭代或随机 SVD，不要先转为密集矩阵。
 
 ## 常见误区
 
@@ -92,20 +84,21 @@ print(len(components), measured_error)
 - 截断不是“随意删列”，而是保留最大奇异值对应模式。
 - PCA 需要中心化；直接对原始矩阵做 SVD 不总是 PCA。
 - 幂迭代的教学近似不是精确截断 SVD；不要把一次运行的误差当作 Eckart–Young 证书。
+- “三个奇异值非零，所以有效秩必为三。”错误：数值秩需要声明阈值、单位和可接受误差。
 
 ## 练习
 
 1. 对奇异值 $5,2,1$ 计算保留一个模式的平方重构误差与 Frobenius 误差。
 2. 解释秩一外积为何只有一个独立方向。
-3. 用数值库对小灰度矩阵比较不同 $k$ 的重构误差，并与谱尾平方和核对；篡改 `truncated_svd_report` 的舍弃能量，确认其证书拒绝。
-4. **开放**：为一个 $1000\times800$ 矩阵选择参数量确有节省的 $k$，再说明为什么这仍不足以证明实际文件更小。
+3. 对谱 $[1,10^{-8},10^{-12}]$ 运行缩放对照；解释固定绝对阈值为何改变秩标签、相对阈值为何仍不能免除误差模型。
+4. 用数值库对小灰度矩阵比较不同 $k$ 的重构误差与谱尾平方和；再说明参数节省为何不足以证明实际文件更小。
 
 ## 练习答案提示
 
 1. 舍弃奇异值 $2,1$ 的平方和为 $5$，Frobenius 误差为 $\sqrt5$；区分“平方误差”和“误差范数”。
 2. 外积 $uv^T$ 的任一列都是同一 $u$ 的标量倍，因此列空间至多一维；非零时秩恰为一。
-3. 对每个 $k$ 用同一库的精确 SVD 重构，并比较实际平方误差与 $\sum_{i>k}\sigma_i^2$；报告还应验证保留/舍弃能量分解。不要拿有限迭代近似直接当定理证书。
-4. 原矩阵参数约为 $1000\times800$，秩 $k$ 分解约为 $k(1000+800+1)$；文件大小还取决于量化、编码、元数据和数据可压缩性。
+3. 缩放不改变零/非零的精确秩，却改变绝对数值大小；相对阈值保留比例，仍需由噪声、后向误差或下游预算说明其合理性。
+4. 对每个 $k$ 比较实际平方误差与 $\sum_{i>k}\sigma_i^2$，并检查能量分解；文件大小还取决于量化、编码、元数据和数据可压缩性。
 
 ## 下一步
 
