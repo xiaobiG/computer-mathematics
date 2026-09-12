@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from math import isfinite
+from math import isclose, isfinite
 
 from projects.linear_algebra_lab.power_iteration import dominant_eigenpair
 
@@ -87,4 +87,54 @@ def pca_2d_report(rows: list[list[float]], *, residual_tol: float = 1e-10) -> Pc
         reconstructed_rows=reconstructed_rows,
         reconstruction_error_squared=reconstruction_error_squared,
         certificate=certificate,
+    )
+
+
+def pca_2d_report_certificate(
+    rows: list[list[float]], report: Pca2DReport, *, residual_tol: float = 1e-10
+) -> bool:
+    """Independently replay a 2-D PCA report and reject altered claims.
+
+    ``Pca2DReport.certificate`` is useful when the report is first produced,
+    but a Boolean stored inside a report is not evidence by itself.  This
+    verifier recomputes centering, covariance, the deterministic dominant
+    eigenpair, projections, reconstruction error, and every certificate
+    field from the declared rows.  It intentionally remains a tiny 2-D
+    teaching replayer, not a general numerical-PCA validation framework.
+    """
+    if not isinstance(report, Pca2DReport) or residual_tol <= 0 or not isfinite(residual_tol):
+        return False
+    try:
+        expected = pca_2d_report(rows, residual_tol=residual_tol)
+    except (TypeError, ValueError):
+        return False
+
+    scalar_pairs = [
+        (report.eigenvalue, expected.eigenvalue),
+        (report.explained_variance_ratio, expected.explained_variance_ratio),
+        (report.reconstruction_error_squared, expected.reconstruction_error_squared),
+    ]
+    vector_pairs = [
+        (report.mean, expected.mean),
+        (report.component, expected.component),
+        (report.scores, expected.scores),
+    ]
+    matrix_pairs = [
+        (report.covariance, expected.covariance),
+        (report.reconstructed_rows, expected.reconstructed_rows),
+    ]
+    close = lambda actual, target: isclose(actual, target, rel_tol=residual_tol, abs_tol=residual_tol)
+    return (
+        all(close(actual, target) for actual, target in scalar_pairs)
+        and all(len(actual) == len(target) and all(close(value, expected_value)
+                for value, expected_value in zip(actual, target))
+                for actual, target in vector_pairs)
+        and all(
+            len(actual) == len(target)
+            and all(len(actual_row) == len(target_row)
+                    and all(close(value, expected_value) for value, expected_value in zip(actual_row, target_row))
+                    for actual_row, target_row in zip(actual, target))
+            for actual, target in matrix_pairs
+        )
+        and report.certificate == expected.certificate
     )

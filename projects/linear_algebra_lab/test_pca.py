@@ -1,7 +1,8 @@
 import unittest
+from dataclasses import replace
 from math import sqrt
 
-from projects.linear_algebra_lab.pca import pca_2d_report
+from projects.linear_algebra_lab.pca import pca_2d_report, pca_2d_report_certificate
 
 
 class Pca2DTests(unittest.TestCase):
@@ -20,6 +21,19 @@ class Pca2DTests(unittest.TestCase):
         self.assertLess(report.explained_variance_ratio, 1.0)
         self.assertTrue(report.certificate["residuals_are_orthogonal_to_component"])
         self.assertTrue(report.certificate["reconstruction_error_matches_discarded_variance"])
+
+    def test_pca_report_replayer_rejects_tampered_measurements_and_flags(self):
+        rows = [[0.0, 0.0], [1.0, 2.0], [2.0, 1.0], [3.0, 3.0]]
+        report = pca_2d_report(rows)
+        self.assertTrue(pca_2d_report_certificate(rows, report))
+        self.assertFalse(pca_2d_report_certificate(
+            rows, replace(report, reconstruction_error_squared=report.reconstruction_error_squared + 1.0)
+        ))
+        altered_certificate = dict(report.certificate)
+        altered_certificate["valid"] = False
+        self.assertFalse(pca_2d_report_certificate(
+            rows, replace(report, certificate=altered_certificate)
+        ))
 
     def test_pca_rejects_zero_variance_wrong_shapes_and_nonfinite_samples(self):
         with self.assertRaises(ValueError):

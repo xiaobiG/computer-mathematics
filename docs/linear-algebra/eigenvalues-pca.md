@@ -45,16 +45,19 @@ reconstruction_i <- mu + score_i w
 ## 可运行实验：从协方差到重构证书
 
 ```python
-from projects.linear_algebra_lab.pca import pca_2d_report
+from projects.linear_algebra_lab.pca import pca_2d_report, pca_2d_report_certificate
 
 report = pca_2d_report([[0.0, 0.0], [1.0, 1.0], [2.0, 2.0]])
 assert report.mean == (1.0, 1.0)
 assert report.explained_variance_ratio == 1.0
 assert report.reconstruction_error_squared < 1e-18
 assert report.certificate["valid"]
+assert pca_2d_report_certificate([[0.0, 0.0], [1.0, 1.0], [2.0, 2.0]], report)
 ```
 
 实验只处理二维数据，以便把每个量都直接观察到：它调用幂迭代获得协方差的最大特征对，并检查四个证书：中心化列和为零、主方向单位长度、每个重构残差与主方向正交，以及重构平方误差等于被舍弃方差乘以 $m-1$。最后一个恒等式是 PCA “最大方差等于最小一维重构误差”的小样例证据，而不是只看散点图的直觉。
+
+报告内的 `certificate` 字段只是这次计算留下的声明，不能单独用来信任一个从外部拿来的 JSON。`pca_2d_report_certificate(rows, report)` 会从声明的二维行重新计算均值、协方差、主方向、投影、重构误差和全部证书字段；篡改误差数值或将 `valid` 改为 `False` 都会被拒绝。它只验证这个固定容差、二维教学实验的可重放性，不证明真实高维 PCA 的统计代表性、特征方向唯一性或业务价值。
 
 中心化为 $O(md)$，形成密集协方差为 $O(md^2)$；二维幂迭代每轮为常数成本。高维数据常直接使用截断 SVD，避免显式形成 $d\times d$ 协方差矩阵。
 

@@ -137,6 +137,7 @@ const priorityDeepLessons = new Set([
   'linear-algebra/vectors-dot-product.md',
   'linear-algebra/gaussian-elimination.md',
   'linear-algebra/least-squares.md',
+  'linear-algebra/eigenvalues-pca.md',
   'discrete-math/loop-invariants.md',
   'discrete-math/breadth-first-search.md',
   'discrete-math/dijkstra.md',
