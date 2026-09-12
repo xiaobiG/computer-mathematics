@@ -32,6 +32,15 @@ class DijkstraTraceTests(unittest.TestCase):
         self.assertFalse(certificate["parent_paths_match_distances"])
         self.assertFalse(certificate["valid"])
 
+    def test_certificate_rejects_a_fabricated_successful_relaxation_event(self):
+        distances, parents, events = dijkstra_trace(self.graph, "s")
+        tampered = list(events)
+        tampered[0] = type(events[0])(events[0].node, events[0].distance, (("t", 1.0),))
+        certificate = shortest_path_certificate(self.graph, "s", distances, parents, tampered)
+        self.assertTrue(certificate["trace_covers_reachable"])
+        self.assertFalse(certificate["events_match_algorithm_replay"])
+        self.assertFalse(certificate["valid"])
+
     def test_rejects_negative_nonfinite_and_implicit_edges(self):
         with self.assertRaises(ValueError):
             dijkstra_trace({"s": [("a", -1.0)], "a": []}, "s")

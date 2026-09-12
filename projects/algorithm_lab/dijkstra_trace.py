@@ -81,6 +81,15 @@ def shortest_path_certificate(
         and set(event_nodes) == reachable
         and all(event.node in distances and event.distance == distances[event.node] for event in events)
     )
+    # The final labels alone do not certify a displayed teaching trace: a
+    # fabricated ``relaxed`` tuple could otherwise be shown beside correct
+    # distances.  Replaying the deterministic heap/sequence rule binds every
+    # settled event and every successful relaxation to this exact graph.
+    try:
+        _, _, expected_events = dijkstra_trace(graph, start)
+        events_match_algorithm_replay = events == expected_events
+    except (TypeError, ValueError):
+        events_match_algorithm_replay = False
     all_edges_relaxed = matching_vertices and all(
         distances[target] <= distances[source] + weight
         for source, neighbors in graph.items() if distances[source] != inf
@@ -110,12 +119,13 @@ def shortest_path_certificate(
     if any(node in parents for node in set(graph) - reachable):
         parent_paths_match_distances = False
 
-    valid = all((finite_distances, settled_order_monotone, trace_covers_reachable,
+    valid = all((finite_distances, settled_order_monotone, trace_covers_reachable, events_match_algorithm_replay,
                  all_edges_relaxed, parent_paths_match_distances))
     return {
         "finite_distances": finite_distances,
         "settled_order_monotone": settled_order_monotone,
         "trace_covers_reachable": trace_covers_reachable,
+        "events_match_algorithm_replay": events_match_algorithm_replay,
         "all_edges_relaxed": all_edges_relaxed,
         "parent_paths_match_distances": parent_paths_match_distances,
         "valid": valid,
