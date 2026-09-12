@@ -21,6 +21,7 @@ description: 用图搜索、拓扑排序、最大流轨迹和 3-SAT 验证器连
 - [渐进复杂度](/discrete-math/asymptotic-complexity)：用操作计数和双指针轨迹区分线性、二次与指数增长。
 - [集合、关系、等价类与偏序](/discrete-math/sets-relations-orders)：用性质报告和等价类划分验证有限关系。
 - [Dijkstra 交互轨迹实验](/discrete-math/dijkstra)：在浏览器中逐步查看最小堆、确定集合、松弛与过期条目，再用堆的确定顺序与松弛轨迹验证非负最短路。
+- [增量最短路](/discrete-math/incremental-shortest-path)：限定单条非负边插入，从被改善端点局部传播并逐点对照完整重算。
 - [Bellman–Ford](/discrete-math/bellman-ford)：用冻结轮次的松弛轨迹验证负边正确性，并报告可达负环。
 - [最大流最小割](/discrete-math/max-flow-min-cut)：增广路和残量可达集如何构成最优证书。
 - [动态规划](/discrete-math/dynamic-programming-dag)：前缀 DAG 的最长路、回溯方案与小规模穷举对拍。
@@ -81,6 +82,8 @@ assert topological_trace({"a": ["b"], "b": ["a"]})[0] is None
 `shortest_path_query_boundary_report(payload)` 进一步把“完整单源”与“固定目标”拆开：在满足前提时，BFS 首次出队目标、Dijkstra 定型目标后可停止；Bellman–Ford 的后续轮次和 Floyd–Warshall 的全源矩阵则不能省略。报告同时给出有向密度、邻接表槽位和矩阵格，并以证书拒绝被篡改的提前停止或存储结论。
 
 `shortest_path_update_report(before, after)` 把两个同源、同目标、同顶点集的图快照做多重集边差异和 SHA-256 指纹对照。只要边表改变，旧的比较、工作量和查询边界报告都必须重放；即使最短路输出碰巧没变，也不能把旧证据移植到新输入。
+
+`incremental_shortest_path_report(before, after)` 在更窄的合同中补充“新图如何计算”：只接受一条非负边插入，没有删除、改权或查询范围变化。若插入边降低目的端标签，它以该端点为种子传播 Dijkstra 松弛；否则报告零后继扫描。每次运行仍将全部距离与完整 Dijkstra 重算逐点对照，证书会拒绝被改写的局部工作量、路径或匹配结论。
 
 3-SAT 模块将变量写为非零整数，负号表示否定：
 

@@ -182,4 +182,4 @@ python -m unittest projects.algorithm_lab.test_shortest_path_comparison
 
 ## 延伸
 
-[BFS](/discrete-math/breadth-first-search)、[Dijkstra](/discrete-math/dijkstra)、[Bellman–Ford](/discrete-math/bellman-ford)和[Floyd–Warshall](/discrete-math/floyd-warshall)分别展开四条证明线；[算法可视化实验室](/projects/algorithm-lab)收录可重放实现。下一步将对 v1.2 的同图、输入、工作量、目标查询与更新证据做收束审计，再决定下一条高价值学习链。
+[BFS](/discrete-math/breadth-first-search)、[Dijkstra](/discrete-math/dijkstra)、[Bellman–Ford](/discrete-math/bellman-ford)和[Floyd–Warshall](/discrete-math/floyd-warshall)分别展开四条证明线；[增量最短路](/discrete-math/incremental-shortest-path)继续讨论受限边插入如何利用旧距离修复新图；[算法可视化实验室](/projects/algorithm-lab)收录可重放实现。

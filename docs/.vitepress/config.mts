@@ -171,6 +171,10 @@ export default defineConfig({
               link: "/discrete-math/shortest-path-algorithm-selection",
             },
             {
+              text: "增量最短路：单边插入后的局部修复",
+              link: "/discrete-math/incremental-shortest-path",
+            },
+            {
               text: "最大流最小割：残量网络",
               link: "/discrete-math/max-flow-min-cut",
             },
