@@ -3,6 +3,9 @@ import unittest
 from dataclasses import replace
 
 from projects.naive_bayes_spam.bayes_update import (
+    CORRELATED_EVIDENCE_CONTRACT_VERSION,
+    correlated_evidence_comparison_certificate,
+    correlated_evidence_comparison_report,
     posterior,
     posterior_trace,
     posterior_trace_respects_model,
@@ -47,3 +50,30 @@ class BayesUpdateTests(unittest.TestCase):
 
     def test_trace_certificate_accepts_empty_observation_sequence(self):
         self.assertTrue(posterior_trace_respects_model(0.42, [], 0.42, []))
+
+    def test_duplicate_evidence_exposes_independence_overstatement(self):
+        observations = [(0.8, 0.2), (0.8, 0.2)]
+        # E2 is an exact duplicate of E1, so its joint likelihood equals one
+        # marginal rather than the product used by an independence model.
+        report = correlated_evidence_comparison_report(0.1, observations, (0.8, 0.2))
+        self.assertEqual(report["contract_version"], CORRELATED_EVIDENCE_CONTRACT_VERSION)
+        self.assertAlmostEqual(report["joint_model"]["posterior"], 0.8 * 0.1 / (0.8 * 0.1 + 0.2 * 0.9))
+        self.assertGreater(report["independence_model"]["posterior"], report["joint_model"]["posterior"])
+        self.assertGreater(report["posterior_gap"], 0.3)
+        self.assertTrue(correlated_evidence_comparison_certificate(0.1, observations, (0.8, 0.2), report))
+
+    def test_joint_likelihood_matching_products_agrees_with_sequential_update(self):
+        observations = [(0.8, 0.2), (0.7, 0.4)]
+        report = correlated_evidence_comparison_report(0.3, observations, (0.56, 0.08))
+        self.assertAlmostEqual(report["posterior_gap"], 0.0)
+        self.assertAlmostEqual(
+            report["independence_model"]["posterior"], report["joint_model"]["posterior"]
+        )
+
+    def test_comparison_rejects_incompatible_joint_or_tampered_report(self):
+        observations = [(0.8, 0.2), (0.8, 0.2)]
+        with self.assertRaisesRegex(ValueError, "cannot exceed"):
+            correlated_evidence_comparison_report(0.1, observations, (0.9, 0.2))
+        report = correlated_evidence_comparison_report(0.1, observations, (0.8, 0.2))
+        report["joint_model"]["posterior"] = 0.99
+        self.assertFalse(correlated_evidence_comparison_certificate(0.1, observations, (0.8, 0.2), report))
