@@ -140,6 +140,16 @@ def matrix_perturbation_report(
     }
 
 
+def matrix_perturbation_report_certificate(matrix: Matrix, perturbed_matrix: Matrix, right_side: list[float], report: object) -> bool:
+    """Rebuild a matrix-perturbation report instead of trusting its flags."""
+    if not isinstance(report, dict):
+        return False
+    try:
+        return report == matrix_perturbation_report(matrix, perturbed_matrix, right_side)
+    except (ArithmeticError, TypeError, ValueError, ZeroDivisionError):
+        return False
+
+
 def perturbation_report(
     matrix: Matrix, baseline_rhs: list[float], perturbed_rhs: list[float]
 ) -> dict[str, float | list[float] | dict[str, bool]]:
@@ -177,3 +187,13 @@ def perturbation_report(
             "perturbed_solution_has_small_scaled_residual": backward_error <= 1e-12,
         },
     }
+
+
+def perturbation_report_certificate(matrix: Matrix, baseline_rhs: list[float], perturbed_rhs: list[float], report: object) -> bool:
+    """Rebuild a right-side perturbation report instead of trusting its flags."""
+    if not isinstance(report, dict):
+        return False
+    try:
+        return report == perturbation_report(matrix, baseline_rhs, perturbed_rhs)
+    except (ArithmeticError, TypeError, ValueError, ZeroDivisionError):
+        return False

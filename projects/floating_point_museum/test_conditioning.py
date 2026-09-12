@@ -4,8 +4,10 @@ from projects.floating_point_museum.conditioning import (
     condition_number_infinity_2x2,
     inverse_2x2,
     matrix_perturbation_report,
+    matrix_perturbation_report_certificate,
     normwise_backward_error,
     perturbation_report,
+    perturbation_report_certificate,
     residual,
 )
 
@@ -29,6 +31,14 @@ class ConditioningTests(unittest.TestCase):
         self.assertLessEqual(report["relative_solution_change"], report["condition_number_bound"])
         self.assertTrue(report["certificate"]["observed_change_is_bounded_by_condition_number"])
         self.assertTrue(report["certificate"]["perturbed_solution_has_small_scaled_residual"])
+        self.assertTrue(perturbation_report_certificate(
+            [[1.0, 1.0], [1.0, 1.0 + epsilon]], [2.0, 2.0 + epsilon], [2.0, 2.0 + 2.0 * epsilon], report,
+        ))
+        tampered = dict(report)
+        tampered["condition_number_bound"] = 0.0
+        self.assertFalse(perturbation_report_certificate(
+            [[1.0, 1.0], [1.0, 1.0 + epsilon]], [2.0, 2.0 + epsilon], [2.0, 2.0 + 2.0 * epsilon], tampered,
+        ))
         self.assertAlmostEqual(report["baseline_solution"][0], 1.0, places=8)
         self.assertAlmostEqual(report["baseline_solution"][1], 1.0, places=8)
         self.assertAlmostEqual(report["perturbed_solution"][0], 0.0, places=8)
@@ -52,6 +62,9 @@ class ConditioningTests(unittest.TestCase):
         self.assertTrue(report["certificate"]["bound_has_positive_margin"])
         self.assertTrue(report["certificate"]["observed_change_is_bounded_by_matrix_perturbation"])
         self.assertTrue(report["certificate"]["perturbed_system_residual_is_small"])
+        self.assertTrue(matrix_perturbation_report_certificate(
+            [[1.0, 0.0], [0.0, 1.0]], [[1.001, 0.0], [0.0, 1.0]], [1.0, 2.0], report,
+        ))
 
     def test_matrix_perturbation_marks_a_bound_without_margin_as_inapplicable(self):
         report = matrix_perturbation_report(

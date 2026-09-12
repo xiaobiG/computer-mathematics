@@ -40,20 +40,20 @@ $$\kappa(A)=\lVert A\rVert\lVert A^{-1}\rVert.$$
 ## 算法实验与复杂度
 
 ```python
-from projects.floating_point_museum.conditioning import perturbation_report
+from projects.floating_point_museum.conditioning import perturbation_report, perturbation_report_certificate
 
 
 epsilon = 1e-6
-report = perturbation_report(
-    [[1.0, 1.0], [1.0, 1.0 + epsilon]],
-    [2.0, 2.0 + epsilon],       # 真解为 [1, 1]
-    [2.0, 2.0 + 2.0 * epsilon], # 右端只多了 epsilon
-)
+matrix = [[1.0, 1.0], [1.0, 1.0 + epsilon]]
+baseline_rhs = [2.0, 2.0 + epsilon]       # 真解为 [1, 1]
+perturbed_rhs = [2.0, 2.0 + 2.0 * epsilon] # 右端只多了 epsilon
+report = perturbation_report(matrix, baseline_rhs, perturbed_rhs)
 
 assert report["relative_rhs_change"] < 1e-6
 assert report["relative_solution_change"] > 0.9
 assert report["certificate"]["observed_change_is_bounded_by_condition_number"]
 assert report["certificate"]["perturbed_solution_has_small_scaled_residual"]
+assert perturbation_report_certificate(matrix, baseline_rhs, perturbed_rhs, report)
 print(report["condition_number"])  # 约为 4_000_002
 ```
 
@@ -106,16 +106,16 @@ $$
 分母不是装饰：若 $\kappa(A)\delta$ 接近 1，原矩阵的逆附近可能已经不再稳定，右侧界会爆炸，不能把一阶近似当成保证。教学实验将这一条件写成可检查证书：
 
 ```python
-from projects.floating_point_museum.conditioning import matrix_perturbation_report
+from projects.floating_point_museum.conditioning import matrix_perturbation_report, matrix_perturbation_report_certificate
 
-report = matrix_perturbation_report(
-    [[1.0, 0.0], [0.0, 1.0]],
-    [[1.001, 0.0], [0.0, 1.0]],
-    [1.0, 2.0],
-)
+matrix = [[1.0, 0.0], [0.0, 1.0]]
+perturbed_matrix = [[1.001, 0.0], [0.0, 1.0]]
+right_side = [1.0, 2.0]
+report = matrix_perturbation_report(matrix, perturbed_matrix, right_side)
 
 assert report["certificate"]["bound_has_positive_margin"]
 assert report["certificate"]["observed_change_is_bounded_by_matrix_perturbation"]
+assert matrix_perturbation_report_certificate(matrix, perturbed_matrix, right_side, report)
 ```
 
 这和前一节的右端扰动报告是两种不同契约：前者固定 $A$ 并给出 $\kappa(A)\lVert\Delta b\rVert/\lVert b\rVert$，这里固定 $b$ 并必须额外检查分母的正裕量。
