@@ -165,6 +165,7 @@ const priorityDeepLessons = new Set([
   'probability-ml/maximum-likelihood.md',
   'probability-ml/metropolis-hastings.md',
   'probability-ml/hypothesis-testing.md',
+  'probability-ml/monte-carlo-importance-sampling.md',
   'probability-ml/block-bootstrap-calibration.md',
   'probability-ml/cluster-bootstrap-calibration.md',
   'probability-ml/time-stratified-cluster-bootstrap.md',

@@ -15,9 +15,9 @@ experiment: "估计圆周率并比较均匀采样与重要性采样的方差"
 
 ## 从高维积分的困境开始
 
-一维积分可细分网格，但 $d$ 维每轴取 $k$ 个点就要 $k^d$ 次评估，维度灾难很快出现。蒙特卡洛改为从分布采样：误差主要随样本数 $N$ 的平方根下降，理论上不直接随维度指数恶化。但这不是免费午餐：高维中选错采样分布会让方差巨大。
+网格在 $d$ 维每轴取 $k$ 点就要 $k^d$ 次评估。蒙特卡洛从分布采样，误差主要随 $N$ 的平方根下降；但高维中差的采样分布仍会带来巨大方差。
 
-## 从期望到样本均值
+## 严格定义：从期望到样本均值
 
 若 $X\sim p$，目标是
 
@@ -34,21 +34,23 @@ $$\hat\mu_N=\frac1N\sum_{i=1}^Nf(X_i).$$
 在正方形 $[-1,1]^2$ 均匀取点，落入单位圆的概率为 $\pi/4$：
 
 ```python
-from random import Random
+from projects.floating_point_museum.importance_sampling import (
+    importance_sampling_certificate, importance_sampling_report,
+)
+from projects.floating_point_museum.simulation import (
+    simulation_report, simulation_report_certificate,
+)
 
-def estimate_pi(samples, seed=0):
-    if samples <= 0:
-        raise ValueError("samples 必须为正")
-    rng, inside = Random(seed), 0
-    for _ in range(samples):
-        x, y = rng.uniform(-1, 1), rng.uniform(-1, 1)
-        inside += x * x + y * y <= 1
-    return 4 * inside / samples
+pi_report = simulation_report(10_000, seeds=(2026, 2027, 2028, 2029))
+assert simulation_report_certificate(10_000, seeds=(2026, 2027, 2028, 2029), report=pi_report)
 
-print(estimate_pi(100_000, seed=2026))
+# 同一 x^8 积分上比较 uniform 与 q(x)=2x；不能跨不同目标直接比较方差。
+importance = importance_sampling_report(200, 17)
+assert importance_sampling_certificate(200, 17, importance)
+assert importance["uniform"]["standard_error"] >= 0
 ```
 
-固定种子使教程测试可复现；评估真实随机算法时，应报告多个种子、均值、标准差和样本数，而不是只展示最接近真值的一次。
+运行 `python -m unittest projects.floating_point_museum.test_simulation projects.floating_point_museum.test_importance_sampling`。前者用预先声明的种子估计圆周率；后者只在同一 $\int_0^1x^8dx$ 基准中并列均匀与 $q(x)=2x$ 的估计、标准误和 ESS。不同目标的波动不能排名；固定种子只用于重放。
 
 ## 重要性采样：从更有用的地方取样
 
