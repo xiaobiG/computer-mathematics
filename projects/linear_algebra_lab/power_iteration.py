@@ -14,7 +14,8 @@ def _matvec(matrix: list[list[float]], vector: list[float]) -> list[float]:
 
 
 def dominant_eigenpair(
-    matrix: list[list[float]], *, residual_tol: float = 1e-10, max_steps: int = 200
+    matrix: list[list[float]], *, residual_tol: float = 1e-10, max_steps: int = 200,
+    initial_vector: list[float] | None = None,
 ) -> tuple[float, list[float], list[dict[str, float | int]]]:
     """Approximate the largest-magnitude eigenpair of a real symmetric matrix.
 
@@ -32,7 +33,17 @@ def dominant_eigenpair(
            for row in range(size) for column in range(size)):
         raise ValueError("teaching implementation requires a symmetric matrix")
 
-    vector = [1.0 / sqrt(size)] * size
+    if initial_vector is None:
+        vector = [1.0 / sqrt(size)] * size
+    else:
+        if (not isinstance(initial_vector, list) or len(initial_vector) != size
+                or any(not isinstance(value, (int, float)) or isinstance(value, bool) or not isfinite(value)
+                       for value in initial_vector)):
+            raise ValueError("initial_vector must be a finite numeric vector matching the matrix size")
+        initial_norm = _norm(initial_vector)
+        if initial_norm == 0.0:
+            raise ValueError("initial_vector must be nonzero")
+        vector = [float(value) / initial_norm for value in initial_vector]
     trace: list[dict[str, float | int]] = []
     for step in range(1, max_steps + 1):
         image = _matvec(matrix, vector)
@@ -47,3 +58,48 @@ def dominant_eigenpair(
         if residual_norm <= residual_tol:
             return eigenvalue, vector, trace
     raise RuntimeError("power iteration did not converge within max_steps")
+
+
+def initialization_sensitivity_report(
+    matrix: list[list[float]], primary_initial: list[float], blind_initial: list[float],
+    *, residual_tol: float = 1e-10, max_steps: int = 200,
+) -> dict[str, object]:
+    """Compare two declared initial directions on the same symmetric matrix.
+
+    A small residual certifies an eigenpair, not that the eigenpair has the
+    largest magnitude.  This report keeps both initial vectors visible so a
+    direction orthogonal to the dominant eigenspace cannot be hidden behind a
+    converged residual alone.
+    """
+    primary_value, primary_vector, primary_trace = dominant_eigenpair(
+        matrix, residual_tol=residual_tol, max_steps=max_steps, initial_vector=primary_initial,
+    )
+    blind_value, blind_vector, blind_trace = dominant_eigenpair(
+        matrix, residual_tol=residual_tol, max_steps=max_steps, initial_vector=blind_initial,
+    )
+    return {
+        "primary_initial": list(primary_initial),
+        "blind_initial": list(blind_initial),
+        "primary": {"eigenvalue": primary_value, "vector": primary_vector, "trace": primary_trace},
+        "blind": {"eigenvalue": blind_value, "vector": blind_vector, "trace": blind_trace},
+        "both_paths_have_small_residual": (
+            primary_trace[-1]["residual_norm"] <= residual_tol
+            and blind_trace[-1]["residual_norm"] <= residual_tol
+        ),
+        "primary_path_has_larger_magnitude_eigenvalue": abs(primary_value) > abs(blind_value),
+    }
+
+
+def initialization_sensitivity_certificate(
+    matrix: list[list[float]], primary_initial: list[float], blind_initial: list[float], report: object,
+    *, residual_tol: float = 1e-10, max_steps: int = 200,
+) -> bool:
+    """Replay both declared initializations and reject altered convergence claims."""
+    if not isinstance(report, dict):
+        return False
+    try:
+        return report == initialization_sensitivity_report(
+            matrix, primary_initial, blind_initial, residual_tol=residual_tol, max_steps=max_steps,
+        )
+    except (TypeError, ValueError, RuntimeError):
+        return False

@@ -143,6 +143,7 @@ const priorityDeepLessons = new Set([
   'linear-algebra/least-squares.md',
   'linear-algebra/orthogonal-projection-qr.md',
   'linear-algebra/eigenvalues-pca.md',
+  'linear-algebra/power-iteration.md',
   'discrete-math/loop-invariants.md',
   'discrete-math/sets-relations-orders.md',
   'discrete-math/recurrences.md',

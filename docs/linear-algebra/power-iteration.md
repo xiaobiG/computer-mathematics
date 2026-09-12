@@ -62,6 +62,28 @@ print(value, vector)
 
 每轮稠密矩阵—向量乘法为 $O(n^2)$ 时间、$O(n)$ 额外空间；若 $A$ 稀疏则为 $O(\mathrm{nnz}(A))$。这正是它比完整稠密分解更适合“只求一个方向”的原因。
 
+## 小残差并不说明找到了主特征对
+
+残差回答的是“当前 $(\hat\lambda,x)$ 是否近似满足特征方程”，而不是“它是否属于绝对值最大的特征值”。在同一个 $A=\mathrm{diag}(5,2)$ 上，保留初值可以把这两个结论分开：$[1,1]$ 含有 $v_1=(1,0)$ 的分量，会趋向特征值 5；$[0,1]$ 则完全落在次主特征向量 $v_2$ 的方向，第一轮就精确得到特征值 2，残差仍为零。
+
+```python
+from projects.linear_algebra_lab.power_iteration import (
+    initialization_sensitivity_certificate,
+    initialization_sensitivity_report,
+)
+
+matrix = [[5.0, 0.0], [0.0, 2.0]]
+report = initialization_sensitivity_report(matrix, [1.0, 1.0], [0.0, 1.0])
+
+assert report["both_paths_have_small_residual"]
+assert report["primary"]["eigenvalue"] == 5.0
+assert report["blind"]["eigenvalue"] == 2.0
+assert report["primary_path_has_larger_magnitude_eigenvalue"]
+assert initialization_sensitivity_certificate(matrix, [1.0, 1.0], [0.0, 1.0], report)
+```
+
+这个受限反例恰好对应推导中的前提 $c_1\ne0$：小残差足以确认一个特征对，却不能替代主方向选择、谱隙分析或重启策略。它也不是一般矩阵上“只要换初值就能解决”的结论；重根、很小的主分量与非对称矩阵仍需要不同的分析和算法。
+
 ## 失败案例与工程边界
 
 - **没有谱隙**：若 $|\lambda_1|=|\lambda_2|$，方向可能不唯一、缓慢震荡或依赖初值。
@@ -81,14 +103,14 @@ print(value, vector)
 
 1. **基础**：对对角矩阵 $\mathrm{diag}(4,1)$ 从 $(1,1)$ 手算两轮并归一化。
 2. **推导**：从特征展开推出误差项含 $(\lambda_2/\lambda_1)^k$。
-3. **编码**：为轨迹增加相邻 Rayleigh 商之差，并构造一个无谱隙的矩阵观察行为。
+3. **编码**：使用 `initialization_sensitivity_report` 对 $\mathrm{diag}(5,2)$ 分别传入 $[1,1]$ 与 $[0,1]$；说明为何两个残差都小，却只有前者得到主特征对。
 4. **开放**：在中心化数据的协方差矩阵上运行幂迭代，与[PCA](/linear-algebra/eigenvalues-pca)的第一主成分比较；说明高维稀疏数据为何应避免显式形成协方差矩阵。
 
 ## 练习答案提示
 
 1. 每轮先乘矩阵再除以向量 2-范数；对角矩阵只会把两个分量分别乘 4、1，因此比值会向第一坐标倾斜。
 2. 将初值写成特征向量基的线性组合；归一化后主项可提出，剩余第二区分量按 $(\lambda_2/\lambda_1)^k$ 衰减，需假设主分量非零且有谱隙。
-3. Rayleigh 商差是辅助诊断，仍应保留残差；可用单位矩阵或重复最大特征值的对角矩阵展示方向依赖初值、没有唯一收敛方向。
+3. 第二个初值的主方向系数为零，因此它始终留在 $v_2$ 子空间；残差验证的是 $Av_2=2v_2$，不比较 2 与主特征值 5。
 4. 比较方向时允许整体符号相反；稀疏高维中形成 $X^TX$ 会增加存储并可能平方条件数，直接矩阵—向量乘更合适。
 
 ## 下一步
