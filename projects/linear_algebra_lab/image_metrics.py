@@ -7,6 +7,8 @@ not decode image files or make a claim about human visual quality.
 from dataclasses import dataclass
 from math import inf, isclose, isfinite, log10, sqrt
 
+from projects.linear_algebra_lab.randomized_svd import RandomizedSVDReport, randomized_svd_certificate
+
 
 @dataclass(frozen=True)
 class ImageQualityReport:
@@ -15,6 +17,20 @@ class ImageQualityReport:
     rmse: float
     psnr: float
     max_absolute_error: float
+
+
+@dataclass(frozen=True)
+class RandomizedSVDImageQualityReview:
+    """A declared pixel-error budget applied to a verified random-SVD result."""
+
+    source_rank: int
+    source_seed: int
+    source_oversampling: int
+    source_power_iterations: int
+    mse_budget: float
+    quality: ImageQualityReport
+    mse_budget_status: str
+    automatic_action: str
 
 
 @dataclass(frozen=True)
@@ -83,6 +99,44 @@ def image_quality_certificate(reference, approximation, report, peak=255.0, tole
         and ((report.psnr == expected.psnr == inf) or isclose(report.psnr, expected.psnr, rel_tol=tolerance, abs_tol=tolerance))
         and isclose(report.max_absolute_error, expected.max_absolute_error, rel_tol=tolerance, abs_tol=tolerance)
     )
+
+
+def randomized_svd_image_quality_review(reference, svd_report, mse_budget, peak=255.0):
+    """Evaluate the actual reconstruction from a verified randomized-SVD report.
+
+    The source report is consumed as an artifact, rather than asking callers to
+    copy out an approximation matrix.  The result is a numeric budget review,
+    not a claim about perceived quality, file size, or downstream task quality.
+    """
+    if (not isinstance(mse_budget, (int, float)) or isinstance(mse_budget, bool)
+            or not isfinite(mse_budget) or mse_budget < 0):
+        raise ValueError("mse_budget must be a finite non-negative number")
+    if not isinstance(svd_report, RandomizedSVDReport):
+        raise ValueError("svd_report must be a randomized SVD artifact")
+    if not randomized_svd_certificate(reference, svd_report):
+        raise ValueError("svd_report does not replay for this reference matrix")
+    quality = image_quality_report(reference, svd_report.approximation, peak)
+    budget = float(mse_budget)
+    return RandomizedSVDImageQualityReview(
+        source_rank=svd_report.rank,
+        source_seed=svd_report.seed,
+        source_oversampling=svd_report.oversampling,
+        source_power_iterations=svd_report.power_iterations,
+        mse_budget=budget,
+        quality=quality,
+        mse_budget_status="within_mse_budget" if quality.mse <= budget else "exceeds_mse_budget",
+        automatic_action="none",
+    )
+
+
+def randomized_svd_image_quality_review_certificate(reference, svd_report, mse_budget, review, peak=255.0):
+    """Rebuild the source-bound quality review and reject altered conclusions."""
+    if not isinstance(review, RandomizedSVDImageQualityReview):
+        return False
+    try:
+        return review == randomized_svd_image_quality_review(reference, svd_report, mse_budget, peak)
+    except ValueError:
+        return False
 
 
 def structural_similarity_report(reference, approximation, peak=255.0, k1=0.01, k2=0.03):

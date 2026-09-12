@@ -80,6 +80,21 @@ assert report.max_absolute_error == 255.0
 
 PSNR 将像素 RMSE 与约定峰值联系起来；它仍只是逐像素数值度量，不能替代感知质量或检索质量的评估。
 
+## 随机 SVD 到图像误差实验
+
+```python
+from projects.linear_algebra_lab.image_metrics import randomized_svd_image_quality_review
+from projects.linear_algebra_lab.randomized_svd import randomized_svd_report
+
+pixels = [[5.0, 0.0], [0.0, 1.0]]
+svd_report = randomized_svd_report(pixels, rank=1, oversampling=1, seed=3)
+review = randomized_svd_image_quality_review(pixels, svd_report, mse_budget=0.3, peak=5.0)
+assert review.mse_budget_status == "within_mse_budget"
+assert review.automatic_action == "none"
+```
+
+评审会先验证随机 SVD 产物的来源范围、参数与重构，再以这份实际重构计算图像指标。预算是读者声明的数值约束；改变它可改变结论，却不能将任一结论自动升级为感知、检索或上线决定。
+
 ## 随机范围发现实验
 
 ```python

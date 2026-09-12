@@ -91,6 +91,8 @@ v2.9 的报告审计证明了一个维护原则：报告中写着 `valid: true` 
 
 v5.5-a 再检查这条链的课程边界：随机 SVD 虽然曾内部生成范围发现，却无法接收读者已经运行、保存并验证的范围报告；下游会悄悄重新采样，读者无法证明它实际分解了哪一个子空间。现在 `randomized_svd_from_range_report` 仅消费可重放的 `RandomizedRangeReport`，保存其为 `source_range_report`，并拒绝矩阵、基、seed、过采样或幂迭代不一致的来源。范围发现不再退化为一段文字或一个 seed；下游的实际分解空间成为可检查的输入。这个教学实现仍不提供高概率误差界、稀疏/分布式算法或生产级稳定 QR。
 
+v5.6-a 将这份可验证重构继续交给[图像误差指标](/linear-algebra/image-error-metrics)。此前读者必须手工抽取 `approximation`，质量报告无法追溯它是否来自同一随机范围、随机 SVD 与参考图。`randomized_svd_image_quality_review` 现在只消费可重放的随机 SVD 产物，再用其中的实际重构计算 MSE、RMSE、PSNR 和最大误差，并将读者声明的 MSE 预算变为 `within_mse_budget` 或 `exceeds_mse_budget`。这条数值结论固定 `automatic_action="none"`：预算不能取代视觉、文件编码、检索、分类或部署决策。
+
 ## v3.1：相关观测的真实抽样单位
 
 时间块 bootstrap 已说明相邻事件不能逐条重抽，但“同一用户或设备多次出现”是不同的相关结构。v3.1-a 新增[簇级 Bootstrap](/probability-ml/cluster-bootstrap-calibration)：预定义、标识唯一的完整用户/设备簇成为抽样单位；报告绑定簇大小、政策、种子和区间，并明确 `automatic_action: none`。该课纳入优先深度门禁。

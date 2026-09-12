@@ -3,8 +3,8 @@ title: 图像误差指标：MSE、PSNR 与“压缩得好”的边界
 description: 将低秩重构的逐像素差写成 MSE、RMSE、PSNR 和最大误差，并用可重放报告区分数值保真与感知质量。
 courseLevel: "2–3（误差度量、实验审计与工程边界）"
 prerequisites: "Frobenius 范数、低秩近似与平方根"
-estimatedMinutes: 55
-experiment: "为同一对灰度矩阵计算 MSE、RMSE、PSNR、最大误差并重放报告"
+estimatedMinutes: 70
+experiment: "消费已验证的随机 SVD 重构，计算 MSE、RMSE、PSNR、最大误差并审计 MSE 预算"
 ---
 
 # 图像误差指标：MSE、PSNR 与“压缩得好”的边界
@@ -71,11 +71,30 @@ assert image_quality_certificate(reference, approximation, report)
 
 运行 `python -m unittest projects.linear_algebra_lab.test_image_metrics`。报告先检查两幅图均为同形、非空、有限数值矩阵，再以一次扫描计算所有量。证书不信任存储的数字：它从输入重新计算 MSE、RMSE、PSNR 和最大误差，会拒绝被改过的字段。时间为 $O(N)$，除了常数个累加器外额外空间为 $O(1)$。
 
+## 跨课实验：审计随机 SVD 的实际像素误差
+
+不要从随机 SVD 报告里手工复制 `approximation`，否则质量课无法知道它来自哪个 seed、过采样、幂迭代和截断秩。`randomized_svd_image_quality_review` 先验证完整上游报告可对同一参考矩阵重放，再用它的实际重构计算指标并与读者声明的 MSE 预算比较：
+
+```python
+from projects.linear_algebra_lab.image_metrics import randomized_svd_image_quality_review
+from projects.linear_algebra_lab.randomized_svd import randomized_svd_report
+
+pixels = [[5.0, 0.0], [0.0, 1.0]]
+svd_report = randomized_svd_report(pixels, rank=1, oversampling=1, seed=3)
+review = randomized_svd_image_quality_review(pixels, svd_report, mse_budget=0.3, peak=5.0)
+
+assert review.source_seed == 3
+assert review.mse_budget_status == "within_mse_budget"
+assert review.automatic_action == "none"
+```
+
+同一份上游重构在 `mse_budget=0.2` 下会变为 `exceeds_mse_budget`。这说明“可接受的数值误差”是应用声明的约束，而不是 PSNR 自己给出的产品决定；篡改上游范围、SVD 重构、参考图或质量结论都会被拒绝。即使预算内也只表示逐像素 MSE 合格，不能自动推出视觉质量、编码后文件大小、检索效果或部署安全性。
+
 ## 正确性与复杂度
 
 每个像素恰好贡献一次 $e_{ij}^2$ 与 $|e_{ij}|$，故累加器分别等于定义中的求和与最大值；除以样本数和开平方便给出 MSE、RMSE。只要 MSE 正，PSNR 的两种写法由 $\operatorname{RMSE}^2=\operatorname{MSE}$ 与对数规则严格等价。MSE 为零时不做除零，而是按定义报告无穷 PSNR。
 
-这验证的是**度量实现**，不是低秩算法的最优性。只有精确截断 SVD 才有特定秩约束下 Frobenius 最优的定理；有限迭代的教学压缩器必须把实际误差另外测量。
+这验证的是**度量实现**，不是低秩算法的最优性。只有精确截断 SVD 才有特定秩约束下 Frobenius 最优的定理；有限迭代的教学压缩器必须把实际误差另外测量。上面的跨课评审还验证“报告来自可重放的随机 SVD”，但不把 MSE 预算升级为感知或任务层面的承诺。
 
 ## 失败案例与工程边界
 

@@ -61,6 +61,20 @@ python -m unittest \
   projects.linear_algebra_lab.test_randomized_svd
 ```
 
+## 跨课使用：把实际重构交给图像误差评审
+
+随机 SVD 的 `approximation` 不应脱离来源后作为一张匿名矩阵传递。把完整 `report` 交给[图像误差指标](/linear-algebra/image-error-metrics)的评审函数时，下游会先重放随机范围与小矩阵分解，再计算 MSE、RMSE、PSNR 和最大误差：
+
+```python
+from projects.linear_algebra_lab.image_metrics import randomized_svd_image_quality_review
+
+quality_review = randomized_svd_image_quality_review(matrix, report, mse_budget=0.3, peak=5.0)
+assert quality_review.source_rank == 1
+assert quality_review.mse_budget_status == "within_mse_budget"
+```
+
+改变上游矩阵、seed、过采样、幂迭代、来源范围或截断重构会使评审拒绝；改变下游的 MSE 预算会改变“预算内/超出”的数值结论。两种结果都固定 `automatic_action="none"`：像素误差预算不能替代感知实验、文件编码评估或业务风险判断。
+
 ## 正确性与反例
 
 秩一矩阵在草图捕获其列空间时可近似精确重构；测试验证这一点。对对角矩阵 $\operatorname{diag}(5,1)$ 只保留一项时，误差应为正：低秩截断不会凭随机性消灭被舍弃方向。

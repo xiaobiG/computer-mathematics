@@ -3,8 +3,10 @@ from dataclasses import replace
 from math import inf
 
 from projects.linear_algebra_lab.image_metrics import (
-    image_quality_certificate, image_quality_report, structural_similarity_certificate, structural_similarity_report,
+    image_quality_certificate, image_quality_report, randomized_svd_image_quality_review,
+    randomized_svd_image_quality_review_certificate, structural_similarity_certificate, structural_similarity_report,
 )
+from projects.linear_algebra_lab.randomized_svd import randomized_svd_report
 
 
 class ImageMetricsTests(unittest.TestCase):
@@ -49,6 +51,22 @@ class ImageMetricsTests(unittest.TestCase):
         report = structural_similarity_report(reference, shifted)
         self.assertLess(report.ssim, 0.0)
         self.assertFalse(structural_similarity_certificate(reference, shifted, replace(report, covariance=0.0)))
+
+    def test_randomized_svd_artifact_drives_a_numeric_quality_budget_review(self):
+        pixels = [[5.0, 0.0], [0.0, 1.0]]
+        svd_report = randomized_svd_report(pixels, rank=1, oversampling=1, seed=3)
+        accepted = randomized_svd_image_quality_review(pixels, svd_report, mse_budget=0.3, peak=5.0)
+        rejected = randomized_svd_image_quality_review(pixels, svd_report, mse_budget=0.2, peak=5.0)
+        self.assertEqual(accepted.source_seed, 3)
+        self.assertEqual(accepted.mse_budget_status, "within_mse_budget")
+        self.assertEqual(rejected.mse_budget_status, "exceeds_mse_budget")
+        self.assertEqual(accepted.automatic_action, "none")
+        self.assertTrue(randomized_svd_image_quality_review_certificate(pixels, svd_report, 0.3, accepted, peak=5.0))
+        self.assertFalse(randomized_svd_image_quality_review_certificate(
+            pixels, svd_report, 0.3, replace(accepted, mse_budget_status="exceeds_mse_budget"), peak=5.0
+        ))
+        with self.assertRaises(ValueError):
+            randomized_svd_image_quality_review([[5.0, 0.0], [0.0, 2.0]], svd_report, mse_budget=0.3, peak=5.0)
 
 
 if __name__ == "__main__":

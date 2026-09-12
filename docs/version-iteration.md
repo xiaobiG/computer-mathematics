@@ -987,3 +987,13 @@ v2.7–v2.9 的共同增量不是新增术语，而是把“可计算的输出�
 | 验证 | `python -m unittest projects.linear_algebra_lab.test_randomized_range projects.linear_algebra_lab.test_randomized_svd`、`npm run content:check`；发布前运行全项目测试、生产构建与 GitHub Pages 工作流。 |
 | 差异 | 原随机 SVD 内部重新运行范围发现，即使读者已有上游报告也无法证明下游使用了同一 $Q$；现在下游仅接受能对同一矩阵、seed、过采样和幂迭代重放的来源，保留 `source_range_report`，篡改来源或换矩阵都会被拒绝。 |
 | 下一决策 | 这不是随机 SVD 的高概率误差界、稳定 QR、稀疏/分布式实现或自动调参器；下一轮应继续审计是否仍有课程把实际上游产物退化成文字、布尔值或隐式重算。 |
+
+### v5.6-a：随机 SVD 重构到 MSE 预算评审（已完成）
+
+| 字段 | 记录 |
+| --- | --- |
+| 目标 | 读者能将一份已验证的随机 SVD 重构直接交给图像误差评审，得到可追溯的像素指标与声明 MSE 预算的关系。 |
+| 范围 | 扩展[随机 SVD](/linear-algebra/randomized-svd)、[图像误差指标](/linear-algebra/image-error-metrics)、线性代数实验室、成熟度看板与路线图；新增 `randomized_svd_image_quality_review` 和测试。 |
+| 验证 | `python -m unittest projects.linear_algebra_lab.test_image_metrics projects.linear_algebra_lab.test_randomized_svd`、`npm run content:check`；发布前运行全项目测试、生产构建与 GitHub Pages 工作流。 |
+| 差异 | 原误差课接收匿名近似矩阵，无法确认它来自哪一份随机草图；现在评审先重放随机 SVD 来源，再使用实际重构计算 MSE、RMSE、PSNR、最大误差。相同重构在不同 MSE 预算下会明确得到预算内或超出，篡改来源、重构、参考图或结论都会被拒绝。 |
+| 下一决策 | 这不是感知指标、文件编码器、图像检索/分类验证或自动发布器；即使数值预算内也固定 `automatic_action="none"`。下一轮应继续寻找其他专题中可被真实上游产物改变的下游结论。 |
