@@ -1,9 +1,12 @@
 import unittest
+from dataclasses import replace
 
 from projects.naive_bayes_spam.cost_sensitive_decisions import (
+    calibrated_cost_sensitive_decision, calibrated_cost_sensitive_decision_certificate,
     cost_sensitive_decision,
     cost_sensitive_decision_table,
 )
+from projects.naive_bayes_spam.recalibration import platt_calibration_report
 
 
 class CostSensitiveDecisionTests(unittest.TestCase):
@@ -28,6 +31,21 @@ class CostSensitiveDecisionTests(unittest.TestCase):
             cost_sensitive_decision(0.3, 0.0, 1.0)
         with self.assertRaises(ValueError):
             cost_sensitive_decision_table([], 1.0, 1.0)
+
+    def test_verified_calibration_artifact_changes_the_cost_conclusion(self):
+        scores = [.9] * 8 + [.1] * 8
+        labels = [True, True, True, True, True, True, False, False] + [True, True, False, False, False, False, False, False]
+        calibration = platt_calibration_report(scores, labels, learning_rate=.2, max_steps=1000)
+        raw = cost_sensitive_decision(.9, false_positive_cost=4.0, false_negative_cost=1.0)
+        decision = calibrated_cost_sensitive_decision(.9, calibration, false_positive_cost=4.0, false_negative_cost=1.0)
+        self.assertTrue(raw.recommended_label)
+        self.assertAlmostEqual(decision.calibrated_probability, .75, places=5)
+        self.assertFalse(decision.decision.recommended_label)
+        self.assertEqual(decision.automatic_action, "none")
+        self.assertTrue(calibrated_cost_sensitive_decision_certificate(.9, calibration, 4.0, 1.0, decision))
+        self.assertFalse(calibrated_cost_sensitive_decision_certificate(
+            .9, calibration, 4.0, 1.0, replace(decision, automatic_action="apply"),
+        ))
 
 
 if __name__ == "__main__":

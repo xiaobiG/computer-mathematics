@@ -997,3 +997,13 @@ v2.7–v2.9 的共同增量不是新增术语，而是把“可计算的输出�
 | 验证 | `python -m unittest projects.linear_algebra_lab.test_image_metrics projects.linear_algebra_lab.test_randomized_svd`、`npm run content:check`；发布前运行全项目测试、生产构建与 GitHub Pages 工作流。 |
 | 差异 | 原误差课接收匿名近似矩阵，无法确认它来自哪一份随机草图；现在评审先重放随机 SVD 来源，再使用实际重构计算 MSE、RMSE、PSNR、最大误差。相同重构在不同 MSE 预算下会明确得到预算内或超出，篡改来源、重构、参考图或结论都会被拒绝。 |
 | 下一决策 | 这不是感知指标、文件编码器、图像检索/分类验证或自动发布器；即使数值预算内也固定 `automatic_action="none"`。下一轮应继续寻找其他专题中可被真实上游产物改变的下游结论。 |
+
+### v5.7-a：Platt 校准产物到成本敏感决策（已完成）
+
+| 字段 | 记录 |
+| --- | --- |
+| 目标 | 读者能将独立验证集拟合的、可重放 Platt 校准产物交给成本敏感决策，而不是把一个匿名概率直接送入阈值公式。 |
+| 范围 | 扩展[概率再校准](/probability-ml/recalibration)、[生成模型、朴素贝叶斯与逻辑回归](/probability-ml/generative-discriminative-logistic)、概率分类项目、成熟度看板与路线图；新增 `PlattCalibrationReport`、`calibrated_cost_sensitive_decision` 及测试。 |
+| 验证 | `python -m unittest projects.naive_bayes_spam.test_recalibration projects.naive_bayes_spam.test_cost_sensitive_decisions`、`npm run content:check`；发布前运行全项目测试、生产构建与 GitHub Pages 工作流。 |
+| 差异 | 原成本函数只接收裸概率；现在下游先重放验证分数、标签、超参数、Platt 参数和优化轨迹，再转换保留分数。同一原始 `.9` 在 $c_{FP}=4,c_{FN}=1$ 下从裸概率的判正变为校准后约 `.75` 的判负；篡改校准产物或决策结论都会被拒绝。 |
+| 下一决策 | 这不是测试集上的重新拟合、在线校准、成本估计、因果证明或自动化高风险行动；所有输出固定 `automatic_action="none"`。下一轮继续审计是否还有上游学习产物被下游简化为匿名标量。 |

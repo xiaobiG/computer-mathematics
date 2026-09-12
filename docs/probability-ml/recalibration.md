@@ -3,8 +3,8 @@ title: 概率再校准：验证集把分数变回概率
 description: 从 logistic 校准推导 Platt scaling，严格区分训练、验证与测试集，并用可复跑实验审计概率损失。
 courseLevel: "3（概率模型评估与工程验证）"
 prerequisites: "条件概率、sigmoid、交叉熵、概率校准与可靠性曲线"
-estimatedMinutes: 60
-experiment: "在独立验证集拟合 Platt scaling，并对保留数据比较 Brier 与对数损失"
+estimatedMinutes: 75
+experiment: "在独立验证集拟合可重放的 Platt 产物，并把保留分数交给成本敏感决策"
 ---
 
 # 概率再校准：验证集把分数变回概率
@@ -73,6 +73,26 @@ python -m unittest projects.naive_bayes_spam.test_recalibration
 ```
 
 实现对每个候选梯度步执行回溯：只有正则化验证目标不增加时才接受该步。`objective_trace` 因而成为可检查的优化轨迹；它证明的是这个小实现遵循了自己的下降契约，不证明任何新数据也会变好。端点 $p=0,1$ 会在取 logit 前裁剪到极小开区间；这防止无穷值，但也提醒我们绝对概率本身往往已是危险的建模信号。
+
+## 跨课使用：让成本决策消费校准产物
+
+若只把一个数值 `0.75` 交给成本公式，下游无法分辨它是独立验证集拟合的映射输出，还是手工修改后的概率。`platt_calibration_report` 保存验证分数、标签、拟合超参数、参数、优化轨迹和前后损失；`calibrated_cost_sensitive_decision` 只接受能完整重放的这份产物：
+
+```python
+from projects.naive_bayes_spam.cost_sensitive_decisions import calibrated_cost_sensitive_decision
+from projects.naive_bayes_spam.recalibration import platt_calibration_report
+
+scores = [0.9] * 8 + [0.1] * 8
+labels = [True, True, True, True, True, True, False, False] + [True, True, False, False, False, False, False, False]
+report = platt_calibration_report(scores, labels, learning_rate=.2, max_steps=1000)
+decision = calibrated_cost_sensitive_decision(.9, report, false_positive_cost=4.0, false_negative_cost=1.0)
+
+assert round(decision.calibrated_probability, 2) == .75
+assert decision.decision.recommended_label is False
+assert decision.automatic_action == "none"
+```
+
+未经校准的 `.9` 在同一成本下会建议判正，因为阈值为 `.8`；验证集校准后的约 `.75` 会建议判负。改变上游验证数据、校准参数或原始分数，都会改变或拒绝下游结论；改变成本政策也会改变阈值。两者都不是自动化授权：验证集不代表未来人群，成本仍需要有责任的主体声明，平局与高风险行动仍须独立流程。
 
 ## 如何报告，而不是挑结果
 

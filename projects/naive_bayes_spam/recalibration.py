@@ -7,10 +7,29 @@ caller: fitting it on a final test set would be data leakage, not a feature.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from math import exp, isfinite, log
 
 
 _EPSILON = 1e-12
+
+
+@dataclass(frozen=True)
+class PlattCalibrationReport:
+    """A replayable calibration artifact fitted on one explicit validation set."""
+
+    validation_probabilities: tuple[float, ...]
+    validation_labels: tuple[float, ...]
+    learning_rate: float
+    max_steps: int
+    l2: float
+    slope: float
+    intercept: float
+    objective_trace: tuple[float, ...]
+    brier_before: float
+    brier_after: float
+    log_loss_before: float
+    log_loss_after: float
 
 
 def _probability(value: float) -> float:
@@ -135,3 +154,53 @@ class PlattCalibrator:
         if not hasattr(self, "slope"):
             raise ValueError("call fit on an independent validation set before prediction")
         return [_sigmoid(self.slope * _logit(_probability(probability)) + self.intercept) for probability in probabilities]
+
+
+def platt_calibration_report(
+    validation_probabilities: list[float], validation_labels: list[bool | int],
+    learning_rate: float = .1, max_steps: int = 500, l2: float = 1e-6,
+) -> PlattCalibrationReport:
+    """Fit once on explicit validation data and retain a replayable artifact."""
+    pairs = _validated_pairs(validation_probabilities, validation_labels)
+    calibrator = PlattCalibrator(learning_rate=learning_rate, max_steps=max_steps, l2=l2).fit(
+        validation_probabilities, validation_labels
+    )
+    raw = [probability for probability, _ in pairs]
+    labels = [label for _, label in pairs]
+    calibrated = calibrator.predict_proba(raw)
+    return PlattCalibrationReport(
+        validation_probabilities=tuple(raw),
+        validation_labels=tuple(labels),
+        learning_rate=calibrator.learning_rate,
+        max_steps=calibrator.max_steps,
+        l2=calibrator.l2,
+        slope=calibrator.slope,
+        intercept=calibrator.intercept,
+        objective_trace=tuple(calibrator.objective_trace),
+        brier_before=brier_score(raw, labels),
+        brier_after=brier_score(calibrated, labels),
+        log_loss_before=log_loss(raw, labels),
+        log_loss_after=log_loss(calibrated, labels),
+    )
+
+
+def platt_calibration_certificate(report: object) -> bool:
+    """Re-fit the stated validation artifact and reject altered parameters."""
+    if not isinstance(report, PlattCalibrationReport):
+        return False
+    try:
+        expected = platt_calibration_report(
+            list(report.validation_probabilities), list(report.validation_labels),
+            learning_rate=report.learning_rate, max_steps=report.max_steps, l2=report.l2,
+        )
+    except ValueError:
+        return False
+    return report == expected
+
+
+def calibrated_probability_from_report(report: object, raw_probability: object) -> float:
+    """Transform one held-out score only through a verified calibration artifact."""
+    if not isinstance(report, PlattCalibrationReport) or not platt_calibration_certificate(report):
+        raise ValueError("calibration report does not replay")
+    probability = _probability(raw_probability)
+    return _sigmoid(report.slope * _logit(probability) + report.intercept)

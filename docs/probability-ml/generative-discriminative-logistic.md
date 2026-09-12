@@ -3,8 +3,8 @@ title: 生成模型、朴素贝叶斯与逻辑回归
 description: 从伯努利似然推导交叉熵和批量梯度下降，并比较生成式与判别式分类的假设和边界。
 courseLevel: 2
 prerequisites: 条件概率、最大似然、导数与向量点积
-estimatedMinutes: 65
-experiment: 比较同一校准概率在不同错误成本下的决策
+estimatedMinutes: 75
+experiment: 比较裸分数与可重放校准产物在同一错误成本下的决策
 ---
 
 # 生成模型、朴素贝叶斯与逻辑回归
@@ -152,6 +152,8 @@ assert missed_spam_is_costly.recommended_label is True
 ```
 
 模型分数没有变化；变化的是明确写出的损失假设。把概率改为 $0.5$、成本改为相同值，函数会返回 `recommended_label is None`，提醒你这是平局而不是自然的“判正”。先用自己的概率表预测哪些格会翻转，再运行 `cost_sensitive_decision_table`；它只计算抽象的期望成本，绝不授权医疗、金融、招聘、访问控制等高风险场景自动执行动作。
+
+在实际链路中，`cost_sensitive_decision` 不应替你证明传入的数值已经校准。[概率再校准](/probability-ml/recalibration)提供的 `calibrated_cost_sensitive_decision` 会先重放验证集拟合的 Platt 产物，再将保留分数映射为概率并计算同一成本公式。示例中的原始 `.9` 在 $c_{FP}=4,c_{FN}=1$ 下高于 `.8` 阈值而建议判正；同一份已验证校准产物把它变为约 `.75`，于是建议判负。这个改变来自可追溯的上游校准与声明成本，不是一个可以手工替换的“更可信数字”；结果仍固定为不自动行动。
 
 ## 失败案例与工程边界
 

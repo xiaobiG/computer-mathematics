@@ -1,6 +1,11 @@
 import unittest
 
-from projects.naive_bayes_spam.recalibration import PlattCalibrator, brier_score, log_loss
+from dataclasses import replace
+
+from projects.naive_bayes_spam.recalibration import (
+    PlattCalibrator, brier_score, calibrated_probability_from_report, log_loss,
+    platt_calibration_certificate, platt_calibration_report,
+)
 
 
 class RecalibrationTests(unittest.TestCase):
@@ -38,3 +43,10 @@ class RecalibrationTests(unittest.TestCase):
             brier_score([1.2], [True])
         with self.assertRaises(ValueError):
             log_loss([0.5], [2])
+
+    def test_replayable_report_retains_validation_fit_for_held_out_scores(self):
+        report = platt_calibration_report(self.validation_scores, self.validation_labels, learning_rate=.2, max_steps=1000)
+        self.assertTrue(platt_calibration_certificate(report))
+        self.assertLess(report.brier_after, report.brier_before)
+        self.assertAlmostEqual(calibrated_probability_from_report(report, .9), .75, places=5)
+        self.assertFalse(platt_calibration_certificate(replace(report, slope=report.slope + .1)))

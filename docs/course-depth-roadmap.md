@@ -93,6 +93,8 @@ v5.5-a 再检查这条链的课程边界：随机 SVD 虽然曾内部生成范�
 
 v5.6-a 将这份可验证重构继续交给[图像误差指标](/linear-algebra/image-error-metrics)。此前读者必须手工抽取 `approximation`，质量报告无法追溯它是否来自同一随机范围、随机 SVD 与参考图。`randomized_svd_image_quality_review` 现在只消费可重放的随机 SVD 产物，再用其中的实际重构计算 MSE、RMSE、PSNR 和最大误差，并将读者声明的 MSE 预算变为 `within_mse_budget` 或 `exceeds_mse_budget`。这条数值结论固定 `automatic_action="none"`：预算不能取代视觉、文件编码、检索、分类或部署决策。
 
+v5.7-a 审计概率链时发现，[概率再校准](/probability-ml/recalibration)虽已拟合 Platt scaling，[生成模型与逻辑回归](/probability-ml/generative-discriminative-logistic)的成本敏感决策却只接收裸概率；读者无法证明输入 `.75` 来自何处。现在 `platt_calibration_report` 保存验证集、超参数、拟合参数、轨迹和前后损失；`calibrated_cost_sensitive_decision` 只消费可重放的上游产物，再以声明成本计算期望损失。同一原始 `.9` 在 $c_{FP}=4,c_{FN}=1$ 下可从裸分数的判正变成验证集校准后约 `.75` 的判负。结论仍固定 `automatic_action="none"`：这不是在线校准、成本估计、因果保证或高风险自动决策。
+
 ## v3.1：相关观测的真实抽样单位
 
 时间块 bootstrap 已说明相邻事件不能逐条重抽，但“同一用户或设备多次出现”是不同的相关结构。v3.1-a 新增[簇级 Bootstrap](/probability-ml/cluster-bootstrap-calibration)：预定义、标识唯一的完整用户/设备簇成为抽样单位；报告绑定簇大小、政策、种子和区间，并明确 `automatic_action: none`。该课纳入优先深度门禁。
