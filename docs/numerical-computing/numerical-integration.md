@@ -66,25 +66,39 @@ assert 15.5 < report.simpson_error_ratio < 16.5
 
 $$\widehat E=\frac{|S_2-S|}{15},\qquad S_{\mathrm{corrected}}=S_2+\frac{S_2-S}{15}.$$
 
-当 $\widehat E\leq\tau$ 时接受该叶区间；否则把区间和预算都平分，两个子问题各用 $\tau/2$。因此已接受叶子的误差估计之和不超过最初预算。下面的实现将估计值、采样次数、接受叶子数和是否耗尽深度都放进报告：
+当 $\widehat E\leq\tau$ 时接受该叶区间；否则把区间和预算都平分，两个子问题各用 $\tau/2$。因此已接受叶子的误差估计之和不超过最初预算。下面的实现将估计值、采样次数、最大调用预算、终止叶区间和是否耗尽深度都放进报告：
 
 ```python
 from math import pi, sin
 
-from projects.floating_point_museum.integration import adaptive_simpson
+from projects.floating_point_museum.integration import (
+    adaptive_simpson,
+    adaptive_simpson_certificate,
+)
 
-report = adaptive_simpson(sin, 0.0, pi, absolute_tolerance=1e-10)
+report = adaptive_simpson(
+    sin, 0.0, pi, absolute_tolerance=1e-10,
+    max_depth=20, max_evaluations=500,
+)
 assert report.converged
 assert report.certificate["valid"]
 assert abs(report.estimate - 2.0) < 1e-10
+assert adaptive_simpson_certificate(sin, 0.0, pi, report)
 
-# 不允许把预算耗尽伪装成成功。
+# 不允许把深度或函数调用预算耗尽伪装成成功。
 limited = adaptive_simpson(sin, 0.0, pi, absolute_tolerance=1e-14, max_depth=0)
 assert not limited.converged
 assert not limited.certificate["valid"]
+
+budget_limited = adaptive_simpson(sin, 0.0, pi, max_evaluations=3)
+assert budget_limited.evaluation_budget_exhausted
+assert budget_limited.evaluations == 3
+assert budget_limited.leaves[0].status == "evaluation_budget_exhausted"
 ```
 
-这里的 `estimated_error` 是**光滑函数模型下的估计**，而不是对任意黑盒函数的数学保证。遇到跳变、尖峰或噪声时，应把可疑断点显式分段，并把 `converged=False` 视为需要进一步诊断的结果，而不是增大深度后盲信一个数字。
+每次继续细分需要两个新的四分点。程序先检查剩余预算是否至少足以采两个点，因此不会把“半次细分”藏在报告外。叶区间的 `status` 只有 `accepted`、`max_depth_exhausted` 或 `evaluation_budget_exhausted`；独立证书会以函数、端点、容差、最大深度和调用预算重放整条叶轨迹。
+
+这里的 `estimated_error` 是**光滑函数模型下的估计**，而不是对任意黑盒函数的数学保证。预算耗尽时它为 `None`，因为尚未计算可解释的粗细差。遇到跳变、尖峰或噪声时，应把可疑断点显式分段，并把 `converged=False` 视为需要进一步诊断的结果，而不是增大深度后盲信一个数字。
 
 蒙特卡洛积分在高维中常比张量网格更可行，但收敛通常是 $O(N^{-1/2})$，与维度和方差强相关。不要把一维 Simpson 的高阶收敛外推到高维问题。
 
@@ -94,6 +108,7 @@ assert not limited.certificate["valid"]
 - **窄尖峰**：等距点可能完全错过峰；使用领域知识、自适应采样或变量变换。
 - **高频振荡**：采样不足会混叠，结果可能稳定地错误；网格须解析振荡尺度。
 - **极大 n**：普通浮点累计可能吞掉小项；考虑 Kahan/pairwise 求和并报告容差。
+- **昂贵或有副作用的函数**：调用预算是资源契约，不是数值误差上界。预算耗尽时报告叶区间和未估计误差，不能把最后的父区间估计标成达标结果。
 
 ## 常见误区
 
@@ -107,14 +122,14 @@ assert not limited.certificate["valid"]
 1. **基础题**：由端点线性插值推导单个小区间的梯形面积公式。
 2. **推导题**：若梯形误差为 $Ch^2$，证明分段数翻倍时误差比趋于 $4$。
 3. **编码题**：对 `sin` 比较 $n=8,16,32,64$ 的两种方法，输出误差比；再对 $|x|$ 在 $[-1,1]$ 上重复并解释结果。
-4. **开放题**：为一个昂贵且带尖峰的仿真函数设计自适应积分的停止规则、最大预算和异常值策略；说明为何 `estimated_error` 不能替代对尖峰是否被采样到的审计。
+4. **工程题**：为一个昂贵且带尖峰的仿真函数设计自适应积分的停止规则、最大预算和异常值策略；说明为何 `estimated_error` 不能替代对尖峰是否被采样到的审计。
 
 ## 练习答案提示
 
 1. 在区间两端取函数值，用底乘平均高近似线性插值下的面积，得到 $h(f(a)+f(b))/2$。
 2. $h$ 减半后 $Ch^2$ 变为 $C(h/2)^2$，所以旧误差与新误差之比趋于 4；前提是渐近区间且函数足够光滑。
 3. 对每个 $n$ 记录绝对误差与相邻比；$|x|$ 在 0 不光滑，理论高阶比可能不出现，不能将此当实现失败。
-4. 用粗细估计差分配局部误差预算，设函数调用/递归深度上限；`|S_2-S|/15` 只在光滑假设下可解释为误差估计。遇到 NaN、尖峰或不连续信号时记录区间并按契约分段、回退或失败。
+4. 用粗细估计差分配局部误差预算，设函数调用/递归深度上限；`|S_2-S|/15` 只在光滑假设下可解释为误差估计。遇到 NaN、尖峰或不连续信号时记录区间并按契约分段、回退或失败；若预算不足两个新点，显式返回未收敛叶。
 
 ## 延伸
 

@@ -51,6 +51,19 @@ class RefinementReport:
 
 
 @dataclass(frozen=True)
+class AdaptiveSimpsonLeaf:
+    """One terminal interval and the reason the adaptive search stopped."""
+
+    left: float
+    right: float
+    estimate: float
+    estimated_error: float | None
+    tolerance_budget: float
+    depth: int
+    status: str
+
+
+@dataclass(frozen=True)
 class AdaptiveSimpsonReport:
     """Inspectable outcome of an adaptive Simpson run.
 
@@ -60,10 +73,14 @@ class AdaptiveSimpsonReport:
     """
 
     estimate: float
-    estimated_error: float
+    estimated_error: float | None
     tolerance: float
+    max_depth: int
     accepted_intervals: int
     evaluations: int
+    max_evaluations: int | None
+    evaluation_budget_exhausted: bool
+    leaves: tuple[AdaptiveSimpsonLeaf, ...]
     converged: bool
     certificate: dict[str, bool]
 
@@ -87,25 +104,33 @@ def adaptive_simpson(
     b: float,
     absolute_tolerance: float = 1e-8,
     max_depth: int = 20,
+    max_evaluations: int | None = None,
 ) -> AdaptiveSimpsonReport:
     """Adapt Simpson's rule, returning an explicit certificate of its budget.
 
     A parent interval and its two children differ by roughly a factor of 15
     in the leading fourth-order error term.  The routine accepts a leaf only
     when ``abs(children - parent) / 15`` fits its share of the global absolute
-    error budget.  Reaching ``max_depth`` returns a non-converged report rather
-    than silently claiming that the requested tolerance was achieved.
+    error budget.  Reaching ``max_depth`` or ``max_evaluations`` returns a
+    non-converged report rather than silently claiming tolerance was achieved.
+    Terminal leaves record which boundary accepted or stopped each interval.
     """
     _validate_interval(a, b, 1)
     if not isfinite(absolute_tolerance) or absolute_tolerance <= 0:
         raise ValueError("absolute_tolerance must be positive and finite")
     if not isinstance(max_depth, int) or isinstance(max_depth, bool) or max_depth < 0:
         raise ValueError("max_depth must be a non-negative integer")
+    if max_evaluations is not None and (
+        not isinstance(max_evaluations, int) or isinstance(max_evaluations, bool) or max_evaluations < 3
+    ):
+        raise ValueError("max_evaluations must be None or an integer at least 3")
 
     evaluations = 0
 
     def evaluate(point: float) -> float:
         nonlocal evaluations
+        if max_evaluations is not None and evaluations >= max_evaluations:
+            raise RuntimeError("evaluation budget exhausted")
         evaluations += 1
         return _evaluate(function, point)
 
@@ -122,7 +147,18 @@ def adaptive_simpson(
         parent: float,
         budget: float,
         depth: int,
-    ) -> tuple[float, float, int, bool]:
+    ) -> tuple[float, float | None, list[AdaptiveSimpsonLeaf], bool, bool]:
+        # A Simpson refinement needs two previously unseen quarter points.
+        # Check both before evaluating so a capped run never has a half-made
+        # refinement hidden from its trace.
+        if max_evaluations is not None and evaluations + 2 > max_evaluations:
+            return (
+                parent,
+                None,
+                [AdaptiveSimpsonLeaf(left, right, parent, None, budget, depth, "evaluation_budget_exhausted")],
+                False,
+                True,
+            )
         left_middle = (left + middle) / 2.0
         right_middle = (middle + right) / 2.0
         f_left_middle = evaluate(left_middle)
@@ -133,40 +169,80 @@ def adaptive_simpson(
         correction = children - parent
         estimated_error = abs(correction) / 15.0
         if estimated_error <= budget:
-            return children + correction / 15.0, estimated_error, 1, True
+            estimate = children + correction / 15.0
+            return (
+                estimate,
+                estimated_error,
+                [AdaptiveSimpsonLeaf(left, right, estimate, estimated_error, budget, depth, "accepted")],
+                True,
+                False,
+            )
         if depth >= max_depth:
-            return children, estimated_error, 1, False
+            return (
+                children,
+                estimated_error,
+                [AdaptiveSimpsonLeaf(left, right, children, estimated_error, budget, depth, "max_depth_exhausted")],
+                False,
+                False,
+            )
         left_result = refine(
             left, left_middle, middle, f_left, f_left_middle, f_middle, left_rule, budget / 2.0, depth + 1
         )
         right_result = refine(
             middle, right_middle, right, f_middle, f_right_middle, f_right, right_rule, budget / 2.0, depth + 1
         )
+        combined_error = (
+            None if left_result[1] is None or right_result[1] is None else left_result[1] + right_result[1]
+        )
         return (
             left_result[0] + right_result[0],
-            left_result[1] + right_result[1],
+            combined_error,
             left_result[2] + right_result[2],
             left_result[3] and right_result[3],
+            left_result[4] or right_result[4],
         )
 
     midpoint = (a + b) / 2.0
     f_a, f_midpoint, f_b = evaluate(a), evaluate(midpoint), evaluate(b)
     parent = simpson_width(a, midpoint, b, f_a, f_midpoint, f_b)
-    estimate, estimated_error, accepted_intervals, converged = refine(
+    estimate, estimated_error, leaves, converged, evaluation_budget_exhausted = refine(
         a, midpoint, b, f_a, f_midpoint, f_b, parent, absolute_tolerance, 0
     )
     certificate = {
         "finite_estimate": isfinite(estimate),
-        "estimated_error_within_tolerance": estimated_error <= absolute_tolerance,
+        "estimated_error_within_tolerance": estimated_error is not None and estimated_error <= absolute_tolerance,
         "stopped_without_depth_limit": converged,
+        "evaluation_budget_not_exhausted": not evaluation_budget_exhausted,
     }
     certificate["valid"] = all(certificate.values())
     return AdaptiveSimpsonReport(
         estimate,
         estimated_error,
         absolute_tolerance,
-        accepted_intervals,
+        max_depth,
+        len(leaves),
         evaluations,
+        max_evaluations,
+        evaluation_budget_exhausted,
+        tuple(leaves),
         converged,
         certificate,
     )
+
+
+def adaptive_simpson_certificate(function: Function, a: float, b: float, report: object) -> bool:
+    """Replay all policy parameters and reject altered adaptive traces."""
+    if not isinstance(report, AdaptiveSimpsonReport):
+        return False
+    try:
+        expected = adaptive_simpson(
+            function,
+            a,
+            b,
+            absolute_tolerance=report.tolerance,
+            max_depth=report.max_depth,
+            max_evaluations=report.max_evaluations,
+        )
+    except (TypeError, ValueError):
+        return False
+    return report == expected
