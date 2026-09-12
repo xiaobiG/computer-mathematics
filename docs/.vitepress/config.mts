@@ -52,6 +52,7 @@ export default defineConfig({
               text: "张量形状与批处理：向量、矩阵与轴",
               link: "/foundations/tensor-shapes-batches",
             },
+            { text: "有限关系与邻接矩阵", link: "/foundations/finite-relations-matrices" },
           ],
         },
       ],
