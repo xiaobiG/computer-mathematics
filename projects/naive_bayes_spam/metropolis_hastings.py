@@ -182,6 +182,77 @@ def detailed_balance_certificate(
         }
 
 
+def finite_horizon_mixing_report(
+    target: dict[State, float], proposal: dict[State, dict[State, float]], initials: list[State], *,
+    steps: int, tolerance: float = 1e-2,
+) -> dict[str, object]:
+    """Propagate declared initial distributions through an exact small MH kernel.
+
+    Detailed balance makes ``normalized_target`` stationary, but this report
+    deliberately measures finite-horizon total-variation distance from several
+    initial states. It is only a finite-state teaching diagnostic, not a
+    general mixing-time estimator.
+    """
+    _validate(target, proposal)
+    if (not isinstance(initials, list) or not initials or len(set(initials)) != len(initials)
+            or any(initial not in target for initial in initials)):
+        raise ValueError("initials must be distinct target states")
+    if not isinstance(steps, int) or isinstance(steps, bool) or steps < 0:
+        raise ValueError("steps must be a nonnegative integer")
+    if (not isinstance(tolerance, (int, float)) or isinstance(tolerance, bool)
+            or tolerance < 0):
+        raise ValueError("tolerance must be nonnegative")
+    total_weight = sum(target.values())
+    normalized_target = {state: weight / total_weight for state, weight in target.items()}
+    kernel = _transition_kernel(target, proposal)
+    paths: dict[State, dict[str, object]] = {}
+    for initial in initials:
+        distribution = {state: 1.0 if state == initial else 0.0 for state in target}
+        distributions = [distribution]
+        distances = [
+            sum(abs(distribution[state] - normalized_target[state]) for state in target) / 2.0
+        ]
+        for _ in range(steps):
+            distribution = {
+                destination: sum(distribution[source] * kernel[source][destination] for source in target)
+                for destination in target
+            }
+            distributions.append(distribution)
+            distances.append(
+                sum(abs(distribution[state] - normalized_target[state]) for state in target) / 2.0
+            )
+        paths[initial] = {
+            "distributions": distributions,
+            "total_variation_distances": distances,
+            "within_tolerance_at_horizon": distances[-1] <= tolerance,
+        }
+    return {
+        "normalized_target": normalized_target,
+        "kernel": kernel,
+        "steps": steps,
+        "tolerance": float(tolerance),
+        "paths": paths,
+        "all_initials_within_tolerance_at_horizon": all(
+            path["within_tolerance_at_horizon"] for path in paths.values()
+        ),
+    }
+
+
+def finite_horizon_mixing_certificate(
+    target: dict[State, float], proposal: dict[State, dict[State, float]], initials: list[State], report: object,
+    *, steps: int, tolerance: float = 1e-2,
+) -> bool:
+    """Recompute a finite-horizon comparison without trusting its conclusion."""
+    if not isinstance(report, dict):
+        return False
+    try:
+        return report == finite_horizon_mixing_report(
+            target, proposal, initials, steps=steps, tolerance=tolerance,
+        )
+    except (ArithmeticError, TypeError, ValueError):
+        return False
+
+
 def empirical_probabilities(samples: list[State]) -> dict[State, float]:
     """Return observed state frequencies; burn-in/thinning decisions stay explicit."""
     if not samples:

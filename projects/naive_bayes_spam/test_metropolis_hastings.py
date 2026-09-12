@@ -2,6 +2,7 @@ import unittest
 
 from projects.naive_bayes_spam.metropolis_hastings import (
     McmcEvent, detailed_balance_certificate, detailed_balance_report, empirical_probabilities,
+    finite_horizon_mixing_certificate, finite_horizon_mixing_report,
     metropolis_hastings, metropolis_hastings_trace_certificate,
 )
 
@@ -54,6 +55,20 @@ class MetropolisHastingsTests(unittest.TestCase):
         tampered["kernel"] = tampered_kernel
         self.assertFalse(detailed_balance_certificate(TARGET, SYMMETRIC_PROPOSAL, tampered)["valid"])
 
+    def test_stationary_kernel_does_not_make_all_finite_runs_mixed(self):
+        report = finite_horizon_mixing_report(TARGET, SYMMETRIC_PROPOSAL, [0, 1], steps=1, tolerance=0.01)
+        self.assertAlmostEqual(report["paths"][0]["total_variation_distances"][-1], 0.25)
+        self.assertAlmostEqual(report["paths"][1]["total_variation_distances"][-1], 1 / 12)
+        self.assertFalse(report["all_initials_within_tolerance_at_horizon"])
+        self.assertTrue(finite_horizon_mixing_certificate(
+            TARGET, SYMMETRIC_PROPOSAL, [0, 1], report, steps=1, tolerance=0.01,
+        ))
+        tampered = dict(report)
+        tampered["all_initials_within_tolerance_at_horizon"] = True
+        self.assertFalse(finite_horizon_mixing_certificate(
+            TARGET, SYMMETRIC_PROPOSAL, [0, 1], tampered, steps=1, tolerance=0.01,
+        ))
+
     def test_rejects_invalid_chain_contracts(self):
         with self.assertRaises(ValueError):
             metropolis_hastings(TARGET, {0: {1: 1.0}, 1: {0: 0.9}}, 0, steps=2)
@@ -61,3 +76,5 @@ class MetropolisHastingsTests(unittest.TestCase):
             metropolis_hastings(TARGET, SYMMETRIC_PROPOSAL, 2, steps=2)
         with self.assertRaises(ValueError):
             empirical_probabilities([])
+        with self.assertRaises(ValueError):
+            finite_horizon_mixing_report(TARGET, SYMMETRIC_PROPOSAL, [0, 0], steps=1)
