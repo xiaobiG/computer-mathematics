@@ -1,6 +1,6 @@
 import unittest
 
-from projects.algorithm_lab.max_flow import max_flow
+from projects.algorithm_lab.max_flow import Augmentation, max_flow, max_flow_certificate
 
 
 EDGES = [
@@ -17,6 +17,17 @@ class MaxFlowTests(unittest.TestCase):
         self.assertEqual(cut_capacity, value)
         self.assertEqual(trace[-1].total_flow, value)
         self.assertTrue(all(event.path[0] == 0 and event.path[-1] == 3 for event in trace))
+        self.assertTrue(max_flow_certificate(4, EDGES, 0, 3, value, source_side, trace)["valid"])
+
+    def test_certificate_rejects_tampered_augmentation_or_cut(self):
+        value, source_side, trace = max_flow(4, EDGES, 0, 3)
+        tampered_trace = list(trace)
+        tampered_trace[0] = Augmentation(tampered_trace[0].path, 1.0, 1.0)
+        self.assertFalse(max_flow_certificate(4, EDGES, 0, 3, value, source_side, tampered_trace)["trace_matches_replay"])
+        # {0} is another valid minimum cut here, so it is not evidence of
+        # tampering.  This set instead disagrees with the replayed residual
+        # source side while preserving the same graph scope.
+        self.assertFalse(max_flow_certificate(4, EDGES, 0, 3, value, {0, 1}, trace)["valid"])
 
     def test_parallel_edges_and_no_path_are_handled(self):
         self.assertEqual(max_flow(2, [(0, 1, 1.0), (0, 1, 2.0)], 0, 1)[0], 3.0)

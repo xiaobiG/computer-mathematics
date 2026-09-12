@@ -67,3 +67,27 @@ def max_flow(
                 reachable.add(right)
                 queue.append(right)
     return value, reachable, trace
+
+
+def max_flow_certificate(vertex_count: int, edges: list[tuple[int, int, float]], source: int, sink: int,
+                         value: float, source_side: set[int], trace: list[Augmentation]) -> dict[str, bool]:
+    """Replay Edmonds--Karp and expose path, cut, and value evidence.
+
+    The returned cut equality is the mathematical optimality witness; exact
+    replay additionally binds the displayed augmentation history to the stated
+    deterministic BFS implementation.  This remains a small exact-arithmetic
+    teaching audit, not a floating-point flow verifier.
+    """
+    empty = {"trace_matches_replay": False, "source_side_matches_replay": False,
+             "flow_equals_cut_capacity": False, "valid": False}
+    try:
+        expected_value, expected_side, expected_trace = max_flow(vertex_count, edges, source, sink)
+        trace_matches = trace == expected_trace
+        side_matches = source_side == expected_side
+        cut_capacity = sum(capacity for left, right, capacity in edges if left in source_side and right not in source_side)
+        cut_matches = value == cut_capacity
+        return {"trace_matches_replay": trace_matches, "source_side_matches_replay": side_matches,
+                "flow_equals_cut_capacity": cut_matches,
+                "valid": trace_matches and side_matches and cut_matches and value == expected_value}
+    except (TypeError, ValueError):
+        return empty

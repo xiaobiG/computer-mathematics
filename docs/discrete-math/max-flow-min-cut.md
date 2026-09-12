@@ -49,15 +49,16 @@ $$|f|=c(S,T).$$
 ## 可运行实现
 
 ```python
-from projects.algorithm_lab.max_flow import max_flow
+from projects.algorithm_lab.max_flow import max_flow, max_flow_certificate
 
 edges = [(0, 1, 3.0), (0, 2, 2.0), (1, 2, 1.0), (1, 3, 2.0), (2, 3, 3.0)]
 value, source_side, trace = max_flow(4, edges, 0, 3)
 assert value == 5.0
+assert max_flow_certificate(4, edges, 0, 3, value, source_side, trace)["valid"]
 print(source_side, trace[-1])
 ```
 
-运行 `python -m unittest projects.algorithm_lab.test_max_flow`。实现以 BFS 选择最短（边数）增广路，因此是 Edmonds–Karp；它返回每次路径、瓶颈和累积流，以及最终残量图中的源侧集合。测试验证最大流等于割容量、平行边累加、不可达汇点，以及负容量/非法端点会被拒绝。
+运行 `python -m unittest projects.algorithm_lab.test_max_flow`。实现以 BFS 选择最短（边数）增广路，因此是 Edmonds–Karp；它返回每次路径、瓶颈和累积流，以及最终残量图中的源侧集合。`max_flow_certificate` 会重放每条增广路径与最终源侧集合，并独立计算该集合跨出的原始容量；篡改路径、瓶颈、累积流或割都会失败。测试验证最大流等于割容量、平行边累加、不可达汇点，以及负容量/非法端点会被拒绝。
 
 Edmonds–Karp 的最坏时间复杂度为 $O(VE^2)$，空间为 $O(V^2)$（此教学实现用稠密残量矩阵）。大型稀疏网络应使用邻接表和适合规模的成熟实现。
 
@@ -73,6 +74,7 @@ Edmonds–Karp 的最坏时间复杂度为 $O(VE^2)$，空间为 $O(V^2)$（此�
 - **“每条增广路都必须最优”**：单条路径不是目标；残量网络保证可以修正历史选择。
 - **“找不到新原始路径就结束”**：必须在残量图上判断。
 - **“最小割就是删最少边”**：割最小化的是容量和，不是边数。
+- **“最小割一定唯一”**：不对；同一最大流网络可有多个容量相同的最小割。证书重放的是该 Edmonds–Karp 轨迹产生的源侧集合，而不是声称它是唯一划分。
 - **“BFS 是为了最短路”**：这里它用来获得 Edmonds–Karp 的复杂度界和稳定轨迹，不是在优化运输距离。
 
 ## 练习
