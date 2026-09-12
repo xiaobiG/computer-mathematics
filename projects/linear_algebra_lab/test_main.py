@@ -2,7 +2,7 @@ import unittest
 from math import sqrt
 
 from projects.linear_algebra_lab.main import (
-    classify_linear_system, compress_grayscale, dominant_right_singular_vector, frobenius_error, image_cosine_similarity,
+    classify_linear_system, compress_grayscale, diagnose_least_squares_case, dominant_right_singular_vector, frobenius_error, image_cosine_similarity,
     compressed_image_search, compressed_image_search_certificate, least_squares_comparison_report, least_squares_normal_equations, least_squares_report_certificate, low_rank_parameter_report,
     matmul, matrix_composition_certificate, norm, project, least_squares_qr, rank_k_approximation, rank_one_approximation,
     elimination_invariant_certificate, pivot_trace_certificate, solve, solve_with_pivot_trace, truncated_svd_frobenius_error,
@@ -80,6 +80,27 @@ class LinearAlgebraLabTests(unittest.TestCase):
         self.assertAlmostEqual(solution[1], 7 / 6)
         self.assertAlmostEqual(sum(matrix[row][0] * residual[row] for row in range(3)), 0.0, places=12)
         self.assertAlmostEqual(sum(matrix[row][1] * residual[row] for row in range(3)), 0.0, places=12)
+
+    def test_reader_supplied_fit_diagnosis_separates_exact_projection_and_rank_cases(self):
+        matrix = [[0.0, 1.0], [1.0, 1.0], [2.0, 1.0]]
+        exact = diagnose_least_squares_case(matrix, [1.0, 2.0, 3.0])
+        projected = diagnose_least_squares_case(matrix, [1.0, 2.0, 4.0])
+        rank_deficient = diagnose_least_squares_case([[1.0, 1.0], [2.0, 2.0], [3.0, 3.0]], [1.0, 2.0, 4.0])
+
+        self.assertEqual(exact["fit_path"], "exact_full_rank_solution")
+        self.assertTrue(exact["target_in_column_space"])
+        self.assertLess(exact["residual_norm"], 1e-12)
+        self.assertEqual(projected["fit_path"], "qr_projection_for_unreachable_target")
+        self.assertFalse(projected["target_in_column_space"])
+        self.assertGreater(projected["residual_norm"], 0.0)
+        self.assertTrue(all(abs(value) < 1e-12 for value in projected["normal_equation_residual"]))
+        self.assertEqual(rank_deficient["fit_path"], "rank_revealing_qr_or_svd_required")
+        self.assertFalse(rank_deficient["full_column_rank_qr_available"])
+
+    def test_reader_supplied_fit_diagnosis_marks_wide_models_without_inventing_a_solution(self):
+        diagnosis = diagnose_least_squares_case([[1.0, 2.0]], [1.0])
+        self.assertEqual(diagnosis["fit_path"], "underdetermined_model_requires_explicit_solution_rule")
+        self.assertIsNone(diagnosis["solution"])
 
     def test_normal_equations_match_qr_on_a_well_conditioned_fit(self):
         matrix = [[0.0, 1.0], [1.0, 1.0], [2.0, 1.0]]

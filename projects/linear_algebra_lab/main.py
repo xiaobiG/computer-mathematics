@@ -274,6 +274,64 @@ def _normal_equation_residual(matrix, residual):
             for column in range(len(matrix[0]))]
 
 
+def diagnose_least_squares_case(matrix, target, epsilon=EPSILON):
+    """Classify a reader-supplied linear-fit case before choosing a solver.
+
+    The diagnosis separates three questions that are often collapsed: whether
+    ``b`` is in the column space, whether the small QR teaching path has full
+    column rank, and which invariant a reader should check next.  It is not a
+    rank-revealing production solver and deliberately does not invent a
+    minimum-norm solution for rank-deficient or underdetermined inputs.
+    """
+    if (not matrix or not matrix[0] or len(target) != len(matrix)
+            or any(len(row) != len(matrix[0]) for row in matrix)):
+        raise ValueError("matrix must be non-empty rectangular and match target")
+    if epsilon <= 0 or not isfinite(epsilon):
+        raise ValueError("epsilon must be finite and positive")
+    if any(not isfinite(value) for row in matrix for value in row) or any(not isfinite(value) for value in target):
+        raise ValueError("matrix and target must be finite")
+    rows, columns = len(matrix), len(matrix[0])
+    exact_system_status = classify_linear_system(matrix, target, epsilon)
+    base = {
+        "shape": (rows, columns),
+        "exact_system_status": exact_system_status,
+        "target_in_column_space": exact_system_status != "none",
+        "full_column_rank_qr_available": False,
+        "solution": None,
+        "residual": None,
+        "residual_norm": None,
+        "normal_equation_residual": None,
+    }
+    if rows < columns:
+        return base | {
+            "fit_path": "underdetermined_model_requires_explicit_solution_rule",
+            "reader_invariant": "state a minimum-norm, sparsity, or other solution rule before solving",
+        }
+    try:
+        solution, residual = least_squares_qr(matrix, target, epsilon)
+    except ValueError:
+        return base | {
+            "fit_path": "rank_revealing_qr_or_svd_required",
+            "reader_invariant": "separate column dependence from target reachability before choosing a solution rule",
+        }
+    residual_norm = norm(residual)
+    stationarity = _normal_equation_residual(matrix, residual)
+    exact_fit = residual_norm <= epsilon * max(1.0, norm(target))
+    return base | {
+        "full_column_rank_qr_available": True,
+        "solution": solution,
+        "residual": residual,
+        "residual_norm": residual_norm,
+        "normal_equation_residual": stationarity,
+        "fit_path": (
+            "exact_full_rank_solution" if exact_fit else "qr_projection_for_unreachable_target"
+        ),
+        "reader_invariant": (
+            "verify Ax=b" if exact_fit else "verify A^T(b-Ax)=0 while retaining the nonzero residual"
+        ),
+    }
+
+
 def least_squares_normal_equations(matrix, target, epsilon=EPSILON):
     """Solve min ||Ax-b||_2 through A^T A x=A^T b for comparison only.
 
