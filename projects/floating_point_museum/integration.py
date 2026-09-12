@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from math import isfinite
+from math import isfinite, log
 from typing import Callable
 
 
 Function = Callable[[float], float]
+ENDPOINT_POWER_CONTRACT = "endpoint-power-improper-integral/v1"
 
 
 def _validate_interval(a: float, b: float, segments: int) -> None:
@@ -246,3 +247,53 @@ def adaptive_simpson_certificate(function: Function, a: float, b: float, report:
     except (TypeError, ValueError):
         return False
     return report == expected
+
+
+def endpoint_power_integral_report(exponent: float, cutoffs: list[float]) -> dict[str, object]:
+    """Expose the cutoff limit for ``integral_0^1 x**(-exponent) dx``.
+
+    Generic quadrature cannot infer whether an arbitrary non-finite endpoint
+    hides an integrable singularity.  This deliberately analytic family makes
+    that distinction checkable: its antiderivative proves convergence exactly
+    when ``exponent < 1``.
+    """
+    if (isinstance(exponent, bool) or not isinstance(exponent, (int, float))
+            or not isfinite(exponent)):
+        raise ValueError("exponent must be finite")
+    if (not isinstance(cutoffs, list) or len(cutoffs) < 2
+            or any(isinstance(value, bool) or not isinstance(value, (int, float))
+                   or not isfinite(value) or not 0.0 < value < 1.0 for value in cutoffs)):
+        raise ValueError("cutoffs must contain at least two finite values in (0, 1)")
+    normalized = tuple(float(value) for value in cutoffs)
+    if any(left <= right for left, right in zip(normalized, normalized[1:])):
+        raise ValueError("cutoffs must be strictly decreasing toward the singular endpoint")
+    exponent = float(exponent)
+    if exponent == 1.0:
+        truncated = tuple(log(1.0 / cutoff) for cutoff in normalized)
+    else:
+        truncated = tuple((1.0 - cutoff ** (1.0 - exponent)) / (1.0 - exponent)
+                          for cutoff in normalized)
+    converges = exponent < 1.0
+    return {
+        "contract": ENDPOINT_POWER_CONTRACT,
+        "integrand": "x**(-p) on (0, 1]",
+        "exponent": exponent,
+        "cutoffs": normalized,
+        "truncated_integrals": truncated,
+        "converges": converges,
+        "limit": 1.0 / (1.0 - exponent) if converges else None,
+        "tail_bounds": (tuple(cutoff ** (1.0 - exponent) / (1.0 - exponent) for cutoff in normalized)
+                        if converges else None),
+        "interpretation": ("integrable_endpoint_singularity_with_analytic_tail_bound"
+                           if converges else "divergent_endpoint_singularity"),
+    }
+
+
+def endpoint_power_integral_certificate(exponent: float, cutoffs: list[float], report: object) -> bool:
+    """Recompute the analytic cutoff report and reject changed limits or tails."""
+    if not isinstance(report, dict) or report.get("contract") != ENDPOINT_POWER_CONTRACT:
+        return False
+    try:
+        return report == endpoint_power_integral_report(exponent, cutoffs)
+    except (TypeError, ValueError):
+        return False

@@ -7,6 +7,8 @@ from projects.floating_point_museum.integration import (
     adaptive_simpson_certificate,
     composite_simpson,
     composite_trapezoid,
+    endpoint_power_integral_certificate,
+    endpoint_power_integral_report,
     refinement_report,
 )
 
@@ -59,3 +61,24 @@ class IntegrationTests(unittest.TestCase):
             adaptive_simpson(math.sin, 0.0, 1.0, absolute_tolerance=0.0)
         with self.assertRaises(ValueError):
             adaptive_simpson(math.sin, 0.0, 1.0, max_evaluations=2)
+
+    def test_analytic_cutoff_report_separates_integrable_and_divergent_endpoint_singularities(self):
+        report = endpoint_power_integral_report(.5, [.1, .01, .001])
+        self.assertTrue(report["converges"])
+        self.assertEqual(report["limit"], 2.0)
+        self.assertGreater(report["truncated_integrals"][2], report["truncated_integrals"][1])
+        self.assertAlmostEqual(report["tail_bounds"][1], .2)
+        self.assertTrue(endpoint_power_integral_certificate(.5, [.1, .01, .001], report))
+
+        logarithmic = endpoint_power_integral_report(1.0, [.1, .01, .001])
+        power = endpoint_power_integral_report(1.5, [.1, .01, .001])
+        self.assertFalse(logarithmic["converges"])
+        self.assertFalse(power["converges"])
+        self.assertGreater(logarithmic["truncated_integrals"][2], logarithmic["truncated_integrals"][1])
+        self.assertGreater(power["truncated_integrals"][2], power["truncated_integrals"][1])
+
+        changed = dict(report)
+        changed["limit"] = 3.0
+        self.assertFalse(endpoint_power_integral_certificate(.5, [.1, .01, .001], changed))
+        with self.assertRaises(ValueError):
+            endpoint_power_integral_report(.5, [.01, .1])
