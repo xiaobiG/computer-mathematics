@@ -14,6 +14,7 @@ description: 用图搜索、拓扑排序、最大流轨迹和 3-SAT 验证器连
 - [循环不变量](/discrete-math/loop-invariants)：每轮循环前后保持的结论；
 - [BFS](/discrete-math/breadth-first-search)：无权图中最短步数；
 - [图、树、二分图与拓扑排序](/discrete-math/graph-foundations-topological-sort)：依赖解除、拓扑序与有向环；
+- [图的两种存储](/discrete-math/graph-representations)：从同一边表重放邻接表、邻接矩阵与操作/存储成本；
 - [渐进复杂度](/discrete-math/asymptotic-complexity)：为何邻接表下为 $O(V+E)$。
 - [P、NP 与多项式归约](/discrete-math/p-np-reductions)：候选解验证为何不等于快速搜索。
 - [Floyd–Warshall](/discrete-math/floyd-warshall)：重放允许中间点集合逐步扩展的全源最短路动态规划。
@@ -41,6 +42,7 @@ python -m unittest projects.algorithm_lab.test_bellman_ford_trace
 python -m unittest projects.algorithm_lab.test_recurrence_trace
 python -m unittest projects.algorithm_lab.test_complexity_counts
 python -m unittest projects.algorithm_lab.test_relations
+python -m unittest projects.algorithm_lab.test_graph_representations
 python -m unittest projects.algorithm_lab.test_max_flow
 python -m unittest discover -s projects/algorithm_lab -p "test_*.py"
 ```

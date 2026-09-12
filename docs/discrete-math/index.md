@@ -27,6 +27,7 @@
 - [命题逻辑、量词与归纳法](/discrete-math/logic-induction-proofs)：规格、反例、终止性与循环不变量的证明语言；
 - [集合、关系、等价类与偏序](/discrete-math/sets-relations-orders)：分组、依赖与状态空间的共同离散结构；
 - [图、树、二分图与拓扑排序](/discrete-math/graph-foundations-topological-sort)：图表示、DFS、树不变量、二分染色与依赖环；
+- [图的两种存储：邻接表与邻接矩阵](/discrete-math/graph-representations)：同一边表如何变成两种内存表示，并按操作成本选择；
 - [循环不变量](/discrete-math/loop-invariants)：二分查找为何不会漏掉答案；
 - [Dijkstra](/discrete-math/dijkstra)：非负边权为何能贪心，以及负权边为何失败；页面内可逐步操作最小堆与松弛轨迹实验；
 - [BFS](/discrete-math/breadth-first-search)：队列分层不变量与无权图最短路；

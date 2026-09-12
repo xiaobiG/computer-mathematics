@@ -150,6 +150,10 @@ export default defineConfig({
               link: "/discrete-math/graph-foundations-topological-sort",
             },
             {
+              text: "图的两种存储：邻接表与邻接矩阵",
+              link: "/discrete-math/graph-representations",
+            },
+            {
               text: "BFS：图中的最短步数",
               link: "/discrete-math/breadth-first-search",
             },
