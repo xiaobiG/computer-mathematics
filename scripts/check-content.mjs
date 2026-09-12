@@ -135,6 +135,7 @@ for (const [topic, anchors] of Object.entries(roadmapAnchors)) {
 // broader structural checks below as they are upgraded.
 const priorityDeepLessons = new Set([
   'linear-algebra/vectors-dot-product.md',
+  'linear-algebra/four-fundamental-subspaces.md',
   'foundations/boolean-matrix-sparse-queries.md',
   'linear-algebra/gaussian-elimination.md',
   'linear-algebra/least-squares.md',

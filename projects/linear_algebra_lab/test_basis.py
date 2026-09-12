@@ -5,6 +5,8 @@ from projects.linear_algebra_lab.basis import (
     basis_coordinate_report,
     column_independence_certificate,
     column_independence_report,
+    fundamental_subspaces_certificate,
+    fundamental_subspaces_report,
 )
 
 
@@ -47,6 +49,33 @@ class BasisTests(unittest.TestCase):
             basis_coordinate_report([[1.0, 0.0], [2.0, 0.0]], [1.0, 0.0])
         with self.assertRaises(ValueError):
             column_independence_report([[1.0, float("nan")]])
+
+    def test_four_subspaces_connect_rank_nullity_and_orthogonal_complements(self):
+        matrix = [[1.0, 1.0], [2.0, 2.0]]
+        report = fundamental_subspaces_report(matrix)
+        self.assertEqual(report["pivot_columns"], [0])
+        self.assertEqual(report["column_space_basis"], [[1.0, 2.0]])
+        self.assertEqual(report["dimensions"], {
+            "rank": 1, "column_space": 1, "row_space": 1,
+            "null_space": 1, "left_null_space": 1,
+        })
+        self.assertEqual(report["null_space_basis"], [[-1.0, 1.0]])
+        self.assertEqual(report["left_null_space_basis"], [[-2.0, 1.0]])
+        self.assertTrue(all(report["certificate"].values()))
+        self.assertTrue(fundamental_subspaces_certificate(matrix, report))
+
+    def test_rectangular_left_null_space_and_tampering_are_visible(self):
+        matrix = [[1.0, 0.0], [0.0, 1.0], [1.0, 1.0]]
+        report = fundamental_subspaces_report(matrix)
+        self.assertEqual(report["dimensions"]["rank"], 2)
+        self.assertEqual(report["dimensions"]["null_space"], 0)
+        self.assertEqual(report["dimensions"]["left_null_space"], 1)
+        altered = dict(report)
+        altered["dimensions"] = dict(report["dimensions"])
+        altered["dimensions"]["rank"] = 1
+        self.assertFalse(fundamental_subspaces_certificate(matrix, altered))
+        with self.assertRaises(ValueError):
+            fundamental_subspaces_report([[1.0, float("nan")]])
 
 
 if __name__ == "__main__":
