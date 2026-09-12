@@ -7,7 +7,7 @@ description: 用可测试的教学实现串起矩阵计算、消元、投影、�
 
 ## 目标
 
-本项目把线性代数专题的关键操作做成小型、可测试的 Python 模块：矩阵乘法、列独立性和基坐标重构、带部分选主元且可重放的方程求解、正规方程与 QR 的最小二乘对照、双数前向自动微分、二维 PCA、向量投影、幂迭代、低秩压缩、把灰度矩阵展平后的余弦相似度检索、带种子重放的随机范围发现，以及只在观测评分上拟合的秩一 ALS。`pivot_trace_certificate` 从原始增广矩阵重放主元选择、行交换、消元和回代；`column_independence_report` 用逐列正交残差和秩检查冗余方向，`basis_coordinate_report` 用 $Ac-b$ 检查坐标重构；`demo_jvp_certificate` 将双数 JVP 与 $\nabla L^Tv$ 对照；`least_squares_comparison_report` 用同一份 $A^Tr$ 证书检查两条拟合路径；`pca_2d_report` 检查中心化、投影正交性和舍弃方差—重构误差恒等式；`compressed_image_search` 将压缩误差和压缩域排序放入同一报告，形成微型“压缩—检索”流程；`image_quality_certificate` 重算 MSE、RMSE、PSNR 与最大误差；`randomized_range_certificate` 重建固定种子的随机草图和 $QQ^TA$；`rank_one_als_trace_certificate` 重放每轮用户/物品的坐标最小化，核对观测集误差而不假装验证缺失评分。它们用于核对数学定义，不取代 NumPy/SciPy 的生产实现。
+本项目把线性代数专题的关键操作做成小型、可测试的 Python 模块：矩阵乘法、列独立性和基坐标重构、带部分选主元且可重放的方程求解、正规方程与 QR 的最小二乘对照、双数前向自动微分、二维 PCA、向量投影、幂迭代、余弦相似度与欧氏距离的候选排序对照、低秩压缩、把灰度矩阵展平后的余弦相似度检索、带种子重放的随机范围发现，以及只在观测评分上拟合的秩一 ALS。`compare_similarity_metrics` 以同一查询和候选集并列给出“方向最像”与“绝对量最近”的排序，不替业务语义决定默认赢家；`pivot_trace_certificate` 从原始增广矩阵重放主元选择、行交换、消元和回代；`column_independence_report` 用逐列正交残差和秩检查冗余方向，`basis_coordinate_report` 用 $Ac-b$ 检查坐标重构；`demo_jvp_certificate` 将双数 JVP 与 $\nabla L^Tv$ 对照；`least_squares_comparison_report` 用同一份 $A^Tr$ 证书检查两条拟合路径；`pca_2d_report` 检查中心化、投影正交性和舍弃方差—重构误差恒等式；`compressed_image_search` 将压缩误差和压缩域排序放入同一报告，形成微型“压缩—检索”流程；`image_quality_certificate` 重算 MSE、RMSE、PSNR 与最大误差；`randomized_range_certificate` 重建固定种子的随机草图和 $QQ^TA$；`rank_one_als_trace_certificate` 重放每轮用户/物品的坐标最小化，核对观测集误差而不假装验证缺失评分。它们用于核对数学定义，不取代 NumPy/SciPy 的生产实现。
 
 ## 数学连接
 
@@ -24,7 +24,22 @@ description: 用可测试的教学实现串起矩阵计算、消元、投影、�
 - [结构相似度 SSIM](/linear-algebra/structural-similarity)：用均值、方差和协方差审计全局结构相似性。
 - [随机范围发现](/linear-algebra/randomized-range-finder)：用带种子的随机草图构造可重放的 $QQ^TA$ 投影。
 - [低秩推荐](/linear-algebra/low-rank-recommendation)：只对观测评分做交替最小二乘，并分离训练误差与缺失预测。
-- [向量与点积](/linear-algebra/vectors-dot-product)：以余弦相似度对同形图像向量排序。
+- [向量与点积](/linear-algebra/vectors-dot-product)：对同一候选集比较余弦相似度与欧氏距离排序，先声明任务是否应忽略尺度。
+
+## 度量选择实验
+
+```python
+from projects.linear_algebra_lab.similarity_metrics import compare_similarity_metrics
+
+report = compare_similarity_metrics(
+    [1.0, 0.0],
+    [{"label": "near", "vector": [1.0, 0.1]}, {"label": "scaled", "vector": [100.0, 0.0]}],
+)
+assert report["cosine_ranking"][0] == "scaled"
+assert report["euclidean_ranking"][0] == "near"
+```
+
+这不是要在两种度量中挑选一个永久默认值：余弦把尺度变化视为无关，欧氏距离把它计入误差。读者应先写下对象的“总量”是否有含义，再选择排序；零向量不能参加此比较，因为它没有可定义的方向。
 
 ## 压缩—检索实验
 

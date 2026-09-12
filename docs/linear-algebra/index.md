@@ -21,7 +21,7 @@
 
 | 顺序 | 主题 | 你将解决的问题 | 状态 |
 | --- | --- | --- | --- |
-| 1 | [向量与点积](/linear-algebra/vectors-dot-product) | 两个对象的方向是否相近？ | 深度正文 · 45 分钟 |
+| 1 | [向量与点积](/linear-algebra/vectors-dot-product) | 两个对象是方向相近，还是数值接近？ | 深度正文 · 60 分钟 |
 | 2 | [线性组合、基与维度](/linear-algebra/linear-combinations-basis) | 哪些特征是冗余的？ | 深度正文 · 40 分钟 |
 | 3 | [矩阵的四个基本子空间](/linear-algebra/four-fundamental-subspaces) | 哪些输出可达、哪些信息丢失？ | 深度正文 · 70 分钟 |
 | 4 | [矩阵乘法与线性变换](/linear-algebra/matrix-multiplication) | 多个变换如何合成为一步？ | 深度正文 · 45 分钟 |
