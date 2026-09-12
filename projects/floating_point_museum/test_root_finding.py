@@ -1,8 +1,10 @@
 import unittest
+from dataclasses import replace
 from math import sqrt
 
 from projects.floating_point_museum.root_finding import (
-    NewtonEvent, safeguarded_newton_trace, safeguarded_newton_trace_certificate,
+    NewtonEvent, bracketed_root_position_review, bracketed_root_position_review_certificate,
+    safeguarded_newton_trace, safeguarded_newton_trace_certificate,
     diagnose_root_task,
     secant_convergence_certificate, secant_convergence_report,
     secant_root, secant_solution_certificate, secant_trace, secant_trace_certificate,
@@ -148,6 +150,33 @@ class SecantRootTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             safeguarded_newton_trace(lambda value: value - 0.2, lambda _: float("nan"),
                                      0.0, 1.0, initial=0.0, max_steps=1)
+
+    def test_verified_bracket_trace_drives_a_position_error_budget_review(self):
+        function = lambda value: value * value - 2.0
+        derivative = lambda value: 2.0 * value
+        root, events = safeguarded_newton_trace(function, derivative, 0.0, 2.0, initial=1.0)
+        review = bracketed_root_position_review(
+            function, derivative, 0.0, 2.0, 1.0, root, events,
+            position_error_budget=1e-6, continuous_on_initial_bracket=True,
+        )
+        self.assertLess(abs(function(root)), 1e-12)
+        self.assertEqual(review.position_budget_status, "exceeds_position_error_budget")
+        self.assertEqual(review.continuity_assumption, "declared_not_proven_by_finite_trace")
+        self.assertEqual(review.automatic_action, "none")
+        self.assertTrue(bracketed_root_position_review_certificate(
+            function, derivative, 0.0, 2.0, 1.0, root, events, 1e-6, review,
+            continuous_on_initial_bracket=True,
+        ))
+        self.assertFalse(bracketed_root_position_review_certificate(
+            function, derivative, 0.0, 2.0, 1.0, root, events, 1e-6,
+            replace(review, position_budget_status="within_position_error_budget"),
+            continuous_on_initial_bracket=True,
+        ))
+        with self.assertRaises(ValueError):
+            bracketed_root_position_review(
+                function, derivative, 0.0, 2.0, 1.0, root, events,
+                position_error_budget=1e-6, continuous_on_initial_bracket=False,
+            )
 
 
 if __name__ == "__main__":

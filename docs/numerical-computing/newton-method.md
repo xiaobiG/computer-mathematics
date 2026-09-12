@@ -3,8 +3,8 @@ title: 牛顿法：用切线快速逼近方程的根
 description: 从泰勒展开推导牛顿迭代，理解二次收敛、停止准则和保底求根策略。
 courseLevel: "2–3（推导、算法与工程）"
 prerequisites: "导数、泰勒展开、绝对/相对误差"
-estimatedMinutes: 70
-experiment: "从求根任务合同选择受保护牛顿或割线，并比较纯牛顿法、二分法与区间保护"
+estimatedMinutes: 85
+experiment: "从求根任务合同选择受保护牛顿或割线，并用保留区间审计位置误差预算"
 ---
 
 # 牛顿法：用切线快速逼近方程的根
@@ -87,6 +87,32 @@ assert safeguarded_newton_trace_certificate(
 
 运行 `python -m unittest projects.floating_point_museum.test_root_finding`。`safeguarded_newton_trace` 返回每一步的方法、候选值、残差和更新后的区间端点/函数值；`safeguarded_newton_trace_certificate` 不信任这些记录，而是独立重算 Newton 建议、越界/小导数时的二分决策及符号区间更新。测试不只检查 $\sqrt2$ 的近似值，还验证每个事件仍保留符号变化，并篡改方法字段确认验证器拒绝；对 $x^3-2x+2$ 从 $0$ 出发，首次越界的牛顿建议会被替换为二分步。每轮计算量为 $O(1)$（不计函数本身），总成本为 $O(k)$ 次函数/导数评估。局部二次收敛能显著减小 $k$，但昂贵导数、自动微分图和区间回退都会改变实际成本。
 
+## 跨课审计：小残差不等于位置预算已满足
+
+受保护 Newton 的上游轨迹已经保存每一步的符号变化区间；它可以被下游位置评审实际消费，而不靠手工复制最后一个端点。若模型明确声明函数在初始区间连续，则最终区间至少包含一个根。对返回估计 $x$，保守的绝对位置误差上界是
+
+$$
+\max\{|x-a_{\mathrm{final}}|,\ |b_{\mathrm{final}}-x|\}.
+$$
+
+```python
+from projects.floating_point_museum.root_finding import bracketed_root_position_review
+
+review = bracketed_root_position_review(
+    lambda x: x * x - 2.0, lambda x: 2.0 * x,
+    0.0, 2.0, 1.0, root, events,
+    position_error_budget=1e-6,
+    continuous_on_initial_bracket=True,
+)
+
+assert abs(root * root - 2.0) <= 1e-12
+assert review.position_budget_status == "exceeds_position_error_budget"
+assert review.continuity_assumption == "declared_not_proven_by_finite_trace"
+assert review.automatic_action == "none"
+```
+
+这里恰恰得到一个重要反例：$sqrt2$ 的 Newton 残差已经很小，但 Newton 连续从区间右端逼近时，左端仍远在 0；保留区间没有自动收窄到 $10^{-6}$。改变上游轨迹或下游预算会改变结论，篡改任一端点或上界会被拒绝。连续性由模型声明、不是有限函数采样能证明的事实；即使预算内也只是“存在某根位于该区间”的数值证据，不是唯一根、物理模型正确或自动控制授权。
+
 ## 构造实验：先声明你要保住什么
 
 “求一个根”仍不够。若模型要求每一步都不丢失已知根的区间，就必须声明符号变号区间、可用导数、区间内初值和“残差加区间”的验收量；若只有两次函数评估且只接受局部残差证据，则应声明没有全局区间保证。`diagnose_root_task` 让读者先写这份合同，再选择方法。
@@ -113,7 +139,7 @@ assert diagnosis["fallback_steps"] >= 0
 
 ## 正确性与可验证实验
 
-对代码的可验证断言不是“结果看起来像 $\sqrt2$”，而是：返回值仍在原区间；残差足够小；且每次区间都保持符号变化。对 $f(x)=x^2-2$，可记录区间长度；发生二分时它至少减半，发生安全的牛顿步时通常更快缩小。
+对代码的可验证断言不是“结果看起来像 $\sqrt2$”，而是：返回值仍在原区间；残差足够小；且每次区间都保持符号变化。若任务还要求位置精度，必须另看末区间相对返回值的上界；发生二分时它至少减半，发生安全的 Newton 步时残差通常更快缩小，但区间宽度不必同步缩小。
 
 对于多根、没有符号变化的偶重根，区间法的前提不成立。例如 $f(x)=(x-1)^2$ 在根两侧都非负；这并非程序 bug，而是该全局保证的边界。需要用最小化 $|f|$、导数根或问题领域的其他信息来定位它。
 
@@ -129,7 +155,7 @@ assert diagnosis["fallback_steps"] >= 0
 1. “牛顿法总比二分法好。”错误：二分有明确全局条件，牛顿主要是局部方法。
 2. “步长变小就已找到根。”错误：还必须检查残差和问题尺度。
 3. “导数可以总用极小差分步长。”错误：步长过小会让相减消去和舍入误差吞没导数信号。
-4. “小残差等于小误差。”错误：当 $f'(r)$ 很小时，问题本身可能病态。
+4. “小残差等于小误差。”错误：当 $f'(r)$ 很小时，问题本身可能病态；即使维持符号区间，也还要检查该区间是否实际满足位置预算。
 
 ## 练习
 

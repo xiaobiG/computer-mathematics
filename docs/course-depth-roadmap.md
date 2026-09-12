@@ -95,6 +95,8 @@ v5.6-a 将这份可验证重构继续交给[图像误差指标](/linear-algebra/
 
 v5.7-a 审计概率链时发现，[概率再校准](/probability-ml/recalibration)虽已拟合 Platt scaling，[生成模型与逻辑回归](/probability-ml/generative-discriminative-logistic)的成本敏感决策却只接收裸概率；读者无法证明输入 `.75` 来自何处。现在 `platt_calibration_report` 保存验证集、超参数、拟合参数、轨迹和前后损失；`calibrated_cost_sensitive_decision` 只消费可重放的上游产物，再以声明成本计算期望损失。同一原始 `.9` 在 $c_{FP}=4,c_{FN}=1$ 下可从裸分数的判正变成验证集校准后约 `.75` 的判负。结论仍固定 `automatic_action="none"`：这不是在线校准、成本估计、因果保证或高风险自动决策。
 
+v5.8-a 回到数值求根链。受保护 Newton 已保存残差和符号变号区间，却没有让读者把这份轨迹带入位置精度结论；小残差很容易被误读为自变量误差小。`bracketed_root_position_review` 现消费可重放的完整轨迹，在模型声明初始区间连续时，以末区间相对返回估计的最大距离作为保守位置上界，并将其与读者声明的预算比较。平方根例的残差虽已很小，仍会因左端未收窄而超出 $10^{-6}$ 位置预算。这不是连续性、唯一根、条件数、物理模型或自动控制的证明，且固定 `automatic_action="none"`。
+
 ## v3.1：相关观测的真实抽样单位
 
 时间块 bootstrap 已说明相邻事件不能逐条重抽，但“同一用户或设备多次出现”是不同的相关结构。v3.1-a 新增[簇级 Bootstrap](/probability-ml/cluster-bootstrap-calibration)：预定义、标识唯一的完整用户/设备簇成为抽样单位；报告绑定簇大小、政策、种子和区间，并明确 `automatic_action: none`。该课纳入优先深度门禁。

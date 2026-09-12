@@ -1007,3 +1007,13 @@ v2.7–v2.9 的共同增量不是新增术语，而是把“可计算的输出�
 | 验证 | `python -m unittest projects.naive_bayes_spam.test_recalibration projects.naive_bayes_spam.test_cost_sensitive_decisions`、`npm run content:check`；发布前运行全项目测试、生产构建与 GitHub Pages 工作流。 |
 | 差异 | 原成本函数只接收裸概率；现在下游先重放验证分数、标签、超参数、Platt 参数和优化轨迹，再转换保留分数。同一原始 `.9` 在 $c_{FP}=4,c_{FN}=1$ 下从裸概率的判正变为校准后约 `.75` 的判负；篡改校准产物或决策结论都会被拒绝。 |
 | 下一决策 | 这不是测试集上的重新拟合、在线校准、成本估计、因果证明或自动化高风险行动；所有输出固定 `automatic_action="none"`。下一轮继续审计是否还有上游学习产物被下游简化为匿名标量。 |
+
+### v5.8-a：受保护 Newton 轨迹到位置误差预算（已完成）
+
+| 字段 | 记录 |
+| --- | --- |
+| 目标 | 读者能将一份已验证的受保护 Newton 轨迹带入位置精度评审，分开“小残差”和“由保留区间支持的位置误差上界”。 |
+| 范围 | 扩展[牛顿法](/numerical-computing/newton-method)、浮点数错误博物馆、成熟度看板与路线图；新增 `BracketedRootPositionReview`、`bracketed_root_position_review` 与测试。 |
+| 验证 | `python -m unittest projects.floating_point_museum.test_root_finding`、`npm run content:check`；发布前运行全项目测试、生产构建与 GitHub Pages 工作流。 |
+| 差异 | 原课程只让读者观察残差与符号区间；现在下游先重放该轨迹，在明确连续性为外部模型前提后，以返回估计到末区间两端的最大距离评审位置预算。$x^2-2$ 的 Newton 运行虽有极小残差，末区间仍可超出 $10^{-6}$；篡改轨迹、端点、上界或结论都会被拒绝。 |
+| 下一决策 | 这不是连续性/唯一根证明、导数下界误差估计、条件数分析、Brent 实现、多维求根或自动控制授权；所有结果固定 `automatic_action="none"`。继续审计其他专题中的“数值结果被误当作足够误差证据”断点。 |

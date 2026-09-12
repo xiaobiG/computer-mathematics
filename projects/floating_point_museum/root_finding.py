@@ -303,6 +303,22 @@ class NewtonEvent:
     right_value: float
 
 
+@dataclass(frozen=True)
+class BracketedRootPositionReview:
+    """A position-error budget derived from a verified sign-change bracket."""
+
+    root: float
+    source_steps: int
+    final_left: float
+    final_right: float
+    bracket_width: float
+    root_position_error_upper_bound: float
+    position_error_budget: float
+    position_budget_status: str
+    continuity_assumption: str
+    automatic_action: str
+
+
 def safeguarded_newton_trace(
     function: Callable[[float], float], derivative: Callable[[float], float],
     left: float, right: float, initial: float, *, residual_tol: float = 1e-12,
@@ -435,3 +451,68 @@ def safeguarded_newton_trace_certificate(
         return root == current and abs(function(root)) <= residual_tol
     except (ArithmeticError, ValueError, ZeroDivisionError):
         return False
+
+
+def bracketed_root_position_review(
+    function: Callable[[float], float], derivative: Callable[[float], float],
+    left: float, right: float, initial: float, root: float, events: list[NewtonEvent], *,
+    position_error_budget: float, continuous_on_initial_bracket: bool,
+    residual_tol: float = 1e-12, derivative_tol: float = 1e-14,
+) -> BracketedRootPositionReview:
+    """Turn a verified bracketed-Newton artifact into a position-bound review.
+
+    A finite trace cannot establish continuity; the caller must declare it as a
+    model premise.  Under that premise, the retained sign-change interval
+    contains a root, so its maximum distance from the returned estimate is a
+    conservative position-error upper bound.  Small residual alone supplies
+    no such bound.
+    """
+    if (not _finite_scalar(position_error_budget) or position_error_budget < 0.0):
+        raise ValueError("position_error_budget must be a finite non-negative number")
+    if continuous_on_initial_bracket is not True:
+        raise ValueError("a position bound requires an explicit continuity declaration")
+    if not safeguarded_newton_trace_certificate(
+        function, derivative, left, right, initial, root, events,
+        residual_tol=residual_tol, derivative_tol=derivative_tol,
+    ):
+        raise ValueError("root trace does not replay under the stated bracket contract")
+    if events:
+        final_left, final_right = events[-1].left, events[-1].right
+    else:
+        final_left, final_right = float(left), float(right)
+    upper_bound = max(abs(root - final_left), abs(final_right - root))
+    budget = float(position_error_budget)
+    return BracketedRootPositionReview(
+        root=float(root),
+        source_steps=len(events),
+        final_left=final_left,
+        final_right=final_right,
+        bracket_width=final_right - final_left,
+        root_position_error_upper_bound=upper_bound,
+        position_error_budget=budget,
+        position_budget_status=("within_position_error_budget" if upper_bound <= budget
+                                else "exceeds_position_error_budget"),
+        continuity_assumption="declared_not_proven_by_finite_trace",
+        automatic_action="none",
+    )
+
+
+def bracketed_root_position_review_certificate(
+    function: Callable[[float], float], derivative: Callable[[float], float],
+    left: float, right: float, initial: float, root: float, events: list[NewtonEvent],
+    position_error_budget: float, review: object, *, continuous_on_initial_bracket: bool,
+    residual_tol: float = 1e-12, derivative_tol: float = 1e-14,
+) -> bool:
+    """Rebuild a source-bound bracket position review and reject changed bounds."""
+    if not isinstance(review, BracketedRootPositionReview):
+        return False
+    try:
+        expected = bracketed_root_position_review(
+            function, derivative, left, right, initial, root, events,
+            position_error_budget=position_error_budget,
+            continuous_on_initial_bracket=continuous_on_initial_bracket,
+            residual_tol=residual_tol, derivative_tol=derivative_tol,
+        )
+    except ValueError:
+        return False
+    return review == expected
