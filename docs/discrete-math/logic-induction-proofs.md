@@ -19,13 +19,13 @@ experiment: "为循环规格编写断言，并用小规模穷举寻找反例"
 
 ## 命题、蕴含与反例
 
-命题 $P\Rightarrow Q$ 只在 $P$ 真而 $Q$ 假时为假。证明蕴含常假设 $P$ 并推出 $Q$；推翻它只需找到一个满足 $P$ 而不满足 $Q$ 的反例。
+命题 $P\Rightarrow Q$ 只在 $P$ 真而 $Q$ 假时为假；推翻它只需一个满足 $P$ 而不满足 $Q$ 的反例。
 
 “$P$ 是 $Q$ 的充分条件”表示 $P\Rightarrow Q$；“$P$ 是 $Q$ 的必要条件”表示 $Q\Rightarrow P$。例如“数组已排序”是二分查找正确性的必要前提，不是它能返回某个索引的充分条件（目标仍可能不存在）。
 
-逆否命题 $P\Rightarrow Q$ 与 $\neg Q\Rightarrow\neg P$ 等价，常适合证明；逆命题 $Q\Rightarrow P$ 则通常不等价，必须另证或找反例。
+逆否命题与原命题等价；逆命题通常不等价，必须另证或找反例。
 
-## 量词：规格的范围
+## 量词的直觉与定义：规格的范围
 
 $$\forall x\in D,\;P(x)$$
 
@@ -36,7 +36,7 @@ $$\forall x\in D,\;P(x)$$
 $$\neg(\forall x\,P(x))\equiv\exists x\,\neg P(x),\qquad
 \neg(\exists x\,P(x))\equiv\forall x\,\neg P(x).$$
 
-这解释测试的角色：随机测试在寻找全称断言的反例，永远无法单独证明没有反例。
+随机测试寻找全称断言的反例，不能单独证明没有反例。
 
 ## 归纳法与循环不变量
 
@@ -48,26 +48,31 @@ $$\neg(\forall x\,P(x))\equiv\exists x\,\neg P(x),\qquad
 
 循环不变量是程序版本的归纳命题：初始化对应基例；每轮保持对应归纳步；循环终止条件加不变量共同推出后置条件。例如求和循环在处理前 $k$ 个元素后保持 `total == sum(values[:k])`。它不是注释，而是证明中间状态的精确声明。
 
-## 可运行验证：测试能做什么，不能做什么
+## 可运行验证：有限穷举能做什么，不能做什么
 
 ```python
-def prefix_sums(values):
-    total, result = 0, []
-    for index, value in enumerate(values):
-        # 不变量：此时 total == sum(values[:index])
-        total += value
-        result.append(total)
-    return result
+from projects.algorithm_lab.counterexample_search import (
+    bounded_binary_search_counterexample,
+    bounded_binary_search_counterexample_certificate,
+)
 
-for values in ([], [3], [1, -2, 4]):
-    assert prefix_sums(values) == [sum(values[:i]) for i in range(1, len(values) + 1)]
+stalled = bounded_binary_search_counterexample("nonprogress_left", max_length=2, max_value=2)
+assert stalled["values"] == [0] and stalled["target"] == 1
+assert stalled["failure"] == "interval_did_not_strictly_shrink"
+assert bounded_binary_search_counterexample_certificate(
+    "nonprogress_left", max_length=2, max_value=2, report=stalled,
+)
+
+lost = bounded_binary_search_counterexample("drops_left_boundary", max_length=2, max_value=2)
+assert lost["values"] == [0, 1] and lost["target"] == 0
+assert lost["failure"] == "present_target_lost"
 ```
 
-这些断言验证少量实例并帮助定位 bug；完整证明仍需说明不变量对任意合法输入初始化、保持并导出后置条件。有限域穷举能证明“范围限定后”的全称命题，不能自动外推到无限整数或任意长度数组。
+运行 `python -m unittest projects.algorithm_lab.test_counterexample_search`。`left=mid` 在 `[0]` 中寻找 `1` 时不缩小区间；`right=mid-1` 会从 `[0,1]` 丢失 `0`。证书重枚举有限域并绑定见证与轨迹。穷举可推翻全称主张，却不能外推到任意长度；一般正确性仍需初始化、保持与终止证明。
 
 ## 反证法与终止性
 
-反证法假设结论不成立并推出矛盾。终止性常用良基度量：定义每轮严格减少且下界存在的非负整数，例如二分查找区间长度 $r-l$。仅证明“不变量保持”不代表程序会停；正确性还需要终止与终止时后置条件。
+反证法假设结论不成立并推出矛盾。终止性常用严格下降且有下界的度量，例如二分查找区间长度 $r-l$；不变量保持不代表程序会停。
 
 ## 失败案例与工程边界
 

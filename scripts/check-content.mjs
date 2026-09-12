@@ -148,6 +148,7 @@ const priorityDeepLessons = new Set([
   'linear-algebra/svd.md',
   'linear-algebra/low-rank-recommendation.md',
   'discrete-math/loop-invariants.md',
+  'discrete-math/logic-induction-proofs.md',
   'discrete-math/union-find.md',
   'discrete-math/sets-relations-orders.md',
   'discrete-math/recurrences.md',
