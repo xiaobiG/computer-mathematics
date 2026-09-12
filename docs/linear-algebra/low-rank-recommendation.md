@@ -48,27 +48,28 @@ $$
 
 固定 $p$ 同理得到 $q_i=\sum_u R_{ui}p_u/(\lambda+\sum_u p_u^2)$。交替更新 $p$、$q$ 是 **ALS**。每个子问题有唯一的正则化最小点；整个双线性目标却不是联合凸优化，不能把一条下降轨迹误当作全局最优证明。
 
-## 可运行实验：只拟合观测评分
+## 可运行实验：训练拟合与留出评分
 
 ```python
 from projects.linear_algebra_lab.recommendation import (
-    rank_one_als_report,
-    rank_one_als_trace_certificate,
+    rank_one_als_holdout_certificate,
+    rank_one_als_holdout_report,
 )
 
-ratings = [[5.0, None, 2.0], [4.0, 2.0, None], [None, 1.0, 1.0]]
-report = rank_one_als_report(ratings, iterations=20, regularization=0.1)
+ratings = [[5.0, 5.0, 1.0], [5.0, 5.0, 1.0], [1.0, 1.0, 5.0]]
+report = rank_one_als_holdout_report(ratings, [(2, 2)], iterations=30, regularization=0.1)
 
-assert report.observed_rmse < 0.7
-assert report.predictions[0][1] != 0.0  # 空格得到模型预测，但不是观测事实
-assert rank_one_als_trace_certificate(ratings, report, iterations=20, regularization=0.1)
+assert report.training_rmse < 0.05
+assert report.holdout_rmse > 4.0
+assert report.holdout_rmse_exceeds_training_rmse
+assert rank_one_als_holdout_certificate(ratings, [(2, 2)], report, iterations=30, regularization=0.1)
 ```
 
-运行 `python -m unittest projects.linear_algebra_lab.test_recommendation`。报告保存每轮用户因子、物品因子与已观测平方误差；证书独立重放每个坐标最小化，并会拒绝篡改的因子或误差。设 $|\Omega|$ 为评分数、秩为 $k$，常规 ALS 每轮约为 $O(|\Omega|k^2)$；此课 $k=1$，因此每轮线性扫描观察项。真实系统会以稀疏格式和并行线性代数实现，而非 Python 双重循环。
+运行 `python -m unittest projects.linear_algebra_lab.test_recommendation`。报告将 $(2,2)$ 从训练矩阵隐藏，却保留真实评分以计算留出 RMSE；证书重放划分、ALS 轨迹和两种误差，篡改“留出不更差”会失败。此例训练拟合很好，但留出格预测约为 $0.20$ 而真实值为 5，说明训练残差不能升级为未观测质量。常规 ALS 每轮约为 $O(|\Omega|k^2)$；本课 $k=1$。
 
 ## 正确性与工程边界
 
-对固定物品因子，上式是严格凸一元二次函数，故更新确实最小化该用户子问题；物品更新同理。轨迹证书只说明实现按此递推执行、观测误差如何变化。它不证明未观测评分正确，也不证明某次迭代找到了全局最优。
+对固定物品因子，上式是严格凸一元二次函数，故更新确实最小化该用户子问题；物品更新同理。轨迹证书只说明实现按此递推执行；留出报告再对已隐藏真实评分计误差。两者都不证明真实用户满意度或全局最优。
 
 - **冷启动**：没有任何评分的用户或物品没有可解的分子/分母信息；实验显式拒绝，生产系统要引入内容特征、热门先验或探索策略。
 - **尺度不唯一**：不加正则时 $p\to cp,q\to q/c$ 给相同预测；正则和初始化会影响数值表示。
@@ -79,21 +80,21 @@ assert rank_one_als_trace_certificate(ratings, report, iterations=20, regulariza
 
 1. “缺失就是 0。”错误：它改变了优化目标并通常制造系统性偏差。
 2. “低秩等于 SVD。”错误：完整矩阵的截断 SVD 与带缺失、正则化的矩阵分解不是同一个问题。
-3. “训练 RMSE 下降就证明推荐更好。”错误：还需要时间切分、留出评估、校准和业务指标。
+3. “训练 RMSE 下降就证明推荐更好。”错误：本课留出格已可更差；真实系统还需时间切分、校准和业务指标。
 4. “ALS 没有梯度，所以不算优化。”错误：它在每个坐标块上精确解最小二乘子问题。
 
 ## 练习
 
 1. **基础题**：对一个用户的两个观测评分和固定 $q$，手算上式的 $p_u$ 更新。
 2. **推导题**：从 $J_u(p_u)$ 展开并逐项求导，推导分母为何多出 $\lambda$。
-3. **编码题**：为同一评分表比较不同正则系数，报告观测 RMSE 与未观测格预测；验证证书会拒绝篡改的某轮误差。
+3. **编码题**：声明留出格后报告训练和留出误差；篡改任一结论，验证证书必须拒绝。
 4. **开放题**：设计一个带用户/物品偏置、时间切分与冷启动策略的离线评估协议，并说明哪些结果不能由 RMSE 单独推出。
 
 ## 练习答案提示
 
 1. 固定 $q$ 后将两个残差平方和与 $\lambda p_u^2$ 写成一元二次式，分子是 $\sum r_{ui}q_i$、分母是 $\sum q_i^2+\lambda$。
 2. 展开平方后对 $p_u$ 求导并令零；正则项导数给出 $2\lambda p_u$，与误差项公共因子 2 可约去。
-3. 固定初始化和迭代次数；将观测集误差与未观测预测分开报告，并篡改保存轨迹中的一个误差以验证证书确实重放更新。
+3. 训练矩阵不得含留出评分；同时报告两种误差，篡改结论应使证书失败。
 4. 时间切分应避免用未来评分训练；冷启动需定义没有历史时的默认策略，RMSE 之外还要报告覆盖率、校准、群体差异和在线效应。
 
 ## 延伸

@@ -33,6 +33,26 @@ class RankOneAlsReport:
     events: tuple[AlsEvent, ...]
 
 
+@dataclass(frozen=True)
+class HoldoutCell:
+    """One observed rating deliberately hidden from the ALS fitting matrix."""
+
+    user: int
+    item: int
+    rating: float
+
+
+@dataclass(frozen=True)
+class RankOneAlsHoldoutReport:
+    """A declared training/holdout split and its two distinct error measures."""
+
+    training_report: RankOneAlsReport
+    holdout_cells: tuple[HoldoutCell, ...]
+    training_rmse: float
+    holdout_rmse: float
+    holdout_rmse_exceeds_training_rmse: bool
+
+
 def _validate(ratings: list[list[Rating]], iterations: int, regularization: float) -> tuple[int, int]:
     if (not ratings or not ratings[0] or any(len(row) != len(ratings[0]) for row in ratings)
             or not isinstance(iterations, int) or isinstance(iterations, bool) or iterations <= 0
@@ -121,6 +141,64 @@ def rank_one_als_trace_certificate(
         predictions = tuple(tuple(user_factor * item_factor for item_factor in items) for user_factor in users)
         return report == RankOneAlsReport(
             tuple(users), tuple(items), predictions, sqrt(squared_error / observations), tuple(report.events),
+        )
+    except (ArithmeticError, TypeError, ValueError):
+        return False
+
+
+def rank_one_als_holdout_report(
+    ratings: list[list[Rating]], holdout_positions: list[tuple[int, int]], *, iterations: int = 12,
+    regularization: float = 0.1,
+) -> RankOneAlsHoldoutReport:
+    """Fit only declared training cells, then score explicitly hidden ratings.
+
+    This is a tiny deterministic offline split, not a recommendation-quality or
+    temporal-validation system.  Its purpose is to keep observed-fit and
+    unseen-rating error separate on the same original matrix.
+    """
+    users, items = _validate(ratings, iterations, regularization)
+    if not isinstance(holdout_positions, list) or not holdout_positions:
+        raise ValueError("provide at least one explicit holdout position")
+    training = [list(row) for row in ratings]
+    cells: list[HoldoutCell] = []
+    seen: set[tuple[int, int]] = set()
+    for position in holdout_positions:
+        if (not isinstance(position, tuple) or len(position) != 2
+                or any(not isinstance(index, int) or isinstance(index, bool) for index in position)):
+            raise ValueError("holdout positions must be user/item integer pairs")
+        user, item = position
+        if not 0 <= user < users or not 0 <= item < items or position in seen:
+            raise ValueError("holdout positions must be distinct in-bounds observations")
+        value = training[user][item]
+        if value is None:
+            raise ValueError("holdout positions must name observed ratings")
+        seen.add(position)
+        cells.append(HoldoutCell(user, item, float(value)))
+        training[user][item] = None
+    _validate(training, iterations, regularization)
+    training_report = rank_one_als_report(training, iterations=iterations, regularization=regularization)
+    holdout_rmse = sqrt(sum(
+        (cell.rating - training_report.predictions[cell.user][cell.item]) ** 2 for cell in cells
+    ) / len(cells))
+    return RankOneAlsHoldoutReport(
+        training_report=training_report,
+        holdout_cells=tuple(cells),
+        training_rmse=training_report.observed_rmse,
+        holdout_rmse=holdout_rmse,
+        holdout_rmse_exceeds_training_rmse=holdout_rmse > training_report.observed_rmse,
+    )
+
+
+def rank_one_als_holdout_certificate(
+    ratings: list[list[Rating]], holdout_positions: list[tuple[int, int]], report: object, *, iterations: int = 12,
+    regularization: float = 0.1,
+) -> bool:
+    """Replay a declared split and reject altered holdout-quality conclusions."""
+    if not isinstance(report, RankOneAlsHoldoutReport):
+        return False
+    try:
+        return report == rank_one_als_holdout_report(
+            ratings, holdout_positions, iterations=iterations, regularization=regularization,
         )
     except (ArithmeticError, TypeError, ValueError):
         return False
