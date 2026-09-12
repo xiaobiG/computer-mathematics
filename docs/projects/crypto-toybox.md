@@ -11,7 +11,7 @@ description: 用快速幂、模逆元、小参数 RSA、教学签名验签与有
 
 ## 目标
 
-实现并测试八块数学积木：带逐位不变量证书的教学模幂、带余数链与贝祖等式证书的扩展欧几里得算法、通用中国剩余合并、带质因子前提/模逆元证书和 CRT 样例审计的教学 RSA、教学签名验签等式及裸 RSA 可乘反例、有限域乘法群与小参数 DH 转录（含密钥确认不等于身份认证的对照）、带可重放 double-and-add 轨迹证书的有限域椭圆曲线点群和标准库 HMAC 验证。重点是看到这些函数在加密、验签、密钥协商、标量乘法或消息认证中如何连接，而非尝试自制密码系统。
+实现并测试八块数学积木：带逐位不变量证书的教学模幂、带余数链与贝祖等式证书的扩展欧几里得算法、通用中国剩余合并、带质因子前提/模逆元证书和 CRT 样例审计的教学 RSA、教学签名验签等式及裸 RSA 可乘反例、有限域乘法群与小参数 DH 转录（含密钥确认不等于身份认证的对照）、将透明日志追加产物传入根轮换人工复核的治理链、带可重放 double-and-add 轨迹证书的有限域椭圆曲线点群和标准库 HMAC 验证。重点是看到这些函数在加密、验签、密钥协商、标量乘法或消息认证中如何连接，而非尝试自制密码系统。
 
 ## 数学连接
 
@@ -40,6 +40,7 @@ python -m unittest projects.crypto_toybox.test_message_auth
 python -m unittest projects.crypto_toybox.test_signatures
 python -m unittest projects.crypto_toybox.test_release_policy
 python -m unittest projects.crypto_toybox.test_transparency_log
+python -m unittest projects.crypto_toybox.test_root_rotation
 ```
 
 ## 实验问题
@@ -54,6 +55,7 @@ python -m unittest projects.crypto_toybox.test_transparency_log
 8. 用同一密码创建两条含不同盐的教学记录，确认派生值不同；再用错误密码尝试迁移成本参数，确认不会生成新记录。
 9. 记录 `scalar_multiply_trace(7, G)`，篡改其中一轮剩余标量或累计点，并验证轨迹证书拒绝它；解释为何公开该轨迹本身就不适合秘密标量。
 10. 重放 `extended_gcd_trace(240, 46)` 的余数链，并篡改一个余数或贝祖系数，确认证书拒绝；说明余数严格下降如何同时给出终止性与最大公约数的计算路径。
+11. 用 `append_only_report` 生成含新增根的日志，再传给 `root_rotation_log_link_review`；删掉一项新增根条目，确认下游仅退回人工复核而不会自动接受或把日志字符串当作身份。
 
 ## 从这里走向真实系统
 

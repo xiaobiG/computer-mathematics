@@ -967,3 +967,13 @@ v2.7–v2.9 的共同增量不是新增术语，而是把“可计算的输出�
 | 验证 | `python -m unittest projects.naive_bayes_spam.test_practical_effect_review`、`npm run content:check`；发布前运行全项目测试、生产构建与 GitHub Pages 工作流。 |
 | 差异 | 原课程把区间、MDE 与业务决策并列说明；现在下游仅接受可重新计算的上游区间产物，输出整体高于、低于或穿过最小效应。篡改区间端点、差值或标准误不能流入复核，且三种状态都固定 `automatic_action: none`。 |
 | 下一决策 | 正态近似教学产物不能证明随机化、因果、长期价值、群体公平或阈值正当性；下一轮应寻找另一条真实跨课数据流，而不是将这份人工复核包装成 A/B 决策器。 |
+
+### v5.4-a：透明日志追加产物到根轮换复核（已完成）
+
+| 字段 | 记录 |
+| --- | --- |
+| 目标 | 读者能把透明日志的实际追加产物带入根轮换复核，检查新增根是否出现在未改写日志中，并区分日志覆盖与身份/批准。 |
+| 范围 | 扩展[透明日志](/number-theory-crypto/transparency-logs)、[信任根轮换](/number-theory-crypto/trust-root-rotation)、密码学玩具箱、成熟度看板与路线图；在 `root_rotation.py` 新增 `root_rotation_log_link_review` 和测试。 |
+| 验证 | `python -m unittest projects.crypto_toybox.test_root_rotation`、`npm run content:check`；发布前运行全项目测试、生产构建与 GitHub Pages 工作流。 |
+| 差异 | 原根轮换只看到见证可用布尔值；现在接受可重放追加日志并从根集合导出应出现的条目。新增根条目缺失时下游报告精确列出缺项，日志被改写时不能进入复核；覆盖完整仍只给人工复核。 |
+| 下一决策 | 这不是日志一致性协议、签名验证、身份绑定、独立见证或根管理器；下一轮应审计不同专题是否还存在上游产物在课程边界被退化成布尔值的真实断点。 |

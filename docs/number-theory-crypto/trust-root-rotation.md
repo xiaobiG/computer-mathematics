@@ -3,8 +3,8 @@ title: 信任根轮换与阈值监督：谁有权更换验证规则
 description: 用虚构元数据重放信任根轮换的阈值授权、纪元推进与监督证据边界，理解日志和单把根密钥都不足以自动安全更新。
 courseLevel: "3（密码协议与工程边界）"
 prerequisites: "公钥身份与生命周期、已签名更新防回滚、透明日志"
-estimatedMinutes: 65
-experiment: "trust-root-rotation-audit/v1：重放根集合、阈值授权、纪元与见证证据的虚构策略报告"
+estimatedMinutes: 80
+experiment: "将追加日志产物传入根轮换人工复核，检查根集合、阈值、纪元与日志覆盖边界"
 ---
 
 # 信任根轮换与阈值监督：谁有权更换验证规则
@@ -72,6 +72,31 @@ assert trust_root_rotation_certificate(report)["valid"]
 
 运行 `python -m unittest projects.crypto_toybox.test_root_rotation`。合同 `trust-root-rotation-audit/v1` 会重放状态、提议、失败项和结论；一份根的授权、来自集合外的授权、重复声明或被篡改的结论都会被拒绝。报告刻意固定 `automatic_apply=False` 和 `cryptographic_verification="not_performed"`，让可重放策略不被包装成真正的根管理器。
 
+## 跨课实验：把追加日志产物接到轮换复核
+
+上一课的 `append_only_report` 不是一句“日志可用”的布尔值：它携带旧/新条目和追加前缀结论。下面将它作为真实上游产物传给根轮换复核，检查每个新增根标识是否至少作为 `key:<root-id>` 出现在未改写的新日志中。
+
+```python
+from projects.crypto_toybox.root_rotation import (
+    root_rotation_log_link_review,
+    trust_root_rotation_report,
+)
+from projects.crypto_toybox.transparency_log import append_only_report
+
+rotation = trust_root_rotation_report(state, proposal)
+log = append_only_report(
+    ["key:root-a", "key:root-b", "key:root-c"],
+    ["key:root-a", "key:root-b", "key:root-c", "key:root-d", "key:root-e"],
+)
+review = root_rotation_log_link_review(rotation, log)
+assert review["log_covers_added_roots"]
+assert review["decision"] == "manual_review_with_policy_and_append_only_log_evidence"
+assert review["automatic_apply"] is False
+assert review["identity_binding"] == "not_established_by_log_entries"
+```
+
+删掉 `key:root-e` 时，下游结论会变为 `manual_review_missing_added_root_log_entries`；篡改日志条目会因追加报告无法重放而被拒绝。反之，日志覆盖完整也不会把 `manual_review` 升级为自动应用：日志只传递“本教学列表未改写且含这些字符串”，不传递批准签名的真实性、密钥材料、根标识与人员/组织身份的绑定，或不同观察者是否看见同一日志。
+
 ## 正确性与工程边界
 
 在这个固定的教学合同里，$|A|\ge t_e$ 保证一份报告不会把“单个当前根同意”误记为多数/阈值同意；$A\subseteq R_e$ 排除让新根或陌生标识先授权自己的循环；$e'>e$ 排除旧纪元重放。证书会从报告声明的输入独立重算这些条件，因而不能只相信报告里写的 `accept_for_policy_only`。
@@ -99,7 +124,7 @@ assert trust_root_rotation_certificate(report)["valid"]
 
 1. 当前根为 $\{a,b,c\}$、阈值为 2；解释为什么仅有 $a$ 的批准不能将根换为 $\{x\}$。
 2. 推导为何检查 $|A|\ge t_e$ 而不是 $|A|\ge t'$；给出攻击者可利用后者的具体例子。
-3. **编码**：将示例的 `approval_claims` 改为一个旧根，或加入集合外标识，确认报告拒绝；再篡改报告 `decision`，确认重放证书失败。
+3. **编码**：将示例的 `approval_claims` 改为一个旧根，或加入集合外标识，确认报告拒绝；再把追加日志中一个新增根条目删除，观察跨课复核变为缺少日志证据；篡改日志后确认下游拒绝它。
 4. **开放**：为离线设备设计紧急根轮换流程，分别说明阈值成员失联、见证不可用和本地纪元损坏时谁可以作出什么决定。
 
 ## 练习答案提示

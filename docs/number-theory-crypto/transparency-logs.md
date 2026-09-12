@@ -44,6 +44,10 @@ assert report["trust_anchor_update_verified"] is False
 
 运行 `python -m unittest projects.crypto_toybox.test_transparency_log`。`append-only-merkle-log/v1` 会重建两棵树、成员证明和前缀结论；篡改条目或把旧列表中 `key:beta` 重写为另一个值都会被拒绝。
 
+## 将产物交给下游协议复核
+
+`append_only_report` 的下一步不是“日志因此可信”，而是将这份可重算的追加产物传给[信任根轮换](/number-theory-crypto/trust-root-rotation)。下游只检查候选新增根是否在未改写的新日志条目中出现，并仍固定人工复核、禁止自动应用。于是，改变 `new_entries` 会改变根轮换复核中的缺失条目；但 Merkle 前缀证明仍不能验证批准签名、密钥材料或身份绑定。
+
 ## 正确性与边界
 
 在 SHA-256 抗碰撞的假设下，成功的成员证明把给定条目绑定到给定根；前缀比较再证明这份**教学中的完整新列表**没有改写旧列表。奇数层重复最后叶只是一种明确的课堂树规则，真实生态的树形与一致性证明格式必须由对应协议规定。

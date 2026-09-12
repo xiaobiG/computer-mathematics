@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from projects.crypto_toybox.transparency_log import append_only_certificate
+
 
 CONTRACT = "trust-root-rotation-audit/v1"
 
@@ -120,4 +122,48 @@ def trust_root_rotation_certificate(report: object) -> dict[str, bool]:
         "report_replays": report_replays,
         "safety_boundary_preserved": safety_boundary_preserved,
         "valid": valid,
+    }
+
+
+def root_rotation_log_link_review(rotation_report: object, append_log_report: object) -> dict[str, object]:
+    """Carry an append-only log artifact into a root-rotation manual review.
+
+    The log proves only this teaching log's prefix preservation and entry
+    coverage.  It neither verifies approvals nor establishes that a root ID
+    names a trustworthy key, so no result from this function can apply a root
+    update automatically.
+    """
+    if not trust_root_rotation_certificate(rotation_report)["valid"]:
+        raise ValueError("rotation_report must be a valid root-rotation policy artifact")
+    if not append_only_certificate(append_log_report):
+        raise ValueError("append_log_report must be a valid append-only log artifact")
+    old_roots = set(rotation_report["trust_state"]["root_ids"])
+    new_roots = set(rotation_report["proposal"]["new_root_ids"])
+    added_roots = sorted(new_roots - old_roots)
+    new_entries = set(append_log_report["new_entries"])
+    expected_entries = [f"key:{root_id}" for root_id in added_roots]
+    missing_entries = [entry for entry in expected_entries if entry not in new_entries]
+    log_covers_added_roots = not missing_entries
+    policy_decision = rotation_report["decision"]
+    if policy_decision == "reject":
+        decision = "reject"
+    elif policy_decision == "accept_for_policy_only" and log_covers_added_roots:
+        decision = "manual_review_with_policy_and_append_only_log_evidence"
+    elif log_covers_added_roots:
+        decision = "manual_review_with_append_only_log_evidence_and_unresolved_policy"
+    else:
+        decision = "manual_review_missing_added_root_log_entries"
+    return {
+        "contract": "root-rotation-log-link-review/v1",
+        "rotation_report": rotation_report,
+        "append_log_report": append_log_report,
+        "added_root_ids": added_roots,
+        "expected_log_entries": expected_entries,
+        "missing_log_entries": missing_entries,
+        "log_covers_added_roots": log_covers_added_roots,
+        "policy_decision": policy_decision,
+        "decision": decision,
+        "automatic_apply": False,
+        "cryptographic_verification": "not_performed",
+        "identity_binding": "not_established_by_log_entries",
     }

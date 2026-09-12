@@ -275,3 +275,9 @@ v5.0–v5.2 已完成三种不同的读者构造：最小二乘把观察翻译�
 [抽样误差、置信区间与覆盖率](/probability-ml/confidence-intervals-sampling)原先正确说明区间、业务最小可接受效果和上线决策不可混同，却未让读者将同一份区间产物带到下一步。`two_sample_mean_interval` 现在从两组有限观测产生明确的 $\bar x_T-\bar x_C$、标准误和正态近似区间；`practical_effect_review` 接收这份完整产物与上下文声明的最小效应，并重新计算上游结果后才输出“整体高于、整体低于或穿过门槛”。
 
 这满足 v5.3 的实际数据流：改变上游观察会改变下游区间，改变下游最小效应会改变可解释的证据状态。任何状态均为 `automatic_action: none`，并把随机分配/抽样、独立分析单位、近似质量、阈值正当性、伤害成本与子群体影响保留给人工复核。该模块不是 A/B 决策器、因果识别器、顺序检验、功效计算器或生产统计库。
+
+### v5.4-a：透明日志追加产物到根轮换复核
+
+[透明日志的 Merkle 证明](/number-theory-crypto/transparency-logs)曾能重放一份追加列表，[信任根轮换](/number-theory-crypto/trust-root-rotation)则只接收 `witness_evidence_available` 布尔值，两门课之间没有实际证据流。`root_rotation_log_link_review` 现在接收两份已验证的上游产物：根轮换策略报告和追加日志报告；它从旧/新根集合导出新增根，检查 `key:<root-id>` 是否真正覆盖在未改写的新日志条目中。
+
+这条连接会改变下游结论：删掉新增根条目得到“缺少日志条目的人工复核”，覆盖完整得到“带策略与追加日志证据的人工复核”，篡改日志则不能进入下游。无论哪一种都固定 `automatic_apply=False`、`cryptographic_verification="not_performed"` 和无身份绑定：日志追加不是批准签名、密钥身份、独立见证或真实根管理系统。

@@ -33,8 +33,8 @@
 - [数字签名](/number-theory-crypto/digital-signatures)：RSA 验签等式、公开验证、HMAC/加密的边界与裸签名风险；
 - [公钥身份与密钥生命周期](/number-theory-crypto/public-key-lifecycle)：身份绑定、用途、轮换、撤销与签名上下文；
 - [已签名更新为何仍可能回滚](/number-theory-crypto/signed-release-anti-rollback)：受保护版本状态、撤销信息可用性与策略边界；
-- [透明日志的 Merkle 证明](/number-theory-crypto/transparency-logs)：成员证明、追加审计与信任边界；
-- [信任根轮换与阈值监督](/number-theory-crypto/trust-root-rotation)：旧根阈值、纪元、监督证据与治理边界；
+- [透明日志的 Merkle 证明](/number-theory-crypto/transparency-logs)：成员证明、追加审计，并将日志产物传给下游治理复核；
+- [信任根轮换与阈值监督](/number-theory-crypto/trust-root-rotation)：旧根阈值、纪元、追加日志覆盖与不可自动化的治理边界；
 - [Diffie–Hellman](/number-theory-crypto/diffie-hellman)：共享秘密的推导、离散对数假设与中间人攻击；
 - [哈希与密码存储](/number-theory-crypto/hashing-passwords)：KDF、盐、成本参数与在线/离线猜测边界；
 - [消息认证码：HMAC](/number-theory-crypto/message-authentication-codes)：带密钥完整性、篡改检测与重放边界；
