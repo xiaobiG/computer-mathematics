@@ -23,6 +23,7 @@ description: 用图搜索、拓扑排序、最大流轨迹和 3-SAT 验证器连
 - [集合、关系、等价类与偏序](/discrete-math/sets-relations-orders)：用性质报告和等价类划分验证有限关系。
 - [Dijkstra 交互轨迹实验](/discrete-math/dijkstra)：在浏览器中逐步查看最小堆、确定集合、松弛与过期条目，再用堆的确定顺序与松弛轨迹验证非负最短路。
 - [增量最短路](/discrete-math/incremental-shortest-path)：限定单条非负边插入，从被改善端点局部传播并逐点对照完整重算。
+- [最短路边删除](/discrete-math/deletion-shortest-path)：限定单条非负边删除，重放新图并审计旧父路径失效与替代路径；它明确使用完整重算，不冒充动态加速算法。
 - [Bellman–Ford](/discrete-math/bellman-ford)：用冻结轮次的松弛轨迹验证负边正确性，并报告可达负环。
 - [最大流最小割](/discrete-math/max-flow-min-cut)：增广路和残量可达集如何构成最优证书。
 - [动态规划](/discrete-math/dynamic-programming-dag)：前缀 DAG 的最长路、回溯方案与小规模穷举对拍。

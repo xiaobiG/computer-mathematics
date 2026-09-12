@@ -40,6 +40,7 @@
 - [Floyd–Warshall](/discrete-math/floyd-warshall)：全源动态规划、负边与负环边界；
 - [最短路算法选择：同图对照](/discrete-math/shortest-path-algorithm-selection)：在同一规模图上检查四种算法的前提、路径与拒绝边界；
 - [增量最短路：一条边插入后，哪些距离真的需要重算](/discrete-math/incremental-shortest-path)：在单边非负插入合同下局部修复距离，并逐点核对完整重算；
+- [最短路边删除：旧路径失效后为何不能只做下降松弛](/discrete-math/deletion-shortest-path)：在单边非负删除合同下，用完整重算审计替代路径与距离上升边界；
 - [最大流最小割](/discrete-math/max-flow-min-cut)：残量边、增广路与可审计的最优证书；
 - [P、NP 与多项式归约](/discrete-math/p-np-reductions)：候选解验证、指数搜索与归约方向；
 - [离散数学深度版路线](/discrete-math/rewrite-plan)：后续文章、项目和验收标准。
