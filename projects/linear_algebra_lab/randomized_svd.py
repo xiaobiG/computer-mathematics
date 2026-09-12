@@ -4,8 +4,13 @@ from dataclasses import dataclass
 from math import isclose, sqrt
 
 from projects.linear_algebra_lab.main import rank_k_approximation
-from projects.linear_algebra_lab.randomized_range import _matmul, _transpose
-from projects.linear_algebra_lab.randomized_range import randomized_range_report
+from projects.linear_algebra_lab.randomized_range import (
+    RandomizedRangeReport,
+    _matmul,
+    _transpose,
+    randomized_range_certificate,
+    randomized_range_report,
+)
 
 
 @dataclass(frozen=True)
@@ -17,6 +22,7 @@ class RandomizedSVDReport:
     singular_values: tuple[float, ...]
     approximation: tuple[tuple[float, ...], ...]
     frobenius_error: float
+    source_range_report: RandomizedRangeReport
 
 
 def randomized_svd_report(matrix, rank, oversampling=2, power_iterations=0, seed=0):
@@ -27,6 +33,24 @@ def randomized_svd_report(matrix, rank, oversampling=2, power_iterations=0, seed
     replay it and does not claim a high-probability error bound.
     """
     range_report = randomized_range_report(matrix, rank, oversampling, power_iterations, seed)
+    return randomized_svd_from_range_report(matrix, range_report, rank)
+
+
+def randomized_svd_from_range_report(matrix, range_report, rank):
+    """Factor a reader-supplied, replayable randomized range artifact.
+
+    The range report is not a decorative seed record: its verified orthogonal
+    basis is the actual subspace on which the smaller SVD is computed.  A
+    caller can deliberately retain fewer terms than the range finder sampled,
+    but cannot silently swap its source sketch or its oversampling policy.
+    """
+    if not isinstance(range_report, RandomizedRangeReport):
+        raise ValueError("range_report must be a randomized range artifact")
+    if not randomized_range_certificate(matrix, range_report, oversampling=range_report.oversampling):
+        raise ValueError("range_report does not replay for this matrix")
+    if (not isinstance(rank, int) or isinstance(rank, bool)
+            or not 0 < rank <= min(range_report.basis_columns, len(matrix[0]))):
+        raise ValueError("rank must fit the verified sampled basis and matrix columns")
     q = [list(column) for column in _transpose(range_report.basis)]
     b = _matmul(_transpose(q), matrix)
     components, b_approximation = rank_k_approximation(b, rank)
@@ -35,13 +59,14 @@ def randomized_svd_report(matrix, rank, oversampling=2, power_iterations=0, seed
     error = sqrt(sum((float(matrix[row][column]) - approximation[row][column]) ** 2
                      for row in range(len(matrix)) for column in range(len(matrix[0]))))
     return RandomizedSVDReport(
-        seed=seed,
+        seed=range_report.seed,
         rank=rank,
-        oversampling=oversampling,
-        power_iterations=power_iterations,
+        oversampling=range_report.oversampling,
+        power_iterations=range_report.power_iterations,
         singular_values=tuple(float(value) for value in singular_values),
         approximation=tuple(tuple(float(value) for value in row) for row in approximation),
         frobenius_error=error,
+        source_range_report=range_report,
     )
 
 
@@ -50,10 +75,17 @@ def randomized_svd_certificate(matrix, report, tolerance=1e-10):
     if not isinstance(report, RandomizedSVDReport) or tolerance <= 0:
         return False
     try:
-        expected = randomized_svd_report(matrix, report.rank, report.oversampling, report.power_iterations, report.seed)
+        if not randomized_range_certificate(matrix, report.source_range_report,
+                                            oversampling=report.source_range_report.oversampling):
+            return False
+        expected = randomized_svd_from_range_report(matrix, report.source_range_report, report.rank)
     except ValueError:
         return False
-    if report.singular_values != expected.singular_values or not isclose(report.frobenius_error, expected.frobenius_error, rel_tol=tolerance, abs_tol=tolerance):
+    if (report.seed != report.source_range_report.seed
+            or report.oversampling != report.source_range_report.oversampling
+            or report.power_iterations != report.source_range_report.power_iterations
+            or report.singular_values != expected.singular_values
+            or not isclose(report.frobenius_error, expected.frobenius_error, rel_tol=tolerance, abs_tol=tolerance)):
         return False
     # ``zip`` alone silently accepts a truncated or overlong approximation.
     # Shape is part of the report claim: an m-by-n reconstruction cannot be

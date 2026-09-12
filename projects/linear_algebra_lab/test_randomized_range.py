@@ -8,9 +8,11 @@ class RandomizedRangeTests(unittest.TestCase):
     def test_exactly_recovers_a_rank_one_column_space_and_replays(self):
         matrix = [[1.0, 2.0], [2.0, 4.0], [3.0, 6.0]]
         report = randomized_range_report(matrix, rank=1, oversampling=1, seed=17)
+        self.assertEqual(report.oversampling, 1)
         self.assertEqual(report.sample_columns, 2)
         self.assertEqual(report.basis_columns, 1)
         self.assertLess(report.frobenius_error, 1e-10)
+        self.assertTrue(randomized_range_certificate(matrix, report))
         self.assertTrue(randomized_range_certificate(matrix, report, oversampling=1))
         self.assertFalse(randomized_range_certificate(matrix, replace(report, frobenius_error=1.0), oversampling=1))
         altered_basis = ((report.basis[0][0] + 1.0, *report.basis[0][1:]),)

@@ -3,8 +3,8 @@ title: 随机 SVD：从随机子空间到低秩分解
 description: 在随机范围发现后分解小矩阵 B=Q^TA，重构截断近似并用固定种子与误差证书审计结果。
 courseLevel: "3（随机化线性代数与可复现实验）"
 prerequisites: "SVD、QR、随机范围发现、Frobenius 范数"
-estimatedMinutes: 60
-experiment: "固定种子构造随机范围、分解小矩阵并重放截断重构误差"
+estimatedMinutes: 70
+experiment: "消费已验证的随机范围报告，分解同一小矩阵并重放截断重构误差"
 ---
 
 # 随机 SVD：从随机子空间到低秩分解
@@ -40,14 +40,17 @@ $$A\approx QQ^TA=Q\widetilde U\Sigma V^T=U\Sigma V^T.$$
 ## 可运行实验
 
 ```python
+from projects.linear_algebra_lab.randomized_range import randomized_range_report
 from projects.linear_algebra_lab.randomized_svd import (
     randomized_svd_certificate,
-    randomized_svd_report,
+    randomized_svd_from_range_report,
 )
 
 matrix = [[5.0, 0.0], [0.0, 1.0]]
-report = randomized_svd_report(matrix, rank=1, oversampling=1, seed=3)
+range_report = randomized_range_report(matrix, rank=1, oversampling=1, seed=3)
+report = randomized_svd_from_range_report(matrix, range_report, rank=1)
 print(report.singular_values, report.frobenius_error)
+assert report.source_range_report == range_report
 assert randomized_svd_certificate(matrix, report)
 ```
 
@@ -62,7 +65,7 @@ python -m unittest \
 
 秩一矩阵在草图捕获其列空间时可近似精确重构；测试验证这一点。对对角矩阵 $\operatorname{diag}(5,1)$ 只保留一项时，误差应为正：低秩截断不会凭随机性消灭被舍弃方向。
 
-固定种子只能让同一草图可重放。报告证书不仅比较误差和每个数值，也先比较完整近似矩阵的行列数；否则只用 `zip` 逐行比较会让少一行或少一列的前缀静默通过。不同种子、谱间隙、过采样和浮点正交化都会影响实际误差；高概率界需要额外分布与谱假设，本课不把它写成确定性承诺。
+固定种子只能让同一草图可重放。报告证书不仅比较误差和每个数值，也验证 `source_range_report` 的矩阵、seed、过采样、幂迭代和正交基，再检查完整近似矩阵的行列数；否则只用 `zip` 逐行比较会让少一行或少一列的前缀静默通过。不同种子、谱间隙、过采样和浮点正交化都会影响实际误差；高概率界需要额外分布与谱假设，本课不把它写成确定性承诺。
 
 ## 失败案例与工程边界
 

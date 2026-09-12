@@ -22,7 +22,7 @@ description: 用可测试的教学实现串起矩阵计算、消元、投影、�
 - [低秩图像压缩](/linear-algebra/low-rank-image-compression)：以逐次秩一近似比较保留秩与重构误差。
 - [图像误差指标](/linear-algebra/image-error-metrics)：将同一重构残差转换为 MSE、RMSE、PSNR 与最大误差。
 - [结构相似度 SSIM](/linear-algebra/structural-similarity)：用均值、方差和协方差审计全局结构相似性。
-- [随机范围发现](/linear-algebra/randomized-range-finder)：用带种子的随机草图构造可重放的 $QQ^TA$ 投影。
+- [随机范围发现](/linear-algebra/randomized-range-finder)：用带种子的随机草图构造可重放的 $QQ^TA$ 投影，并将已验证的范围产物交给随机 SVD。
 - [低秩推荐](/linear-algebra/low-rank-recommendation)：只对观测评分做交替最小二乘，并分离训练误差与缺失预测。
 - [向量与点积](/linear-algebra/vectors-dot-product)：对同一候选集比较余弦相似度与欧氏距离排序，先声明任务是否应忽略尺度。
 
@@ -95,13 +95,17 @@ assert report.frobenius_error < 1e-10
 ## 随机 SVD 实验
 
 ```python
-from projects.linear_algebra_lab.randomized_svd import randomized_svd_report
+from projects.linear_algebra_lab.randomized_range import randomized_range_report
+from projects.linear_algebra_lab.randomized_svd import randomized_svd_from_range_report
 
-report = randomized_svd_report([[5.0, 0.0], [0.0, 1.0]], rank=1, seed=3)
+matrix = [[5.0, 0.0], [0.0, 1.0]]
+range_report = randomized_range_report(matrix, rank=1, oversampling=1, seed=3)
+report = randomized_svd_from_range_report(matrix, range_report, rank=1)
+assert report.source_range_report == range_report
 print(report.singular_values, report.frobenius_error)
 ```
 
-它在随机子空间内分解小矩阵 $Q^TA$，并把截断重构误差与种子一同保存；该误差不等同于精确秩一 SVD 的最优误差。
+它在上游报告给定的随机子空间内分解小矩阵 $Q^TA$，并把截断重构误差与实际来源一同保存；该误差不等同于精确秩一 SVD 的最优误差。
 
 ## 运行
 
@@ -117,7 +121,7 @@ python -m unittest projects.linear_algebra_lab.test_randomized_svd
 python -m unittest projects.linear_algebra_lab.test_recommendation
 ```
 
-测试覆盖矩阵形状错误、非交换变换、列独立性与基坐标重构、选主元、奇异系统、正规方程与 QR 的最小二乘一致性及 $A^Tr$ 证书、双数 JVP 与梯度点积、二维 PCA 的中心化/正交/舍弃方差证书、正交投影、幂迭代残差与失败边界、秩一矩阵重建、精确谱尾误差、低秩参数节省、更高保留秩不增加小例重构误差、压缩—检索联合报告及其篡改拒绝、同形图像的余弦检索、MSE/RMSE/PSNR 报告与篡改拒绝、固定种子的随机范围发现及其轨迹篡改拒绝，以及 ALS 观测误差与轨迹篡改/冷启动边界。完整项目测试仍可通过 `npm run projects:test` 运行。
+测试覆盖矩阵形状错误、非交换变换、列独立性与基坐标重构、选主元、奇异系统、正规方程与 QR 的最小二乘一致性及 $A^Tr$ 证书、双数 JVP 与梯度点积、二维 PCA 的中心化/正交/舍弃方差证书、正交投影、幂迭代残差与失败边界、秩一矩阵重建、精确谱尾误差、低秩参数节省、更高保留秩不增加小例重构误差、压缩—检索联合报告及其篡改拒绝、同形图像的余弦检索、MSE/RMSE/PSNR 报告与篡改拒绝、固定种子的随机范围发现及其轨迹篡改拒绝、随机 SVD 对来源范围产物的重放与篡改拒绝，以及 ALS 观测误差与轨迹篡改/冷启动边界。完整项目测试仍可通过 `npm run projects:test` 运行。
 
 ## 挑战
 

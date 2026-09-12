@@ -1,10 +1,27 @@
 import unittest
 from dataclasses import replace
 
-from projects.linear_algebra_lab.randomized_svd import randomized_svd_certificate, randomized_svd_report
+from projects.linear_algebra_lab.randomized_range import randomized_range_report
+from projects.linear_algebra_lab.randomized_svd import (
+    randomized_svd_certificate,
+    randomized_svd_from_range_report,
+    randomized_svd_report,
+)
 
 
 class RandomizedSVDTests(unittest.TestCase):
+    def test_consumes_the_reader_supplied_range_artifact(self):
+        matrix = [[5., 0.], [0., 1.]]
+        range_report = randomized_range_report(matrix, rank=1, oversampling=1, seed=3)
+        report = randomized_svd_from_range_report(matrix, range_report, rank=1)
+        self.assertIs(report.source_range_report, range_report)
+        self.assertTrue(randomized_svd_certificate(matrix, report))
+        self.assertFalse(randomized_svd_certificate(
+            matrix, replace(report, source_range_report=replace(range_report, oversampling=0))
+        ))
+        with self.assertRaises(ValueError):
+            randomized_svd_from_range_report([[5., 0.], [0., 2.]], range_report, rank=1)
+
     def test_rank_one_matrix_is_recovered_and_replayed(self):
         matrix = [[1., 2.], [2., 4.], [3., 6.]]
         report = randomized_svd_report(matrix, rank=1, oversampling=1, seed=17)

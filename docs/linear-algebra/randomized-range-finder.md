@@ -3,8 +3,8 @@ title: 随机范围发现：大矩阵如何近似低秩结构
 description: 从随机测试矩阵推导 QQ^T A 近似，记录种子与正交基，并用可重放实验观察谱间隙、幂迭代和误差边界。
 courseLevel: "3（随机化线性代数、性能权衡与可复现实验）"
 prerequisites: "矩阵乘法、正交投影、QR、SVD 与随机数种子"
-estimatedMinutes: 70
-experiment: "固定随机种子运行范围发现，重放 QQ^T A 报告并比较幂迭代前后的实际残差"
+estimatedMinutes: 80
+experiment: "固定随机种子运行范围发现，并将同一范围报告传给随机 SVD 重放实际残差"
 ---
 
 # 随机范围发现：大矩阵如何近似低秩结构
@@ -19,7 +19,7 @@ experiment: "固定随机种子运行范围发现，重放 QQ^T A 报告并比�
 
 ## 直觉与严格定义
 
-取目标秩 $k$、过采样 $p$，令 $ell=k+p$。生成固定种子下的随机测试矩阵
+取目标秩 $k$、过采样 $p$，令 $\ell=k+p$。生成固定种子下的随机测试矩阵
 
 $$\Omega\in\mathbb R^{n\times\ell},\qquad Y=A\Omega.$$
 
@@ -27,7 +27,7 @@ $$\Omega\in\mathbb R^{n\times\ell},\qquad Y=A\Omega.$$
 
 $$\hat A=QQ^TA$$
 
-近似原矩阵。这里 $Q$ 的列数至多 $ell$，故 $\hat A$ 的秩至多 $ell$。范围发现本身并不产出奇异向量；后续若要随机 SVD，应再对小矩阵 $B=Q^TA$ 做分解。
+近似原矩阵。这里 $Q$ 的列数至多 $\ell$，故 $\hat A$ 的秩至多 $\ell$。范围发现本身并不产出奇异向量；后续若要随机 SVD，应再对小矩阵 $B=Q^TA$ 做分解。
 
 ## 分步推导：为何 $QQ^TA$ 是正确的投影形式
 
@@ -41,7 +41,7 @@ $$P^T=P,\qquad P^2=QQ^TQQ^T=QQ^T=P.$$
 
 $$Y=(AA^T)^qA\Omega.$$
 
-在奇异向量基中，第 $i$ 个方向被放大为 $sigma_i^{2q+1}$，主方向相对更显著；代价是每次多读矩阵两遍，也可能放大浮点尺度差异。
+在奇异向量基中，第 $i$ 个方向被放大为 $\sigma_i^{2q+1}$，主方向相对更显著；代价是每次多读矩阵两遍，也可能放大浮点尺度差异。
 
 ## 算法实现：固定种子，重放同一份草图
 
@@ -59,13 +59,26 @@ assert report.frobenius_error < 1e-10
 assert randomized_range_certificate(matrix, report, oversampling=1)
 ```
 
-运行 `python -m unittest projects.linear_algebra_lab.test_randomized_range`。实现用局部 `Random(seed)` 产生测试矩阵，保存种子、请求秩、实际正交基列数、幂迭代次数、基、近似与 Frobenius 残差。证书从同一输入和种子重建草图，拒绝任何被改过的基、近似或误差字段；它验证可复现的实现轨迹，不会把一次随机样本当作普适的质量证明。
+运行 `python -m unittest projects.linear_algebra_lab.test_randomized_range`。实现用局部 `Random(seed)` 产生测试矩阵，保存种子、请求秩、过采样、实际正交基列数、幂迭代次数、基、近似与 Frobenius 残差。证书从同一输入和种子重建草图，拒绝任何被改过的基、近似、过采样或误差字段；它验证可复现的实现轨迹，不会把一次随机样本当作普适的质量证明。
+
+## 跨课实验：让随机 SVD 消费这份范围报告
+
+范围报告不再只是“我曾经用过某个 seed”的说明。把同一份 `report` 交给随机 SVD 后，下游会验证它确实可从该矩阵、seed、过采样和幂迭代重放，再以报告里的 $Q$ 构造小矩阵 $B=Q^TA$。
+
+```python
+from projects.linear_algebra_lab.randomized_svd import randomized_svd_from_range_report
+
+svd_report = randomized_svd_from_range_report(matrix, report, rank=1)
+assert svd_report.source_range_report == report
+```
+
+因此，改动上游草图的 basis、过采样或矩阵会使下游拒绝，而不是悄悄重新采样一个“看起来更好”的子空间。下游可以把保留秩降到小于已采样基的维数，却不能让截断秩超过这个已验证子空间。它仍不保证该子空间在所有随机草图中质量最好。
 
 若 $\ell=k+p$，每次矩阵乘法约为 $O(mn\ell)$；做 $q$ 次幂迭代后约为 $O((2q+1)mn\ell)$，正交化约为 $O(m\ell^2)$。真正适合大规模和稀疏矩阵的实现应使用块乘法、稳定 QR、流式输入和成熟库，而不是本课的密集 Python 列表。
 
 ## 正确性与复杂度
 
-上述投影恒等式证明输出位于 $\operatorname{col}(Q)$，并且对**这个已采样的子空间**是最小二乘最优。秩上界来自 $QQ^TA$ 经过至多 $ell$ 个正交方向。测试用秩一矩阵验证其随机草图仍落在同一列空间，重构误差接近零；同时用固定种子比较幂迭代前后实测残差，检查并非只宣称“随机通常有效”。
+上述投影恒等式证明输出位于 $\operatorname{col}(Q)$，并且对**这个已采样的子空间**是最小二乘最优。秩上界来自 $QQ^TA$ 经过至多 $\ell$ 个正交方向。测试用秩一矩阵验证其随机草图仍落在同一列空间，重构误差接近零；同时用固定种子比较幂迭代前后实测残差，检查并非只宣称“随机通常有效”。
 
 它不证明在任意矩阵、任意种子下误差接近最佳秩 $k$ 误差。高概率理论还依赖随机分布、过采样、谱性质和精确/稳定正交化等前提；完整结论应带概率界，而不是省略成确定性保证。
 
@@ -87,7 +100,7 @@ assert randomized_range_certificate(matrix, report, oversampling=1)
 ## 练习
 
 1. **基础题**：验证 $P=QQ^T$ 的对称性和幂等性，并说明其像空间是什么。
-2. **推导题**：在 $A=U\Sigma V^T$ 中展开 $(AA^T)^qA\Omega$，推导 $sigma_i^{2q+1}$ 的来源。
+2. **推导题**：在 $A=U\Sigma V^T$ 中展开 $(AA^T)^qA\Omega$，推导 $\sigma_i^{2q+1}$ 的来源。
 3. **编码题**：比较同一矩阵在多个 seed、不同 oversampling 下的实际残差；保存最差种子为回归测试。
 4. **开放题**：为稀疏推荐矩阵设计一份随机 SVD 实验报告，包含数据切分、随机分布、种子、矩阵遍历数、误差、内存和与精确/迭代基线的比较。
 

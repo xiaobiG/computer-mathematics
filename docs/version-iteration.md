@@ -977,3 +977,13 @@ v2.7–v2.9 的共同增量不是新增术语，而是把“可计算的输出�
 | 验证 | `python -m unittest projects.crypto_toybox.test_root_rotation`、`npm run content:check`；发布前运行全项目测试、生产构建与 GitHub Pages 工作流。 |
 | 差异 | 原根轮换只看到见证可用布尔值；现在接受可重放追加日志并从根集合导出应出现的条目。新增根条目缺失时下游报告精确列出缺项，日志被改写时不能进入复核；覆盖完整仍只给人工复核。 |
 | 下一决策 | 这不是日志一致性协议、签名验证、身份绑定、独立见证或根管理器；下一轮应审计不同专题是否还存在上游产物在课程边界被退化成布尔值的真实断点。 |
+
+### v5.5-a：范围发现产物到随机 SVD（已完成）
+
+| 字段 | 记录 |
+| --- | --- |
+| 目标 | 读者能把已生成且可重放的随机范围报告直接传给随机 SVD，并在下游确认实际分解的子空间来源。 |
+| 范围 | 扩展[随机范围发现](/linear-algebra/randomized-range-finder)、[随机 SVD](/linear-algebra/randomized-svd)、线性代数实验室、成熟度看板与路线图；新增 `randomized_svd_from_range_report` 和来源篡改测试。 |
+| 验证 | `python -m unittest projects.linear_algebra_lab.test_randomized_range projects.linear_algebra_lab.test_randomized_svd`、`npm run content:check`；发布前运行全项目测试、生产构建与 GitHub Pages 工作流。 |
+| 差异 | 原随机 SVD 内部重新运行范围发现，即使读者已有上游报告也无法证明下游使用了同一 $Q$；现在下游仅接受能对同一矩阵、seed、过采样和幂迭代重放的来源，保留 `source_range_report`，篡改来源或换矩阵都会被拒绝。 |
+| 下一决策 | 这不是随机 SVD 的高概率误差界、稳定 QR、稀疏/分布式实现或自动调参器；下一轮应继续审计是否仍有课程把实际上游产物退化成文字、布尔值或隐式重算。 |

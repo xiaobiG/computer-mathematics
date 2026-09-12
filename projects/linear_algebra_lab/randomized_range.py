@@ -9,6 +9,7 @@ from random import Random
 class RandomizedRangeReport:
     seed: int
     requested_rank: int
+    oversampling: int
     sample_columns: int
     basis_columns: int
     power_iterations: int
@@ -97,6 +98,7 @@ def randomized_range_report(matrix, rank, oversampling=2, power_iterations=0, se
     return RandomizedRangeReport(
         seed=seed,
         requested_rank=rank,
+        oversampling=oversampling,
         sample_columns=sample_columns,
         basis_columns=len(basis),
         power_iterations=power_iterations,
@@ -106,12 +108,14 @@ def randomized_range_report(matrix, rank, oversampling=2, power_iterations=0, se
     )
 
 
-def randomized_range_certificate(matrix, report, oversampling=2, tolerance=1e-12):
+def randomized_range_certificate(matrix, report, oversampling=None, tolerance=1e-12):
     """Replay the seeded sketch and reject altered report fields."""
     if not isinstance(report, RandomizedRangeReport):
         return False
     if not isinstance(tolerance, (int, float)) or isinstance(tolerance, bool) or tolerance < 0:
         return False
+    if oversampling is None:
+        oversampling = report.oversampling
     try:
         expected = randomized_range_report(
             matrix,
@@ -122,8 +126,8 @@ def randomized_range_certificate(matrix, report, oversampling=2, tolerance=1e-12
         )
     except ValueError:
         return False
-    if (report.seed, report.requested_rank, report.sample_columns, report.basis_columns, report.power_iterations) != (
-        expected.seed, expected.requested_rank, expected.sample_columns, expected.basis_columns, expected.power_iterations):
+    if (report.seed, report.requested_rank, report.oversampling, report.sample_columns, report.basis_columns, report.power_iterations) != (
+        expected.seed, expected.requested_rank, expected.oversampling, expected.sample_columns, expected.basis_columns, expected.power_iterations):
         return False
     if len(report.basis) != len(expected.basis) or len(report.approximation) != len(expected.approximation):
         return False
