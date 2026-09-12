@@ -18,9 +18,7 @@ experiment: "time-stratified-cluster-calibration-bootstrap/v1：层内整簇重�
 
 ## 从一个计算问题开始
 
-一周内的模型请求既有日间/夜间的系统性变化，也有同一设备连续上报的相关记录。逐条 bootstrap 会同时打碎两种结构；只按时间块抽样又会拆开设备；只按设备抽样则可能把早期与晚期流量混合。若目标是描述固定窗口的校准差异，我们至少要让重采样单位同时说明**它属于哪个时间层**与**它保留哪个完整簇**。
-
-本课建立一个刻意狭窄的教学合同：时间层在分析前冻结、每层含至少两个完整簇、同一簇不跨层出现。它让读者看见怎样保留两种结构；它不是为真实长时序、重复用户或因果评估提供万能 bootstrap。
+日夜变化与同一设备连续上报同时存在时，逐条抽样会打碎两种结构，时间块会拆设备，按设备又会混合早晚流量。故本课冻结时间层、层内完整簇，并要求簇不跨层；它不是长时序、重复用户或因果设计的万能 bootstrap。
 
 ## 定义：先冻结两个轴，再抽样
 
@@ -32,11 +30,11 @@ $$S_t=(C_{t,1},\ldots,C_{t,G_t}).$$
 
 $$C_{t,I_{t,1}}\Vert\cdots\Vert C_{t,I_{t,G_t}}.$$
 
-因此早期层仍是早期层，晚期层仍是晚期层；某个设备簇被抽到时，它的概率、标签和全部观测仍一起出现。对参考/当前窗口各自重采样、重算 ECE，再保存
+早晚层不会互换，被抽到的簇保留全部观测。对参考/当前窗口各自重采样、重算 ECE，再保存
 
 $$\Delta^*=\mathrm{ECE}_{current}^*-\mathrm{ECE}_{reference}^*$$
 
-的固定百分位区间。这里的“分层”不是让时间趋势消失，而是拒绝让重采样把已冻结的时间位置互换。
+的固定百分位区间；分层不消除趋势，只保留冻结位置。
 
 ## 算法实验：逐层重抽完整簇
 
@@ -68,41 +66,67 @@ assert report["bootstrap_policy"]["resampling_unit"] == "predefined_cluster_with
 assert time_stratified_cluster_calibration_bootstrap_certificate("old", old, "new", new, report)
 ```
 
-运行 `python -m unittest projects.naive_bayes_spam.test_stratified_cluster_calibration_bootstrap`。报告保存每层的 ID、层内簇 ID 与观测数、分箱策略、重复次数、种子和区间。证书从原始层/簇输入完整重建报告，因此修改某层的簇大小、策略、种子或区间都会失败。
+运行 `python -m unittest projects.naive_bayes_spam.test_stratified_cluster_calibration_bootstrap`。报告绑定层/簇形状、策略、种子和区间；证书从原始输入完整重建，篡改任一项会失败。
 
 算法每次重复扫描所有被抽到的观测来计算两份 ECE。若总观测数为 $n$、重复次数为 $B$，成本约为 $O(Bn)$；更多 repeats 仅减少有限 Monte Carlo 的随机波动，不能增加时间层或独立簇的数量。
 
 ## 正确性：报告究竟证明什么
 
-固定输入与种子后，伪随机序列决定每一层内的簇索引。实现按原时间层顺序处理，且每个层恰抽与原层簇数相同的次数；所以它不会将 `early` 的簇放进 `late`，也不会只复制簇中的一条记录。证书并不相信报告声称的大小或端点，而是重新规范化输入、重新采样、重新计算 ECE 差并逐字段比较。
+固定输入与种子决定层内簇索引；实现保留层顺序、原层簇数和整簇观测。证书重新规范化、采样并计算 ECE 差，而不相信报告端点。
 
-这种可重放性证明的是：**这份报告忠实执行了声明的有限重采样程序**。它不证明以下统计假设：
-
-- 每个时间层内的簇可交换；
-- 层边界足够表达趋势或季节性；
-- 簇数量足以支持稳定区间；
-- 参考与当前窗口具有可比的人群或采样机制；
-- ECE 差异由某次模型变更造成。
-
-所以 `automatic_action` 固定为 `none`。区间是人工复核的证据，不是自动重训、调阈值或上线的授权。
+这种可重放性只证明报告执行了声明的有限程序；它不保证层内可交换、层边界足够表达趋势、簇数足够、两个窗口可比，或差异由模型变更造成。`automatic_action` 固定为 `none`：区间是人工复核证据，不是自动重训、调阈值或上线授权。
 
 ## 失败案例与工程边界
 
 **同一用户跨层。** 若 `u-17` 既在早期又在晚期出现，分别在两层抽它会破坏同一用户的纵向关联。本合同直接拒绝跨层重复的 `cluster_id`；这不是数据清洗建议，而是提醒你转向配对簇、层级模型或领域统计审查。
 
+## 跨层重复簇：整条轨迹配对重抽
+
+若每个用户在每个冻结层同时有参考/当前评估，重采样单位应是**完整用户轨迹**，而非某层中的用户片段。配对报告保存每层 ECE 差及首末层差异的趋势量：
+
+```python
+from projects.naive_bayes_spam.paired_longitudinal_calibration_bootstrap import (
+    paired_longitudinal_cluster_calibration_bootstrap_certificate,
+    paired_longitudinal_cluster_calibration_bootstrap_report,
+)
+from projects.naive_bayes_spam.labeled_window_monitoring import LABELED_WINDOW_CONTRACT_VERSION
+
+def window(probabilities, labels):
+    return {"contract_version": LABELED_WINDOW_CONTRACT_VERSION,
+            "probabilities": probabilities, "labels": labels}
+
+trajectories = [
+    {"cluster_id": "u-1", "time_strata": [
+        {"time_stratum_id": "early", "reference_window": window([.5, .5], [1, 0]), "current_window": window([.8, .8], [1, 0])},
+        {"time_stratum_id": "late", "reference_window": window([.4, .4], [1, 0]), "current_window": window([.95, .95], [1, 0])},
+    ]},
+    {"cluster_id": "u-2", "time_strata": [
+        {"time_stratum_id": "early", "reference_window": window([.5, .5], [0, 1]), "current_window": window([.8, .8], [0, 1])},
+        {"time_stratum_id": "late", "reference_window": window([.4, .4], [0, 1]), "current_window": window([.95, .95], [0, 1])},
+    ]},
+]
+report = paired_longitudinal_cluster_calibration_bootstrap_report(
+    "old", "new", trajectories, minimum_window_size=4, repeats=20, seed=7,
+)
+assert report["bootstrap_policy"]["resampling_unit"] == "whole_paired_cluster_trajectory_across_frozen_time_strata"
+assert paired_longitudinal_cluster_calibration_bootstrap_certificate("old", "new", trajectories, report)
+```
+
+运行 `python -m unittest projects.naive_bayes_spam.test_paired_longitudinal_calibration_bootstrap`。每次抽取用户会同时复制其所有层和两侧窗口，轨迹必须有相同有序层；证书重放每层区间与首末趋势。它不是时间序列/层级模型，也不建立因果或自动行动结论。
+
 **层内只有一个簇。** 一个层没有簇间抽样变化。代码要求每层至少两个簇；把更多 repeats 写得再大也不能制造第二个独立单位。
 
-**趋势比层更细。** 若每小时机制都不同，而你只冻结“上午/下午”，层内可交换仍可能不成立。需要更合适的分层、块设计或显式时间序列模型。
+**趋势比层更细。** 每小时机制不同而只冻结“上午/下午”时，层内可交换仍可能失败；需要更合适的分层、块或时间序列模型。
 
-**事后划层或选簇。** 先看 ECE 再决定把哪些小时或设备合并，会把选择过程藏入输入。层、簇、最小窗口、分箱、重复次数和复核政策都应先冻结。
+**事后划层或选簇。** 先看 ECE 再合并小时或设备会把选择藏入输入；层、簇、分箱和复核政策应先冻结。
 
-**因果解释。** 同一时间内重抽簇并不能控制营销活动、流量来源或标签延迟；它不把描述性差异升级为模型改动的效果。
+**因果解释。** 重抽簇不控制营销、流量来源或标签延迟，不能把描述性差异升级为模型改动效果。
 
 ## 常见误区
 
-- “分层簇 bootstrap 同时解决所有相关性。”不对；它只保留已声明的两个结构轴。
-- “同一个用户跨时间更应该出现在每层。”不在这个合同里；那是需要显式配对的不同设计。
-- “区间不跨零就可以自动行动。”不对；业务风险、漂移原因和数据质量仍需人工判断。
+- “分层簇 bootstrap 解决所有相关性。”它只保留声明的两轴。
+- “跨时间用户可独立层内抽。”那需要显式配对设计。
+- “区间即可自动行动。”业务风险与数据质量仍需人工判断。
 
 ## 练习
 
@@ -113,10 +137,10 @@ assert time_stratified_cluster_calibration_bootstrap_certificate("old", old, "ne
 
 ## 练习答案提示
 
-1. 外层循环固定时间层，只在该层的簇索引集合中有放回抽样；拼接顺序不跨层。
-2. 每层抽回原层簇数，合计为 $\sum_tG_t$；每个簇携带的观测行数不同，不能把行数当成独立证据数。
-3. 跨层同 ID 暗示纵向依赖，而独立层内抽样会破坏它；拒绝迫使分析者选择能表达该依赖的设计。
-4. 例如按用户配对整个时间轨迹，再将日/周趋势作为模型成分；说明何时停止、如何排除数据及谁审核结论。
+1. 外层固定层，只在该层簇索引集合中抽样。
+2. 总数为 $\sum_tG_t$；簇大小不同，行数不是独立证据数。
+3. 跨层同 ID 表示纵向依赖，独立层内抽会破坏它。
+4. 可按用户配对整条轨迹，并显式声明趋势与审核规则。
 
 ## 延伸与下一步
 
