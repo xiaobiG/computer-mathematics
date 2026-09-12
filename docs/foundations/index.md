@@ -11,3 +11,4 @@ description: 五大专题共享的符号、函数、求和、证明与 Python �
 
 - [符号、函数、求和与 Python](/foundations/functions-summation-python)：把 $f(x)$、复合、区间和 $\sum$ 翻译为可验证代码。
 - [集合与数组形状](/foundations/sets-array-shapes)：区分无序成员与有序坐标，建立并交差、形状和零基索引的共同契约。
+- [张量形状与批处理](/foundations/tensor-shapes-batches)：区分标量、向量、矩阵与行批次，写清 `(n,)`、`(n,1)` 和矩阵乘法的轴。

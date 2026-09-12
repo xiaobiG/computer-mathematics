@@ -48,6 +48,10 @@ export default defineConfig({
               text: "集合与数组形状：成员关系与索引",
               link: "/foundations/sets-array-shapes",
             },
+            {
+              text: "张量形状与批处理：向量、矩阵与轴",
+              link: "/foundations/tensor-shapes-batches",
+            },
           ],
         },
       ],
