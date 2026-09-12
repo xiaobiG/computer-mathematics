@@ -168,6 +168,7 @@ const priorityDeepLessons = new Set([
   'probability-ml/cluster-bootstrap-calibration.md',
   'probability-ml/time-stratified-cluster-bootstrap.md',
   'numerical-computing/floating-point.md',
+  'numerical-computing/error-propagation.md',
   'numerical-computing/condition-number.md',
   'numerical-computing/numerical-integration.md',
   'numerical-computing/interpolation.md',

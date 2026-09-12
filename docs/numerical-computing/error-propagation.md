@@ -72,6 +72,8 @@ $$\kappa_{-}(a,b)=\frac{|a|+|b|}{|a-b|}.$$
 ```python
 from projects.floating_point_museum.error_analysis import (
     first_order_absolute_change_scale,
+    product_linearisation_report,
+    product_linearisation_report_certificate,
     product_relative_error_bound,
     relative_error,
     subtraction_condition_number,
@@ -81,9 +83,15 @@ assert relative_error(1000.0, 1001.0) == 0.001
 assert product_relative_error_bound(0.01, 0.02) == 0.0302
 assert first_order_absolute_change_scale([50.0, 100.0], [1.0, 1.0]) == 150.0
 assert subtraction_condition_number(1e16 + 2.0, 1e16) == 1e16
+
+report = product_linearisation_report(100.0, 50.0, 1.0, 1.0)
+assert report["absolute_first_order_scale"] == 150.0
+assert report["actual_signed_change"] == 151.0
+assert report["finite_change_exceeds_first_order_scale"]
+assert product_linearisation_report_certificate(100.0, 50.0, 1.0, 1.0, report)
 ```
 
-运行 `python -m unittest projects.floating_point_museum.test_error_analysis`。模块拒绝非有限值，拒绝零真值的相对误差，并将完全相等的相减条件数显式返回无穷；一阶传播函数还拒绝长度不一致和负绝对误差。所有公式均为 $O(m)$ 或更低，其中 $m$ 是输入变量数；重要的不是计算成本，而是先确认你报告的是问题的敏感性、近似值的误差，还是算法的稳定性。
+运行 `python -m unittest projects.floating_point_museum.test_error_analysis`。这份报告同时重放线性项、二阶交叉项与真实有限改变，并拒绝把 $151>150$ 的反例篡改成“一阶尺度已构成界”；它只说明有限乘法扰动中一阶近似不可自动升格为严格界。模块也拒绝非有限值、零真值的相对误差、长度不一致和负绝对误差。所有公式均为 $O(m)$ 或更低，其中 $m$ 是输入变量数；重要的是先确认报告的是敏感性、近似误差，还是算法稳定性。
 
 ## 正确性与工程边界
 

@@ -61,3 +61,69 @@ def subtraction_condition_number(left: float, right: float) -> float:
     _finite(right, "right")
     difference = left - right
     return inf if difference == 0.0 else (abs(left) + abs(right)) / abs(difference)
+
+
+def product_linearisation_report(
+    left: float, right: float, left_perturbation: float, right_perturbation: float,
+) -> dict[str, object]:
+    """Replay a finite product perturbation beside its first-order model.
+
+    The absolute first-order scale is deliberately kept separate from the
+    signed linear term.  It is a local worst-direction *scale*, not a bound
+    for a finite nonlinear perturbation; the retained cross term makes that
+    distinction inspectable on one small, exactly representable example.
+    """
+    for value, name in (
+        (left, "left"), (right, "right"),
+        (left_perturbation, "left_perturbation"),
+        (right_perturbation, "right_perturbation"),
+    ):
+        _finite(value, name)
+    baseline = left * right
+    perturbed = (left + left_perturbation) * (right + right_perturbation)
+    signed_linear_change = right * left_perturbation + left * right_perturbation
+    cross_term = left_perturbation * right_perturbation
+    actual_change = perturbed - baseline
+    for value, name in (
+        (baseline, "baseline_product"), (perturbed, "perturbed_product"),
+        (signed_linear_change, "signed_linear_change"),
+        (cross_term, "second_order_cross_term"), (actual_change, "actual_signed_change"),
+    ):
+        _finite(value, name)
+    first_order_scale = first_order_absolute_change_scale(
+        [right, left], [abs(left_perturbation), abs(right_perturbation)],
+    )
+    return {
+        "contract": "product-linearisation-report/v1",
+        "left": left,
+        "right": right,
+        "left_perturbation": left_perturbation,
+        "right_perturbation": right_perturbation,
+        "baseline_product": baseline,
+        "perturbed_product": perturbed,
+        "signed_linear_change": signed_linear_change,
+        "second_order_cross_term": cross_term,
+        "actual_signed_change": actual_change,
+        "absolute_first_order_scale": first_order_scale,
+        "exact_decomposition_holds": actual_change == signed_linear_change + cross_term,
+        "finite_change_exceeds_first_order_scale": abs(actual_change) > first_order_scale,
+        "interpretation": (
+            "the first-order scale is a local sensitivity quantity, not a universal "
+            "finite-perturbation bound"
+        ),
+    }
+
+
+def product_linearisation_report_certificate(
+    left: float, right: float, left_perturbation: float, right_perturbation: float,
+    report: object,
+) -> bool:
+    """Reject a report unless every finite-perturbation field replays exactly."""
+    if not isinstance(report, dict):
+        return False
+    try:
+        return report == product_linearisation_report(
+            left, right, left_perturbation, right_perturbation,
+        )
+    except (TypeError, ValueError):
+        return False

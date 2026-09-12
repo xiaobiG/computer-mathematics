@@ -7,6 +7,8 @@ from projects.floating_point_museum.error_analysis import (
     product_relative_error_bound,
     relative_error,
     subtraction_condition_number,
+    product_linearisation_report,
+    product_linearisation_report_certificate,
 )
 
 
@@ -33,6 +35,22 @@ class ErrorAnalysisTests(unittest.TestCase):
             first_order_absolute_change_scale([1.0], [1.0, 2.0])
         with self.assertRaises(ValueError):
             first_order_absolute_change_scale([1.0], [-0.1])
+
+    def test_finite_product_report_keeps_the_second_order_counterexample(self):
+        report = product_linearisation_report(100.0, 50.0, 1.0, 1.0)
+        self.assertEqual(report["absolute_first_order_scale"], 150.0)
+        self.assertEqual(report["actual_signed_change"], 151.0)
+        self.assertEqual(report["second_order_cross_term"], 1.0)
+        self.assertTrue(report["exact_decomposition_holds"])
+        self.assertTrue(report["finite_change_exceeds_first_order_scale"])
+        self.assertTrue(product_linearisation_report_certificate(100.0, 50.0, 1.0, 1.0, report))
+
+    def test_finite_product_report_certificate_rejects_changed_conclusion(self):
+        report = product_linearisation_report(100.0, 50.0, 1.0, 1.0)
+        report["finite_change_exceeds_first_order_scale"] = False
+        self.assertFalse(product_linearisation_report_certificate(100.0, 50.0, 1.0, 1.0, report))
+        with self.assertRaises(ValueError):
+            product_linearisation_report(1e308, 1e308, 0.0, 0.0)
 
     def test_subtraction_condition_number_exposes_cancellation_and_contracts(self):
         self.assertEqual(subtraction_condition_number(10.0, 0.0), 1.0)
