@@ -33,6 +33,16 @@ $$
 
 因此 $3y=3$，回代得到 $y=1,x=2$。若出现 $[0\ 0\mid c]$ 且 $c\ne0$，系统无解；若无矛盾但主元数少于变量数，则存在自由变量和无穷多解。
 
+## 为什么行变换没有偷换问题
+
+把增广矩阵的一行看成一条方程。三种初等行变换都保持解集：交换两行只是改变方程的书写顺序；把一行乘以非零常数，等式两端同时缩放，满足它的 $x$ 不变；把第 $j$ 行替换成 $R_j-cR_k$，则任何同时满足原第 $j,k$ 行的 $x$ 都满足新行。反过来，新行加回 $cR_k$ 就恢复原第 $j$ 行，因此新系统的解也满足旧系统。
+
+这给出消元的循环不变量：处理完第 $k$ 列时，当前增广矩阵与原 $[A\mid b]$ 有相同解集，并且前 $k$ 个主元下方为零。若主元 $a_{kk}\ne0$，用
+
+$$R_i\leftarrow R_i-\frac{a_{ik}}{a_{kk}}R_k\quad(i>k)$$
+
+恰好将第 $k$ 列的 $a_{ik}$ 变为零；因为这是第三种行变换，不变量继续成立。完成全部列后得到上三角系统。最后一行先唯一确定 $x_n$，再向上逐行唯一确定其余变量，所以在每个主元非零时回代得到的解既满足上三角系统，也满足原系统。
+
 ## 算法、正确性与复杂度
 
 第 $k$ 列选择尚未使用行中绝对值最大的元素为主元，交换到第 $k$ 行，再对所有下方行做 $R_i\leftarrow R_i-(a_{ik}/a_{kk})R_k$。循环不变量是：已经处理的列在主元下方为零，且当前增广矩阵与原系统解集相同。循环结束后得到上三角系统；从最后一行向上回代，每一步都唯一确定一个变量，因此返回值满足原系统。
@@ -44,6 +54,7 @@ $$
 ```python
 from projects.linear_algebra_lab.main import (
     classify_linear_system,
+    elimination_invariant_certificate,
     pivot_trace_certificate,
     solve_with_pivot_trace,
 )
@@ -55,10 +66,11 @@ assert trace[0]["swapped"]             # 选中第二行的 1.0，而不是 1e-1
 assert abs(trace[-1]["upper"][1][0]) < 1e-12
 assert solution == [1.0, 1.0]
 assert pivot_trace_certificate(matrix, [1.0, 2.0], solution, trace)
+assert elimination_invariant_certificate(matrix, [1.0, 2.0], solution, trace)["valid"]
 assert classify_linear_system([[1, 1], [2, 2]], [2, 5]) == "none"
 ```
 
-`trace` 保存每列的主元行、是否交换、消元倍数和当时的上三角增广矩阵。`pivot_trace_certificate` 从原始 $[A\mid b]$ 独立重选主元、重放行交换与消元，再回代比较解；篡改任一倍数或上三角项都会被拒绝。它让读者检查不变量，而非只相信最终答案，但并不能以小残差掩盖病态系统。[线性代数实验室](/projects/linear-algebra-lab)提供完整教学实现与自动测试。
+`trace` 保存每列的主元行、是否交换、消元倍数和当时的上三角增广矩阵。`pivot_trace_certificate` 从原始 $[A\mid b]$ 独立重选主元、重放行交换与消元，再回代比较解；篡改任一倍数或上三角项都会被拒绝。新增的 `elimination_invariant_certificate` 进一步把“每个主元非零”“主元下方为零”“同一解同时满足原系统与最终上三角系统”分开报告。它让读者检查不变量，而非只相信最终答案，但并不能以小残差掩盖病态系统。[线性代数实验室](/projects/linear-algebra-lab)提供完整教学实现与自动测试。
 
 ## 失败案例与工程边界
 

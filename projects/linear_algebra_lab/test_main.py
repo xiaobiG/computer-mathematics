@@ -5,7 +5,7 @@ from projects.linear_algebra_lab.main import (
     classify_linear_system, compress_grayscale, dominant_right_singular_vector, frobenius_error, image_cosine_similarity,
     compressed_image_search, compressed_image_search_certificate, least_squares_comparison_report, least_squares_normal_equations, low_rank_parameter_report,
     matmul, matrix_composition_certificate, norm, project, least_squares_qr, rank_k_approximation, rank_one_approximation,
-    pivot_trace_certificate, solve, solve_with_pivot_trace, truncated_svd_frobenius_error,
+    elimination_invariant_certificate, pivot_trace_certificate, solve, solve_with_pivot_trace, truncated_svd_frobenius_error,
     truncated_svd_report, truncated_svd_report_certificate,
 )
 
@@ -46,9 +46,16 @@ class LinearAlgebraLabTests(unittest.TestCase):
         self.assertTrue(all(abs(sum(a * x for a, x in zip(row, solution)) - value) < 1e-10
                             for row, value in zip(matrix, target)))
         self.assertTrue(pivot_trace_certificate(matrix, target, solution, trace))
+        certificate = elimination_invariant_certificate(matrix, target, solution, trace)
+        self.assertTrue(certificate["pivots_are_nonzero"])
+        self.assertTrue(certificate["below_pivots_are_zero"])
+        self.assertTrue(certificate["solution_satisfies_original_system"])
+        self.assertTrue(certificate["solution_satisfies_upper_system"])
+        self.assertTrue(certificate["valid"])
         tampered = [dict(event) for event in trace]
         tampered[0]["multipliers"] = [0.0]
         self.assertFalse(pivot_trace_certificate(matrix, target, solution, tampered))
+        self.assertFalse(elimination_invariant_certificate(matrix, target, solution, tampered)["valid"])
 
     def test_classifies_consistent_and_inconsistent_singular_systems(self):
         self.assertEqual(classify_linear_system([[1.0, 1.0], [2.0, 2.0]], [2.0, 4.0]), "infinitely_many")

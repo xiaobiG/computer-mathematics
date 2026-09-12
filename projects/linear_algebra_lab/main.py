@@ -140,6 +140,61 @@ def pivot_trace_certificate(matrix, target, solution, trace, epsilon=EPSILON):
         return False
 
 
+def elimination_invariant_certificate(matrix, target, solution, trace, epsilon=EPSILON):
+    """Expose the claims behind a recorded Gaussian-elimination run.
+
+    A replayable trace says that the recorded operations are the ones selected
+    by partial pivoting.  This companion certificate separates the teaching
+    invariants: every pivot is usable, the final augmented matrix is upper
+    triangular, and the returned vector satisfies both the original and final
+    systems.  It is deliberately a finite floating-point audit, not a proof
+    that a small residual implies a well-conditioned problem.
+    """
+    empty = {
+        "trace_replays": False,
+        "pivots_are_nonzero": False,
+        "below_pivots_are_zero": False,
+        "solution_satisfies_original_system": False,
+        "solution_satisfies_upper_system": False,
+        "valid": False,
+    }
+    try:
+        size = _validate_linear_system(matrix, target, epsilon)
+        if (not isinstance(solution, list) or len(solution) != size
+                or not isinstance(trace, list) or len(trace) != size):
+            return empty
+        trace_replays = pivot_trace_certificate(matrix, target, solution, trace, epsilon)
+        final_upper = trace[-1].get("upper") if trace else None
+        if not isinstance(final_upper, list) or len(final_upper) != size:
+            return empty
+        pivots_are_nonzero = all(abs(final_upper[column][column]) > epsilon for column in range(size))
+        below_pivots_are_zero = all(
+            abs(final_upper[row][column]) <= epsilon
+            for column in range(size) for row in range(column + 1, size)
+        )
+        solution_satisfies_original = all(
+            abs(sum(float(value) * solution[column] for column, value in enumerate(row)) - float(target[index]))
+            <= epsilon * max(1.0, abs(float(target[index])))
+            for index, row in enumerate(matrix)
+        )
+        solution_satisfies_upper = all(
+            abs(sum(final_upper[row][column] * solution[column] for column in range(size)) - final_upper[row][size])
+            <= epsilon * max(1.0, abs(final_upper[row][size]))
+            for row in range(size)
+        )
+        return {
+            "trace_replays": trace_replays,
+            "pivots_are_nonzero": pivots_are_nonzero,
+            "below_pivots_are_zero": below_pivots_are_zero,
+            "solution_satisfies_original_system": solution_satisfies_original,
+            "solution_satisfies_upper_system": solution_satisfies_upper,
+            "valid": trace_replays and pivots_are_nonzero and below_pivots_are_zero
+            and solution_satisfies_original and solution_satisfies_upper,
+        }
+    except (ArithmeticError, IndexError, TypeError, ValueError):
+        return empty
+
+
 def solve(matrix, target, epsilon=EPSILON):
     """Solve a square dense system using Gaussian elimination with pivoting."""
     result, _ = solve_with_pivot_trace(matrix, target, epsilon)
