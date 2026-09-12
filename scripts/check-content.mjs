@@ -170,6 +170,7 @@ const priorityDeepLessons = new Set([
   'number-theory-crypto/rsa.md',
   'number-theory-crypto/modular-arithmetic.md',
   'number-theory-crypto/extended-euclid.md',
+  'number-theory-crypto/chinese-remainder-theorem.md',
   'number-theory-crypto/digital-signatures.md',
   'number-theory-crypto/hashing-passwords.md',
   'number-theory-crypto/trust-root-rotation.md',

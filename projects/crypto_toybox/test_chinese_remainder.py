@@ -1,6 +1,11 @@
 import unittest
 
-from projects.crypto_toybox.chinese_remainder import chinese_remainder, combine_congruences
+from projects.crypto_toybox.chinese_remainder import (
+    chinese_remainder,
+    combine_congruences,
+    toy_rsa_crt_fault_certificate,
+    toy_rsa_crt_fault_report,
+)
 
 
 class ChineseRemainderTests(unittest.TestCase):
@@ -25,6 +30,24 @@ class ChineseRemainderTests(unittest.TestCase):
             chinese_remainder([])
         with self.assertRaises(ValueError):
             combine_congruences((1, 0), (1, 3))
+
+    def test_toy_rsa_crt_fault_reveals_the_unchanged_branch_factor(self):
+        report = toy_rsa_crt_fault_report(5, 11, 3, 7, faulted_branch="p")
+        self.assertEqual(report["modulus"], 55)
+        self.assertEqual(report["difference_gcd"], 11)
+        self.assertEqual(report["cofactor"], 5)
+        self.assertTrue(report["nontrivial_factor_recovered"])
+        self.assertTrue(report["correct_matches_direct_private_power"])
+        self.assertTrue(toy_rsa_crt_fault_certificate(5, 11, 3, 7, "p", report))
+        tampered = dict(report)
+        tampered["difference_gcd"] = 1
+        self.assertFalse(toy_rsa_crt_fault_certificate(5, 11, 3, 7, "p", tampered))
+
+    def test_toy_rsa_crt_fault_contract_is_bounded_and_explicit(self):
+        with self.assertRaises(ValueError):
+            toy_rsa_crt_fault_report(5, 11, 3, 7, faulted_branch="unknown")
+        with self.assertRaises(ValueError):
+            toy_rsa_crt_fault_report(1_009, 11, 3, 7, faulted_branch="p")
 
 
 if __name__ == "__main__":
