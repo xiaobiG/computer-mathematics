@@ -4,6 +4,8 @@ from projects.floating_point_museum.interpolation import (
     divided_differences,
     evaluate_newton,
     interpolation_certificate,
+    runge_node_comparison_certificate,
+    runge_node_comparison_report,
 )
 
 
@@ -33,3 +35,20 @@ class InterpolationTests(unittest.TestCase):
             divided_differences([0.0], [1.0, 2.0])
         with self.assertRaises(ValueError):
             evaluate_newton([0.0], [1.0, 2.0], 0.0)
+
+    def test_chebyshev_nodes_reduce_runge_error_on_the_same_grid(self):
+        report = runge_node_comparison_report(11, 401)
+        self.assertTrue(report["uniform"]["interpolation_certificate"]["valid"])
+        self.assertTrue(report["chebyshev"]["interpolation_certificate"]["valid"])
+        self.assertTrue(report["chebyshev_has_smaller_max_error"])
+        self.assertTrue(report["chebyshev_has_smaller_edge_error"])
+        self.assertTrue(runge_node_comparison_certificate(11, 401, report))
+        tampered = dict(report)
+        tampered["chebyshev_has_smaller_max_error"] = False
+        self.assertFalse(runge_node_comparison_certificate(11, 401, tampered))
+
+    def test_runge_comparison_rejects_invalid_experiment_sizes(self):
+        with self.assertRaises(ValueError):
+            runge_node_comparison_report(2, 401)
+        with self.assertRaises(ValueError):
+            runge_node_comparison_report(11, 2)

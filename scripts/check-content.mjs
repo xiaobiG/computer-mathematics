@@ -162,6 +162,7 @@ const priorityDeepLessons = new Set([
   'numerical-computing/floating-point.md',
   'numerical-computing/condition-number.md',
   'numerical-computing/numerical-integration.md',
+  'numerical-computing/interpolation.md',
   'numerical-computing/kahan-summation.md',
   'numerical-computing/preconditioned-conjugate-gradient.md',
   'numerical-computing/importance-sampling-diagnostics.md',
