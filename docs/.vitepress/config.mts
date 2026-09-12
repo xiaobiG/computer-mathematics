@@ -314,6 +314,7 @@ export default defineConfig({
             { text: "冻结窗口差异的 Bootstrap", link: "/probability-ml/frozen-window-bootstrap" },
             { text: "时间块 Bootstrap：相关观测不能逐条重抽", link: "/probability-ml/block-bootstrap-calibration" },
             { text: "簇级 Bootstrap：相关用户不能逐条重抽", link: "/probability-ml/cluster-bootstrap-calibration" },
+            { text: "时间分层簇级 Bootstrap：趋势与用户相关", link: "/probability-ml/time-stratified-cluster-bootstrap" },
           ],
         },
       ],

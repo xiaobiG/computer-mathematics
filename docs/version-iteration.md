@@ -794,6 +794,16 @@ v2.7–v2.9 的共同增量不是新增术语，而是把“可计算的输出�
 | 差异 | 原课程只返回层级列表；现在报告绑定每层的子问题数、规模与合并量，证书重放连续深度、每层分割 $n$ 个元素和 $n\log_2 n$ 总量，任何层或总量的篡改均被拒绝。 |
 | 下一决策 | 这是精确的二的幂工作模型，不是实际耗时或非规则递归的通用分析器；下一轮回到其他专题，寻找会实质改变结论、且尚无完整实验闭环的核心课。 |
 
+### v3.6-c：时间分层簇级 Bootstrap（已完成）
+
+| 字段 | 记录 |
+| --- | --- |
+| 目标 | 读者能在时间趋势与用户/设备相关同时存在时，区分逐条、按时间块、按簇与“时间层内整簇”四种重采样单位。 |
+| 范围 | 新增[时间分层簇级 Bootstrap](/probability-ml/time-stratified-cluster-bootstrap)、`stratified_cluster_calibration_bootstrap.py` 与测试；新合同 `time-stratified-cluster-calibration-bootstrap/v1` 绑定冻结时间层、层内簇、种子、区间和无自动行动政策。 |
+| 验证 | `python -m unittest projects.naive_bayes_spam.test_stratified_cluster_calibration_bootstrap`、`npm run content:check`；发布前运行全项目测试、生产构建与 GitHub Pages 工作流。 |
+| 差异 | 原有时间块合同会拆开用户簇，簇级合同会混合时间位置；现在每一时间层内只重抽完整簇，并拒绝跨层重复簇、层形状或区间被篡改。 |
+| 下一决策 | 此合同不处理跨层重复用户、长程依赖、层边界选择或因果归因；下一轮应在其他专题寻找同等级的真实断点，避免把教学 bootstrap 扩成伪生产统计系统。 |
+
 ## 读者如何使用
 
 - 先沿专题首页完成当前主线；
