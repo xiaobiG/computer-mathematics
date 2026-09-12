@@ -175,7 +175,9 @@ for (const path of files) {
   // Otherwise a Python/shell comment such as `# example output` is mistaken
   // for a second H1 and blocks a valid lesson from publishing.
   const prose = source.replace(/^```[^\n]*\r?\n[\s\S]*?^```\s*$/gm, '')
-  const label = relative(docsRoot, path)
+  // `path.relative` follows the host separator.  Keep labels portable because
+  // the priority set is repository notation and CI runs on Linux.
+  const label = relative(docsRoot, path).replaceAll('\\', '/')
   const [folder] = label.split(/[/\\]/)
   if (!/^---\r?\n(?=[\s\S]*?^title:\s*.+$)(?=[\s\S]*?^description:\s*.+$)[\s\S]*?^---\s*$/m.test(source)) {
     errors.push(`${label}: 缺少 title 与 description frontmatter`)
