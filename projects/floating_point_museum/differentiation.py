@@ -18,10 +18,29 @@ class DifferenceSample:
     absolute_error: float
 
 
+@dataclass(frozen=True)
+class DifferenceEstimate:
+    """One finite-difference estimate and its error against a supplied oracle."""
+
+    method: str
+    estimate: float
+    absolute_error: float
+
+
 def _finite_real(value: float, name: str) -> float:
     if not isinstance(value, (int, float)) or isinstance(value, bool) or not isfinite(value):
         raise ValueError(f"{name} must be finite")
     return float(value)
+
+
+def _function_value(function: Function, point: float) -> float:
+    try:
+        value = float(function(point))
+    except (TypeError, ValueError, OverflowError) as error:
+        raise ValueError("function is not evaluable at the required stencil point") from error
+    if not isfinite(value):
+        raise ValueError("function must be finite at every required stencil point")
+    return value
 
 
 def central_difference(function: Function, point: float, step: float) -> float:
@@ -30,10 +49,52 @@ def central_difference(function: Function, point: float, step: float) -> float:
     step = _finite_real(step, "step")
     if step <= 0:
         raise ValueError("step must be positive")
-    left, right = float(function(point - step)), float(function(point + step))
-    if not isfinite(left) or not isfinite(right):
-        raise ValueError("function must be finite on both sides of the point")
+    left, right = _function_value(function, point - step), _function_value(function, point + step)
     return (right - left) / (2.0 * step)
+
+
+def forward_difference(function: Function, point: float, step: float) -> float:
+    """Approximate f'(x) using the first-order one-sided forward difference."""
+    point = _finite_real(point, "point")
+    step = _finite_real(step, "step")
+    if step <= 0:
+        raise ValueError("step must be positive")
+    return (_function_value(function, point + step) - _function_value(function, point)) / step
+
+
+def finite_difference_stencil_comparison(
+    function: Function, exact_derivative: Function, point: float, step: float,
+) -> dict[str, object]:
+    """Expose the domain tradeoff between forward and centered stencils.
+
+    A centered stencil is retained when both sides are evaluable; otherwise the
+    report makes its absence explicit and leaves the one-sided approximation
+    visible.  It does not claim that either stencil is universally optimal:
+    roundoff, noise, scaling, and the selected step remain separate choices.
+    """
+    point = _finite_real(point, "point")
+    step = _finite_real(step, "step")
+    if step <= 0:
+        raise ValueError("step must be positive")
+    exact = _function_value(exact_derivative, point)
+    forward = forward_difference(function, point, step)
+    forward_estimate = DifferenceEstimate("forward", forward, abs(forward - exact))
+    try:
+        central = central_difference(function, point, step)
+    except ValueError:
+        central_estimate = None
+    else:
+        central_estimate = DifferenceEstimate("central", central, abs(central - exact))
+    return {
+        "exact_derivative": exact,
+        "forward": forward_estimate,
+        "central": central_estimate,
+        "central_available": central_estimate is not None,
+        "choice_boundary": (
+            "central_is_available_when_both_sides_of_the_stencil_are_finite; "
+            "otherwise_use_a_one_sided_or_reparameterized_method"
+        ),
+    }
 
 
 def central_difference_report(

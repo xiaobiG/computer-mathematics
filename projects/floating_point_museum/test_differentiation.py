@@ -1,7 +1,12 @@
 import math
 import unittest
 
-from projects.floating_point_museum.differentiation import central_difference, central_difference_report
+from projects.floating_point_museum.differentiation import (
+    central_difference,
+    central_difference_report,
+    finite_difference_stencil_comparison,
+    forward_difference,
+)
 
 
 class DifferentiationTests(unittest.TestCase):
@@ -14,12 +19,23 @@ class DifferentiationTests(unittest.TestCase):
 
     def test_central_difference_handles_a_smooth_function_and_rejects_bad_contracts(self):
         self.assertAlmostEqual(central_difference(math.exp, 0.0, 1e-5), 1.0, places=9)
+        self.assertAlmostEqual(forward_difference(math.exp, 0.0, 1e-5), 1.0, places=4)
         with self.assertRaises(ValueError):
             central_difference(math.log, 1e-6, 1e-5)
         with self.assertRaises(ValueError):
             central_difference_report(math.sin, math.cos, 1.0, [1, 2])
         with self.assertRaises(ValueError):
             central_difference(lambda _: float("nan"), 0.0, 1e-3)
+
+    def test_same_step_shows_centered_accuracy_interior_and_one_sided_boundary(self):
+        interior = finite_difference_stencil_comparison(math.exp, math.exp, 0.0, 0.1)
+        self.assertTrue(interior["central_available"])
+        self.assertLess(interior["central"].absolute_error, interior["forward"].absolute_error)
+
+        boundary = finite_difference_stencil_comparison(math.log, lambda value: 1.0 / value, 1e-6, 1e-5)
+        self.assertFalse(boundary["central_available"])
+        self.assertIsNone(boundary["central"])
+        self.assertGreater(boundary["forward"].absolute_error, 0.0)
 
 
 if __name__ == "__main__":

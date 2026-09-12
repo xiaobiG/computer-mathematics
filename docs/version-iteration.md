@@ -885,3 +885,13 @@ v2.7–v2.9 的共同增量不是新增术语，而是把“可计算的输出�
 | 验证 | `python -m unittest projects.naive_bayes_spam.test_cost_sensitive_decisions`、`npm run content:check`；发布前运行全项目测试、生产构建与 GitHub Pages 工作流。 |
 | 差异 | 原课程将错误成本留作文字边界；现在 $p=0.2$ 在 $(c_{FP},c_{FN})=(1,1)$ 下建议判负、在 $(1,9)$ 下建议判正，成本相等的阈值点明确返回未决。 |
 | 下一决策 | 这不是校准器、成本估计器或自动化高风险决策器；下一审计应检查数值、离散或密码学主线是否也存在“同一输入下可行方法或假设无法比较”的学习断点。 |
+
+### v4.2-a：数值微分的模板定义域选择（已完成）
+
+| 字段 | 记录 |
+| --- | --- |
+| 目标 | 读者能区分“中心差分在内部通常截断误差更低”与“中心模板必须在两侧都可取样”，并在同一步长下观察这一选择。 |
+| 范围 | 扩展[数值微分与步长选择](/numerical-computing/numerical-differentiation)、浮点数错误博物馆说明与成熟度看板；扩展 `differentiation.py` 和测试，不新增差分证书。 |
+| 验证 | `python -m unittest projects.floating_point_museum.test_differentiation`、`npm run content:check`；发布前运行全项目测试、生产构建与 GitHub Pages 工作流。 |
+| 差异 | 原实验只扫描中心差分；现在 $e^x$ 在内部可并列显示中心误差更小，而 $\log x$ 的左侧点越界时中心结果为 `None`、前向结果仍可见但不被误标为准确。 |
+| 下一决策 | 该对照不提供单侧高阶公式、噪声估计、复步长或自动微分实现；下一审计应转向离散或密码学主线寻找同等真实的选择断点。 |

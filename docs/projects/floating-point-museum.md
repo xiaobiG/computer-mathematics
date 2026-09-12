@@ -34,7 +34,7 @@ description: 用可复现实验观察舍入、累计误差、消去误差与蒙�
 - [随机模拟的误差与可复现性](/numerical-computing/stochastic-simulation-reproducibility)：抽样误差、固定种子与重复报告。
 - [牛顿法](/numerical-computing/newton-method)：重放每步 Newton/二分决策与符号变化区间，审查混合求根的收敛证据。
 - [割线法](/numerical-computing/secant-method)：以两点插值公式、事件连接和残差审计无导数迭代。
-- [数值微分](/numerical-computing/numerical-differentiation)：扫描中心差分步长，审查二阶截断趋势与极小步长的误差反弹。
+- [数值微分](/numerical-computing/numerical-differentiation)：扫描中心差分步长，并以同一步长比较中心/前向模板在平滑内部与定义域边界的可用性。
 - [数值积分](/numerical-computing/numerical-integration)：用自适应 Simpson 的叶区间、误差预算与函数调用上限审查何时真正停止。
 - [多维积分的结构化采样](/numerical-computing/multidimensional-integration)：在同一二维积分基准中比较规则网格、固定种子蒙特卡洛与样本预算。
 - [重要性采样诊断](/numerical-computing/importance-sampling-diagnostics)：以有真值基准审计权重退化与有效样本量。
@@ -67,7 +67,7 @@ python -m unittest projects.floating_point_museum.test_conditioning
 7. 病态 $2\\times2$ 线性系统：验证右端扰动到解扰动的放大不超过条件数界，同时保持尺度无关后向残差接近零；这是条件数与后向误差不能混为一谈的反例。
 8. 数值积分：以 $\sin x$ 的精确积分为预言，比较梯形法和 Simpson 法网格加密时约为 4 与 16 的误差比；自适应 Simpson 报告叶区间、最大深度、函数调用预算和独立重放证书，并拒绝奇数 Simpson 网格、非有限函数值或将预算耗尽伪装为成功。
 9. 受保护牛顿法：对每一步保留的符号变化区间做审计；当牛顿建议跳出区间时回退到二分，而不是把循环或越界伪装成收敛。
-10. 数值微分：扫描中心差分的十进制步长，核对粗步长区的二阶误差趋势与极小步长的舍入误差反弹；域边界使双侧差分不可用时，确认接口拒绝函数值非有限的样本。
+10. 数值微分：扫描中心差分的十进制步长，核对粗步长区的二阶误差趋势与极小步长的舍入误差反弹；再以同一步长比较中心/前向模板，确认 $\log x$ 的左侧越界时中心模板不可用，而可计算的前向值仍须审查误差。
 11. 算法稳定性：对二次方程的小根比较直接公式与 Vieta 改写，使用高精度参考值检查消去如何放大前向误差。
 12. 驻定迭代：重放 Jacobi/Gauss–Seidel 的每一步向量、更新量与残差，确认停止不是由被篡改的轨迹标签触发。
 13. 直接法：比较不选主元和部分选主元的增广矩阵轨迹，分别报告前向和后向误差，确认行交换不是条件数的修复。
