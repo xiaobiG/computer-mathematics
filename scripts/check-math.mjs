@@ -56,6 +56,15 @@ const errors = []
 for (const path of await markdownFiles(docsRoot)) {
   const source = proseOnly(await readFile(path, 'utf8'))
   const label = relative(docsRoot, path)
+  // The configured markdown-it-katex plugin recognizes only dollar
+  // delimiters.  LaTeX-style \(...\) and \[...\] remain literal text in the
+  // published site, so reject them instead of merely accepting their TeX.
+  for (const delimiter of ['\\(', '\\[']) {
+    const index = source.indexOf(delimiter)
+    if (index !== -1) {
+      errors.push(`${label}:${lineAt(source, index)} 使用当前渲染器不支持的公式定界符 ${delimiter}`)
+    }
+  }
   for (const formula of formulasIn(source)) {
     if (!formula.expression.trim()) {
       errors.push(`${label}:${lineAt(source, formula.index)} ${formula.kind}公式定界符未闭合`)
