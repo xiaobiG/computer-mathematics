@@ -26,6 +26,12 @@ class ComplexityCountTests(unittest.TestCase):
             operation_counts(-1)
         with self.assertRaises(ValueError):
             two_sum_sorted_trace([2, 1], 3)
+        # NaN makes ordinary ordered comparisons false, so merely checking
+        # adjacent `>` values would silently lose the proof's total-order premise.
+        with self.assertRaises(ValueError):
+            two_sum_sorted_trace([float("nan"), 1.0], 1.0)
+        with self.assertRaises(ValueError):
+            two_sum_sorted_trace([1.0, 2.0], float("inf"))
 
 
 if __name__ == "__main__":

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from math import isfinite
+
 
 def operation_counts(size: int) -> dict[str, int]:
     """Return exact counts for representative linear, quadratic and exponential tasks."""
@@ -20,9 +22,14 @@ def two_sum_sorted_trace(values: list[float], target: float) -> tuple[tuple[int,
     On every failed comparison, one pointer moves inward.  Thus no index is
     revisited and the trace contains at most len(values)-1 comparisons.
     """
-    if not isinstance(values, list) or any(values[index] > values[index + 1]
-                                           for index in range(len(values) - 1)):
-        raise ValueError("values must be a sorted list")
+    if not isinstance(values, list):
+        raise ValueError("values must be a sorted list of finite numbers")
+    if (not isinstance(target, (int, float)) or isinstance(target, bool) or not isfinite(target)
+            or any(not isinstance(value, (int, float)) or isinstance(value, bool) or not isfinite(value)
+                   for value in values)):
+        raise ValueError("target and values must be finite numbers")
+    if any(values[index] > values[index + 1] for index in range(len(values) - 1)):
+        raise ValueError("values must be sorted")
     left, right, comparisons = 0, len(values) - 1, 0
     while left < right:
         comparisons += 1
