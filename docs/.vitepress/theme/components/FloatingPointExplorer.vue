@@ -56,7 +56,7 @@ function choose(key) { selected.value = key }
     </header>
 
     <div class="case-switcher" role="group" aria-label="选择浮点案例">
-      <button v-for="(item, key) in cases" :key="key" type="button" :class="{ active: selected === key }" @click="choose(key)">{{ item.name }}</button>
+      <button v-for="(item, key) in cases" :key="key" type="button" :class="{ active: selected === key }" :aria-pressed="selected === key" @click="choose(key)">{{ item.name }}</button>
     </div>
 
     <div class="float-grid">

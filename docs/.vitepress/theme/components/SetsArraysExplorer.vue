@@ -41,7 +41,7 @@ const selected = computed(() => matrix[row.value][column.value])
         <label>集合 A <input v-model="leftInput" aria-label="集合 A，以逗号分隔"></label>
         <label>集合 B <input v-model="rightInput" aria-label="集合 B，以逗号分隔"></label>
         <div class="operation-tabs" role="group" aria-label="选择集合运算">
-          <button v-for="(item, key) in operations" :key="key" type="button" :class="{ active: operation === key }" @click="operation = key">{{ item.label }}</button>
+          <button v-for="(item, key) in operations" :key="key" type="button" :class="{ active: operation === key }" :aria-pressed="operation === key" @click="operation = key">{{ item.label }}</button>
         </div>
         <p class="operation-result"><strong>{{ operations[operation].label }}</strong> = { {{ result.join(', ') || '∅' }} }<span>{{ operations[operation].explain }}</span></p>
       </div>
