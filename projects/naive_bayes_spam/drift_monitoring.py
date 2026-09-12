@@ -25,27 +25,10 @@ def _positive_finite(value: float, name: str) -> float:
     return float(value)
 
 
-def categorical_drift_report(
-    reference: list[str],
-    current: list[str],
-    smoothing: float = 1e-6,
-    psi_threshold: float = 0.1,
-) -> dict[str, object]:
-    """Compare reference and current category frequencies.
-
-    Additive smoothing gives every category in the union positive mass, so a
-    new category is reported instead of causing an infinite logarithm.  The
-    Population Stability Index (PSI) is ``sum((q-p) log(q/p))``; total
-    variation is half the L1 distance.  ``needs_review`` is a policy trigger,
-    not a claim that the model has become wrong.
-    """
-    reference = _categories(reference, "reference")
-    current = _categories(current, "current")
-    smoothing = _positive_finite(smoothing, "smoothing")
-    psi_threshold = _positive_finite(psi_threshold, "psi_threshold")
+def _categorical_drift_report(reference, current, smoothing, psi_threshold, categories):
+    """Compute a report on an already declared category universe."""
     reference_counts = Counter(reference)
     current_counts = Counter(current)
-    categories = sorted(set(reference_counts) | set(current_counts))
     category_count = len(categories)
     reference_denominator = len(reference) + smoothing * category_count
     current_denominator = len(current) + smoothing * category_count
@@ -67,15 +50,33 @@ def categorical_drift_report(
             "psi_component": psi_component,
         })
     return {
-        "reference_count": len(reference),
-        "current_count": len(current),
-        "smoothing": smoothing,
-        "psi_threshold": psi_threshold,
-        "psi": psi,
-        "total_variation": total_variation / 2.0,
-        "needs_review": psi >= psi_threshold,
-        "categories": rows,
+        "reference_count": len(reference), "current_count": len(current), "smoothing": smoothing,
+        "psi_threshold": psi_threshold, "psi": psi, "total_variation": total_variation / 2.0,
+        "needs_review": psi >= psi_threshold, "categories": rows,
     }
+
+
+def categorical_drift_report(
+    reference: list[str],
+    current: list[str],
+    smoothing: float = 1e-6,
+    psi_threshold: float = 0.1,
+) -> dict[str, object]:
+    """Compare reference and current category frequencies.
+
+    Additive smoothing gives every category in the union positive mass, so a
+    new category is reported instead of causing an infinite logarithm.  The
+    Population Stability Index (PSI) is ``sum((q-p) log(q/p))``; total
+    variation is half the L1 distance.  ``needs_review`` is a policy trigger,
+    not a claim that the model has become wrong.
+    """
+    reference = _categories(reference, "reference")
+    current = _categories(current, "current")
+    smoothing = _positive_finite(smoothing, "smoothing")
+    psi_threshold = _positive_finite(psi_threshold, "psi_threshold")
+    return _categorical_drift_report(
+        reference, current, smoothing, psi_threshold, sorted(set(reference) | set(current)),
+    )
 
 
 def categorical_drift_certificate(

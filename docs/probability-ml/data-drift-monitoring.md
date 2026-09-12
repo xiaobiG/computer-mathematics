@@ -80,24 +80,35 @@ python -m unittest projects.naive_bayes_spam.test_drift_monitoring
 
 报告的类别取两期并集，故 `invoice` 显示参考计数为 0、当前计数为 10，而不是被过滤掉。平滑避免 $\log 0$；它并不表示参考期真的观察过该类别。证书从原始两期数据、平滑量和阈值独立重建整份报告，所以改写 `needs_review`、计数或距离都会被拒绝。
 
+## 同一距离不等于同样稳定
+
+点估计不会自动告诉我们样本量是否足够。两组窗口若同为 $80\%/20\%$ 对 $20\%/80\%$，PSI 与 TV 几乎相同；小窗口的重采样区间却更宽。下面的报告冻结初始类别并逐条重抽，只在“类别观测近似独立同分布”的教学假设下描述有限样本波动：
+
+```python
+from projects.naive_bayes_spam.categorical_drift_bootstrap import categorical_drift_bootstrap_report
+
+small = categorical_drift_bootstrap_report(["ham"] * 8 + ["spam"] * 2, ["ham"] * 2 + ["spam"] * 8, repeats=200, seed=11)
+large = categorical_drift_bootstrap_report(["ham"] * 800 + ["spam"] * 200, ["ham"] * 200 + ["spam"] * 800, repeats=200, seed=11)
+print(small["psi_percentile_interval"], large["psi_percentile_interval"])
+```
+
+证书重放点距离、类别宇宙、样本量、种子和区间；区间不是显著性、因果原因或自动重训的证明。时间、簇或纵向相关会使逐条重抽低估共同波动，应改用[时间块](/probability-ml/block-bootstrap-calibration)、[簇级](/probability-ml/cluster-bootstrap-calibration)或[配对纵向](/probability-ml/time-stratified-cluster-bootstrap)设计。
+
 ## 告警后的决策边界
 
-`needs_review` 只表示 PSI 达到该报告的政策阈值。合理的人工审查至少包括：数据采集/解析是否变了、是否出现新来源、标签是否延迟、当前性能与校准是否有保留标签可检查、以及业务风险是否允许继续自动决策。
-
-不要把它写成 `if needs_review: retrain()`：新来源可能是合法产品扩张；重训可能引入标签泄漏、遗忘旧群体或放大错误标注。相反，完全不告警也会把旧校准结论不加检查地延伸到新分布。
+`needs_review` 只触发人工检查数据管道、来源、标签延迟、带标签性能与业务风险。它绝不等于 `retrain()`：新来源可能合法，重训也可能引入泄漏或遗忘。
 
 ## 正确性、边界与反例
 
 当两期类别计数相同，平滑后的 $p_j=q_j$，PSI 和 TV 都为零；实现测试此不变量。任意出现新类别时，正平滑保证每个份额为正，报告仍完整且两侧份额和为一。
 
-反例：参考期与当前期词类别频率一模一样，但垃圾邮件作者改变了策略，使 `invoice` 在同一语境中更常为垃圾。此时 $P(X)$ 不变而 $P(Y\mid X)$ 变了，PSI 与 TV 都可能接近零；必须靠延迟标签、校准/损失监控与业务审计发现问题。
+反例：词频相同但 `invoice` 的标签含义改变时，$P(X)$ 不变而 $P(Y\mid X)$ 变了；PSI/TV 仍可能很小，必须依赖延迟标签与性能审计。
 
 ## 常见误区
 
-- **“PSI 超阈值就证明模型失效。”** 错；它只表明输入分布值得复查。
-- **“PSI 很小就说明没有概念漂移。”** 错；$P(Y\mid X)$ 可在 $P(X)$ 不变时变化。
-- **“新类别用零频率即可。”** 错；会产生未定义对数或悄悄抹去风险信号。
-- **“阈值是通用科学常数。”** 错；它依赖分箱、样本量、平滑、错误成本和响应能力。
+- **“PSI 超阈值就证明失效。”** 错；它只是复查触发器。
+- **“PSI 小或两次相等，就没有问题。”** 错；前者遗漏概念漂移，后者遗漏抽样波动。
+- **“零频率或固定阈值足够。”** 错；前者使对数无定义，后者依赖样本量和业务风险。
 
 ## 练习
 
@@ -108,10 +119,10 @@ python -m unittest projects.naive_bayes_spam.test_drift_monitoring
 
 ## 练习答案提示
 
-1. 每项差为零，因此 PSI 和 TV 都为零。
-2. $(q_j-p_j)\log(q_j/p_j)=0\cdot\log1=0$；零频率使比值或对数失去定义，平滑使报告可计算但应公开说明。
-3. 按 `psi_component` 降序、类别名作稳定次序；不要从原始报告删除其余类别，否则份额守恒和证书契约会改变。
-4. 将窗口按时间而非随机切分；记录数据源、解析版本、类别比例、延迟标签下的损失/校准和标注规范变更。没有标签时不能凭输入 PSI 断言概念漂移。
+1. 两个有限求和的每项都为零。
+2. 差为零、比值为一；平滑只让零频率可计算。
+3. 稳定排序但保留全部类别，否则改变份额与证书。
+4. 冻结时间窗口与数据/标注版本；无标签时不能断言概念漂移。
 
 ## 延伸
 
