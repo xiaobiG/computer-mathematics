@@ -17,7 +17,7 @@ description: 从线性变换推导行乘列规则、维度约束与组合顺序�
 
 ## 从一个计算问题开始
 
-图形程序要先横向拉伸点，再旋转九十度。能否预先合成为一个矩阵，使 $Cx=R(Sx)$？这就是矩阵乘法的定义动机。
+图形程序要先横向拉伸点，再旋转九十度。能否预先合成为一个矩阵，使 $Cx=R(Sx)$？
 
 ## 定义与符号表
 
@@ -68,13 +68,6 @@ $$RS=\begin{bmatrix}0&-1\\2&0\end{bmatrix},\qquad SR=\begin{bmatrix}0&-2\\1&0\en
 
 对 $x=(1,1)$，$RSx=(-1,2)$ 而 $SRx=(-2,1)$。矩阵从右向左作用于向量。
 
-再看 $RS$ 的左上角：
-
-$$
-(RS)_{11}=0\times2+(-1)\times0=0.
-$$
-
-它并非“同位置元素相乘”；它是旋转后第一个坐标如何从缩放前两个坐标线性组合而来。`RS` 的第一列 $(0,2)^T$ 也可直接读成：把 $S$ 的第一列 $(2,0)^T$ 旋转，得到 $(0,2)^T$。
 
 ## 算法、正确性与复杂度
 
@@ -125,7 +118,23 @@ assert matrix_composition_certificate(rotate, scale, [1, 1], product)
 
 矩阵形状只保证算式有意义，不保证数据语义正确。批量样本常按行放成 $X\in\mathbb R^{b\times d}$，而教科书常把单个样本写为列；应在接口中固定约定并写出形状，不能靠“试试转置”修错。
 
-浮点矩阵乘法也不满足实数算术中的精确结合律：`(A @ B) @ C` 与 `A @ (B @ C)` 的舍入顺序不同，数值结果可能有微小差异。测试应使用相对/绝对容差，而不是逐元素 `==`；若中间维度很大或数值尺度悬殊，还要考虑累加误差和更稳定的分块库实现。
+实数矩阵满足结合律，浮点**执行**未必如此。下例输入仍是整数值矩阵：精确算术的两条路径都得到 1；逐项 binary64 累加中，左结合得到 1，右结合因 $10^{16}+1$ 舍入得到 0。差异来自求和顺序，不是代数定理失效。
+
+```python
+from projects.linear_algebra_lab.main import (
+    floating_associativity_certificate, floating_associativity_report,
+)
+
+A = [[1e16, 1.0, -1e16]]
+B = [[1.0, 0.0], [0.0, 1.0], [1.0, 0.0]]
+C = [[1.0], [1.0]]
+report = floating_associativity_report(A, B, C)
+assert report["exact_associativity_holds"]
+assert not report["floating_associativity_holds"]
+assert floating_associativity_certificate(A, B, C, report)
+```
+
+因此测试浮点三矩阵结合律应用相对/绝对容差；尺度悬殊时还应考虑累加误差和更稳定的分块库实现。
 
 稀疏矩阵不应以密集列表存储大量零；只遍历非零项的 CSR/CSC 表示可改变实际工作量。反过来，稀疏格式在小而稠密的矩阵上可能更慢。是否预先合成多个矩阵也取决于中间层是否要保留非线性、监控点、掩码或稀疏结构。
 

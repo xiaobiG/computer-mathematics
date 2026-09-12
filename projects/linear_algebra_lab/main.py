@@ -12,15 +12,24 @@ def matmul(left, right):
         raise ValueError("matrices must be non-empty")
     left_width = len(left[0])
     right_width = len(right[0])
-    if any(len(row) != left_width for row in left + right):
+    if (any(len(row) != left_width for row in left)
+            or any(len(row) != right_width for row in right)):
         raise ValueError("matrices must be rectangular")
     if left_width != len(right):
         raise ValueError("incompatible matrix shapes")
-    return [
-        [sum(left[i][k] * right[k][j] for k in range(left_width))
-        for j in range(right_width)]
-        for i in range(len(left))
-    ]
+    output = []
+    for row in range(len(left)):
+        output_row = []
+        for column in range(right_width):
+            # Keep the textbook's left-to-right scalar accumulation explicit.
+            # Built-in sum can apply runtime-specific compensation, which would
+            # no longer model the pseudocode or its rounding-order lesson.
+            total = 0
+            for index in range(left_width):
+                total += left[row][index] * right[index][column]
+            output_row.append(total)
+        output.append(output_row)
+    return output
 
 
 def matrix_composition_certificate(left, right, vector, product, tolerance=EPSILON):
@@ -326,6 +335,60 @@ def gram_schmidt_stability_certificate(columns, report, epsilon=1e-15):
         return False
     try:
         return report == gram_schmidt_stability_report(columns, epsilon)
+    except (TypeError, ValueError):
+        return False
+
+
+def _integer_matrix_for_exact_arithmetic(matrix, name):
+    if not isinstance(matrix, list) or not matrix or not isinstance(matrix[0], list) or not matrix[0]:
+        raise ValueError(f"{name} must be a non-empty matrix")
+    width = len(matrix[0])
+    converted = []
+    for row in matrix:
+        if not isinstance(row, list) or len(row) != width:
+            raise ValueError(f"{name} must be rectangular")
+        converted_row = []
+        for value in row:
+            if (not isinstance(value, (int, float)) or isinstance(value, bool)
+                    or not isfinite(value) or not float(value).is_integer()):
+                raise ValueError(f"{name} must contain finite integer-valued entries")
+            converted_row.append(int(value))
+        converted.append(converted_row)
+    return converted
+
+
+def floating_associativity_report(left, middle, right):
+    """Contrast one floating execution with exact integer matrix associativity.
+
+    Inputs are integer-valued so the exact calculation describes the same
+    mathematical matrices.  Floating products are deliberately evaluated in
+    two parenthesizations; differing outputs witness rounding order, not a
+    failure of the real-number associativity theorem.
+    """
+    exact_left = _integer_matrix_for_exact_arithmetic(left, "left")
+    exact_middle = _integer_matrix_for_exact_arithmetic(middle, "middle")
+    exact_right = _integer_matrix_for_exact_arithmetic(right, "right")
+    floating_left_associated = matmul(matmul(left, middle), right)
+    floating_right_associated = matmul(left, matmul(middle, right))
+    exact_left_associated = matmul(matmul(exact_left, exact_middle), exact_right)
+    exact_right_associated = matmul(exact_left, matmul(exact_middle, exact_right))
+    return {
+        "floating_left_associated": floating_left_associated,
+        "floating_right_associated": floating_right_associated,
+        "exact_left_associated": exact_left_associated,
+        "exact_right_associated": exact_right_associated,
+        "floating_associativity_holds": floating_left_associated == floating_right_associated,
+        "exact_associativity_holds": exact_left_associated == exact_right_associated,
+        "interpretation": "different_floating_parenthesizations_do_not_refute_exact_matrix_associativity",
+    }
+
+
+def floating_associativity_certificate(left, middle, right, report):
+    """Recompute both arithmetic models before trusting an associativity claim."""
+    if not isinstance(report, dict):
+        return False
+    try:
+        return report == floating_associativity_report(left, middle, right)
     except (TypeError, ValueError):
         return False
 

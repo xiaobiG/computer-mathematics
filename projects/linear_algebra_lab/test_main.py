@@ -5,7 +5,8 @@ from projects.linear_algebra_lab.main import (
     classify_linear_system, compress_grayscale, diagnose_least_squares_case, dominant_right_singular_vector, frobenius_error, image_cosine_similarity,
     compressed_image_search, compressed_image_search_certificate, least_squares_comparison_report, least_squares_normal_equations, least_squares_report_certificate, low_rank_parameter_report,
     gram_schmidt_stability_certificate, gram_schmidt_stability_report,
-    matmul, matrix_composition_certificate, norm, project, least_squares_qr, rank_k_approximation, rank_one_approximation,
+    matmul, matrix_composition_certificate, floating_associativity_report, floating_associativity_certificate,
+    norm, project, least_squares_qr, rank_k_approximation, rank_one_approximation,
     elimination_invariant_certificate, pivot_trace_certificate, solve, solve_with_pivot_trace, truncated_svd_frobenius_error,
     truncated_svd_report, truncated_svd_report_certificate, numerical_rank_report,
     numerical_rank_scale_comparison, numerical_rank_scale_comparison_certificate,
@@ -25,6 +26,22 @@ class LinearAlgebraLabTests(unittest.TestCase):
         rotate = [[0, -1], [1, 0]]
         self.assertFalse(matrix_composition_certificate(rotate, scale, [1, 1], matmul(scale, rotate)))
         self.assertFalse(matrix_composition_certificate(rotate, scale, [1], matmul(rotate, scale)))
+
+    def test_float_parenthesization_can_differ_while_exact_matrix_associativity_holds(self):
+        left = [[1e16, 1.0, -1e16]]
+        middle = [[1.0, 0.0], [0.0, 1.0], [1.0, 0.0]]
+        right = [[1.0], [1.0]]
+        report = floating_associativity_report(left, middle, right)
+        self.assertEqual(report["exact_left_associated"], [[1]])
+        self.assertEqual(report["exact_right_associated"], [[1]])
+        self.assertEqual(report["floating_left_associated"], [[1.0]])
+        self.assertEqual(report["floating_right_associated"], [[0.0]])
+        self.assertFalse(report["floating_associativity_holds"])
+        self.assertTrue(report["exact_associativity_holds"])
+        self.assertTrue(floating_associativity_certificate(left, middle, right, report))
+        tampered = dict(report)
+        tampered["exact_associativity_holds"] = False
+        self.assertFalse(floating_associativity_certificate(left, middle, right, tampered))
 
     def test_matrix_shape_error(self):
         with self.assertRaises(ValueError):
