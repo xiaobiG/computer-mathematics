@@ -53,6 +53,7 @@ export default defineConfig({
               link: "/foundations/tensor-shapes-batches",
             },
             { text: "有限关系与邻接矩阵", link: "/foundations/finite-relations-matrices" },
+            { text: "关系复合与可达闭包", link: "/foundations/relation-composition-reachability" },
           ],
         },
       ],

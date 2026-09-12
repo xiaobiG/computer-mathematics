@@ -42,3 +42,24 @@ def finite_relation_certificate(domain, pairs, report):
         return report == finite_relation_report(domain, pairs)
     except ValueError:
         return False
+
+
+def relation_reachability_report(domain, pairs):
+    """Compute transitive closure by adding one allowed intermediate at a time."""
+    members, edges = _domain(domain), _pairs(pairs, domain)
+    reach = set(edges)
+    layers = []
+    for middle in members:
+        before = set(reach)
+        reach |= {(left, right) for left, pivot in before for pivot2, right in before if pivot == middle == pivot2}
+        layers.append({"intermediate": middle, "new_pairs": [list(pair) for pair in sorted(reach - before)]})
+    return {"contract": "relation-reachability/v1", "domain": members, "pairs": [list(pair) for pair in edges], "closure_pairs": [list(pair) for pair in sorted(reach)], "layers": layers, "closure_matrix": [[1 if (left, right) in reach else 0 for right in members] for left in members]}
+
+
+def relation_reachability_certificate(domain, pairs, report):
+    if not isinstance(report, dict):
+        return False
+    try:
+        return report == relation_reachability_report(domain, pairs)
+    except ValueError:
+        return False

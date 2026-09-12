@@ -1,7 +1,7 @@
 import copy
 import unittest
 
-from projects.foundations_lab.relations import finite_relation_certificate, finite_relation_report
+from projects.foundations_lab.relations import finite_relation_certificate, finite_relation_report, relation_reachability_certificate, relation_reachability_report
 
 
 class RelationTests(unittest.TestCase):
@@ -22,3 +22,8 @@ class RelationTests(unittest.TestCase):
     def test_contract_rejects_duplicate_or_outside_pairs(self):
         with self.assertRaises(ValueError): finite_relation_report(["a"], [["a", "a"], ["a", "a"]])
         with self.assertRaises(ValueError): finite_relation_report(["a"], [["a", "b"]])
+
+    def test_reachability_closure_records_intermediate_invariant(self):
+        report = relation_reachability_report(["a", "b", "c"], [["a", "b"], ["b", "c"]])
+        self.assertIn(["a", "c"], report["closure_pairs"])
+        self.assertTrue(relation_reachability_certificate(["a", "b", "c"], [["a", "b"], ["b", "c"]], report))
