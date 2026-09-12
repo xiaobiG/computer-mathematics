@@ -1,8 +1,8 @@
 ---
 courseLevel: "2（递推与分析）"
 prerequisites: "递归、求和与对数"
-estimatedMinutes: 50
-experiment: "比较递归树预测与实际运行计数"
+estimatedMinutes: 65
+experiment: "重放递归树报告，并比较模型工作量与实际比较次数"
 title: 递推关系与分治复杂度：递归树如何计算总代价
 description: 从递归代码建立递推式，用递归树和主定理分析分治算法的时间与边界。
 ---
@@ -12,7 +12,7 @@ description: 从递归代码建立递推式，用递归树和主定理分析分�
 ## 学习目标
 
 - 从递归函数写出含基例的递推式；
-- 用递归树推导二分查找与归并排序复杂度，并审计每层工作量；
+- 用递归树推导二分查找与归并排序复杂度，并重放每层工作与总工作；
 - 判断主定理适用范围及递归栈边界。
 
 ## 从一个计算问题开始
@@ -32,20 +32,23 @@ $$T(1)=\Theta(1),\qquad T(n)=2T(n/2)+\Theta(n).$$
 ```python
 from projects.algorithm_lab.recurrence_trace import (
     binary_search_worst_case_steps,
-    merge_sort_levels,
+    merge_sort_tree_certificate,
+    merge_sort_tree_report,
     merge_sort_with_comparisons,
 )
 
 assert binary_search_worst_case_steps(16) == 4
-levels = merge_sort_levels(8)
-assert [level.total_merge_items for level in levels] == [8, 8, 8]
+report = merge_sort_tree_report(8)
+assert report["total_merge_items"] == 24
+assert all(report["certificate"].values())
+assert merge_sort_tree_certificate(8, report)
 
 ordered, comparisons = merge_sort_with_comparisons([5, 1, 4, 2, 3, 0, 7, 6])
 assert ordered == list(range(8))
 assert comparisons <= 8 * 3
 ```
 
-运行 `python -m unittest projects.algorithm_lab.test_recurrence_trace`。`merge_sort_levels` 限定 $n$ 为二的幂，使第 $i$ 层恰有 $2^i$ 个大小 $n/2^i$ 的子问题；测试因此能验证每一内层的 `total_merge_items` 都为 $n$，总计为 $n\log_2n$。`merge_sort_with_comparisons` 则实际排序并确认比较次数不超过这一数量级上界，而不是把递归树只当作插图。
+运行 `python -m unittest projects.algorithm_lab.test_recurrence_trace`。`merge_sort_tree_report` 限定 $n$ 为二的幂，使第 $i$ 层恰有 $2^i$ 个大小 $n/2^i$ 的子问题。它明确记录层数、每层的子问题分割与合并量；证书同时重放“深度等于 $\log_2 n$”“每层刚好分割 $n$ 个元素”和“总量为 $n\log_2 n$”。因此，改写某一层的规模、深度或总量都会让 `merge_sort_tree_certificate` 失败。`merge_sort_with_comparisons` 则实际排序并确认比较次数不超过这一数量级上界，而不是把递归树只当作插图。
 
 主定理处理 $T(n)=aT(n/b)+f(n)$，比较 $f(n)$ 与 $n^{\log_ba}$：递归叶子工作、每层附加工作或两者共同主导。递归栈深度通常为树高，二分搜索为 $O(\log n)$，但不等于所有节点的总工作。
 
@@ -53,11 +56,13 @@ assert comparisons <= 8 * 3
 
 归并的正确性可对输入长度归纳：长度 $0$ 或 $1$ 已有序；若左右递归结果有序，每次输出两者当前较小首元素，就不可能漏掉元素，也不会把更大的元素放在尚未输出的更小元素之前，故合并结果有序且是原多重集合的重排。实验还检查输入列表没有被原地修改。
 
-对二的幂 $n$，归并树有 $\log_2n$ 个内层，每层总合并量为 $n$，故总工作为 $\Theta(n\log n)$；比较次数至多同阶。实际 Python 切片也会复制列表，这正是代码中不能把“分割”盲目视为零成本的原因。对于非二的幂，树会不均匀，但渐近结论不变；本实验拒绝它们只是为了让课程不变量保持精确可读。
+对二的幂 $n$，归并树有 $\log_2 n$ 个内层，每层总合并量为 $n$，故总工作为 $\Theta(n\log n)$；比较次数至多同阶。报告不是只检查最终的 $24$：它逐层保存 $2^i \times (n/2^i)=n$，再将所有内层相加。实际 Python 切片也会复制列表，这正是代码中不能把“分割”盲目视为零成本的原因。对于非二的幂，树会不均匀，但渐近结论不变；本实验拒绝它们只是为了让课程不变量保持精确可读。
 
 ## 失败案例与工程边界
 
 主定理不能直接处理 $T(n)=T(n-1)+\Theta(1)$、不等分递归、依赖输入的分支或不规则合并。切片、复制和排序等语言操作可能将“常数工作”变成线性工作；递归还受语言栈深度限制。此时用递归树、代入法或更一般的 Akra–Bazzi 工具。
+
+本报告也不测量墙钟时间，更不声称元素比较恰好等于合并元素数：数据顺序会改变比较次数，运行环境会改变耗时。它只证明本课程中固定的、按元素计的递归树工作模型；用 `merge_sort_with_comparisons` 的实际计数来观察另一个量，不能把两者混为一谈。
 
 ## 常见误区
 

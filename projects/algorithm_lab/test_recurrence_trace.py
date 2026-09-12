@@ -3,6 +3,8 @@ import unittest
 from projects.algorithm_lab.recurrence_trace import (
     binary_search_worst_case_steps,
     merge_sort_levels,
+    merge_sort_tree_certificate,
+    merge_sort_tree_report,
     merge_sort_with_comparisons,
 )
 
@@ -23,6 +25,24 @@ class RecurrenceTraceTests(unittest.TestCase):
         self.assertEqual(sum(level.total_merge_items for level in levels), 24)
         with self.assertRaises(ValueError):
             merge_sort_levels(6)
+
+    def test_merge_tree_report_replays_all_level_and_total_work_claims(self):
+        report = merge_sort_tree_report(8)
+        self.assertEqual(report["internal_depth"], 3)
+        self.assertEqual(report["total_merge_items"], 24)
+        self.assertEqual(report["expected_total_merge_items"], 24)
+        self.assertTrue(all(report["certificate"].values()))
+        self.assertTrue(merge_sort_tree_certificate(8, report))
+        self.assertTrue(merge_sort_tree_certificate(1, merge_sort_tree_report(1)))
+
+        changed = dict(report)
+        changed["total_merge_items"] = 23
+        self.assertFalse(merge_sort_tree_certificate(8, changed))
+
+        changed = dict(report)
+        changed["levels"] = [dict(level) for level in report["levels"]]
+        changed["levels"][1]["items_per_subproblem"] = 3
+        self.assertFalse(merge_sort_tree_certificate(8, changed))
 
     def test_merge_sort_is_correct_and_comparisons_obey_n_log_n_bound(self):
         values = [5, 1, 4, 2, 3, 0, 7, 6]

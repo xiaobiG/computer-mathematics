@@ -10,6 +10,9 @@ from typing import TypeVar
 Item = TypeVar("Item")
 
 
+MERGE_SORT_TREE_CONTRACT = "merge-sort-recursion-tree/v1"
+
+
 @dataclass(frozen=True)
 class MergeLevel:
     """The merge work contributed by one recursion-tree depth."""
@@ -46,6 +49,54 @@ def merge_sort_levels(size: int) -> list[MergeLevel]:
         items_per_subproblem = size // subproblems
         levels.append(MergeLevel(depth, subproblems, items_per_subproblem, size))
     return levels
+
+
+def merge_sort_tree_report(size: int) -> dict[str, object]:
+    """Build a replayable, exact recursion-tree report for power-of-two input.
+
+    This is deliberately a *work model*, rather than a wall-clock benchmark or
+    an exact comparison counter.  Every internal merge level partitions the
+    same ``size`` items, so the report exposes the assumptions behind the
+    familiar ``size * log2(size)`` total.
+    """
+    levels = merge_sort_levels(size)
+    encoded_levels = [
+        {
+            "depth": level.depth,
+            "subproblems": level.subproblems,
+            "items_per_subproblem": level.items_per_subproblem,
+            "total_merge_items": level.total_merge_items,
+        }
+        for level in levels
+    ]
+    depth = len(encoded_levels)
+    return {
+        "contract": MERGE_SORT_TREE_CONTRACT,
+        "size": size,
+        "internal_depth": depth,
+        "levels": encoded_levels,
+        "total_merge_items": sum(level["total_merge_items"] for level in encoded_levels),
+        "expected_total_merge_items": size * depth,
+        "certificate": {
+            "depth_matches_log2_size": depth == int(log2(size)),
+            "depths_are_contiguous": [level["depth"] for level in encoded_levels] == list(range(depth)),
+            "every_level_partitions_size": all(
+                level["subproblems"] * level["items_per_subproblem"] == size
+                and level["total_merge_items"] == size
+                for level in encoded_levels
+            ),
+            "total_work_matches_size_times_depth": sum(
+                level["total_merge_items"] for level in encoded_levels
+            ) == size * depth,
+        },
+    }
+
+
+def merge_sort_tree_certificate(size: int, report: object) -> bool:
+    """Replay the deterministic recursion-tree model and reject changed fields."""
+    if not isinstance(report, dict):
+        return False
+    return report == merge_sort_tree_report(size)
 
 
 def merge_sort_with_comparisons(values: list[Item]) -> tuple[list[Item], int]:
