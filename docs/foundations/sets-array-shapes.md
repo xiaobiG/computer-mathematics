@@ -25,7 +25,7 @@ $$M=\begin{bmatrix}1&2&3\\4&5&6\end{bmatrix}$$
 
 有限集合的三种基本运算为
 
-$$A\cup B=\{x:x\in A\lor x\in B\},\quad A\cap B=\{x:x\in A\land x\in B\},\quad A\setminus B=\{x:x\in A\land x\notin B\}.$$
+$$A\cup B=\{x:x\in A\lor x\in B\},\quad A\cap B=\{x:x\in A\land x\in B\},\quad A\setminus B=\{x:x\in A\land x\not\in B\}.$$
 
 数组则是一个从坐标到值的函数。形状为 $(r,c)$ 的二维数组定义在
 
