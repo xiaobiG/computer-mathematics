@@ -3,6 +3,8 @@ import unittest
 from projects.floating_point_museum.linear_iterations import (
     is_strictly_diagonally_dominant,
     iteration_trace_certificate,
+    jacobi_two_by_two_convergence_certificate,
+    jacobi_two_by_two_convergence_report,
     residual,
     solve_iteratively,
 )
@@ -45,3 +47,23 @@ class LinearIterationTests(unittest.TestCase):
             solve_iteratively([[0.0]], [1.0])
         with self.assertRaises(ValueError):
             solve_iteratively([[1.0]], [1.0], method="sor")  # type: ignore[arg-type]
+
+    def test_non_diagonal_dominance_can_converge_or_diverge_by_spectral_radius(self):
+        convergent = jacobi_two_by_two_convergence_report([[1.0, 2.0], [0.2, 1.0]], [3.0, 1.2])
+        self.assertFalse(convergent["strictly_diagonally_dominant"])
+        self.assertAlmostEqual(convergent["jacobi_iteration_spectral_radius"], 0.4 ** 0.5)
+        self.assertTrue(convergent["spectral_radius_below_one"])
+        self.assertEqual(convergent["finite_run"]["status"], "converged")
+        self.assertTrue(jacobi_two_by_two_convergence_certificate(
+            [[1.0, 2.0], [0.2, 1.0]], [3.0, 1.2], convergent,
+        ))
+
+        divergent = jacobi_two_by_two_convergence_report([[1.0, 2.0], [2.0, 1.0]], [3.0, 3.0], max_steps=12)
+        self.assertFalse(divergent["strictly_diagonally_dominant"])
+        self.assertGreater(divergent["jacobi_iteration_spectral_radius"], 1.0)
+        self.assertEqual(divergent["finite_run"]["status"], "did_not_converge")
+        tampered = dict(divergent)
+        tampered["spectral_radius_below_one"] = True
+        self.assertFalse(jacobi_two_by_two_convergence_certificate(
+            [[1.0, 2.0], [2.0, 1.0]], [3.0, 3.0], tampered, max_steps=12,
+        ))

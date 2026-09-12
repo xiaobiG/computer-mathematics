@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from math import isfinite
+from math import isfinite, sqrt
 from typing import Literal
 
 
@@ -22,6 +22,59 @@ def is_strictly_diagonally_dominant(matrix: list[list[float]]) -> bool:
     """Check a useful sufficient condition, not a necessary convergence test."""
     return all(abs(row[index]) > sum(abs(value) for column, value in enumerate(row) if column != index)
                for index, row in enumerate(matrix))
+
+
+def jacobi_two_by_two_convergence_report(
+    matrix: list[list[float]], right_side: list[float], *, residual_tol: float = 1e-10,
+    step_tol: float = 1e-10, max_steps: int = 200,
+) -> dict[str, object]:
+    """Compare a 2-by-2 Jacobi spectral condition with a declared finite run.
+
+    For ``T = -D^{-1}(L + U)``, the two eigenvalues satisfy
+    ``lambda^2 = a01*a10/(a00*a11)``.  This small exact calculation makes
+    strict diagonal dominance and the actual ``rho(T) < 1`` condition visible
+    as separate statements; it is not a general eigenvalue routine.
+    """
+    if len(matrix) != 2 or any(len(row) != 2 for row in matrix) or len(right_side) != 2:
+        raise ValueError("report requires a 2-by-2 system")
+    if any(not isfinite(value) for row in matrix for value in row) or any(not isfinite(value) for value in right_side):
+        raise ValueError("matrix and right_side must be finite")
+    if matrix[0][0] == 0 or matrix[1][1] == 0:
+        raise ValueError("Jacobi iteration requires a nonzero diagonal")
+    product = matrix[0][1] * matrix[1][0] / (matrix[0][0] * matrix[1][1])
+    spectral_radius = sqrt(abs(product))
+    try:
+        solution, trace = solve_iteratively(
+            matrix, right_side, method="jacobi", residual_tol=residual_tol,
+            step_tol=step_tol, max_steps=max_steps,
+        )
+        finite_run: dict[str, object] = {
+            "status": "converged", "steps": len(trace), "solution": solution,
+            "final_residual_norm": trace[-1]["residual_norm"],
+        }
+    except RuntimeError:
+        finite_run = {"status": "did_not_converge", "steps": max_steps}
+    return {
+        "strictly_diagonally_dominant": is_strictly_diagonally_dominant(matrix),
+        "jacobi_iteration_spectral_radius": spectral_radius,
+        "spectral_radius_below_one": spectral_radius < 1.0,
+        "finite_run": finite_run,
+    }
+
+
+def jacobi_two_by_two_convergence_certificate(
+    matrix: list[list[float]], right_side: list[float], report: object, *, residual_tol: float = 1e-10,
+    step_tol: float = 1e-10, max_steps: int = 200,
+) -> bool:
+    """Replay the restricted spectral/finite-run comparison exactly."""
+    if not isinstance(report, dict):
+        return False
+    try:
+        return report == jacobi_two_by_two_convergence_report(
+            matrix, right_side, residual_tol=residual_tol, step_tol=step_tol, max_steps=max_steps,
+        )
+    except (ArithmeticError, TypeError, ValueError):
+        return False
 
 
 def solve_iteratively(

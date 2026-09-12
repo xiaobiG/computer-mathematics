@@ -17,7 +17,7 @@ experiment: projects/floating_point_museum/linear_iterations.py
 
 电路、网格模拟和推荐系统经常要求解 $Ax=b$。直接写 `inverse(A) @ b` 既浪费计算，也会把数值误差放大；大型稀疏系统通常只希望通过矩阵—向量运算逐步逼近解。迭代法的代价是：它不保证每个系统都会收敛，因此程序必须能给出收敛证据或明确失败。
 
-## 定义与直觉
+## 定义与更新推导
 
 把 $A=D+L+U$ 分成对角、严格下三角和严格上三角部分。第 $i$ 行
 
@@ -52,9 +52,29 @@ Jacobi 给出 $x^{(1)}=(15/4,10/3)$。第二轮第一分量仍使用旧的 $10/3
 
 $$|a_{ii}|>\sum_{j\ne i}|a_{ij}|,$$
 
-则 Jacobi 和 Gauss–Seidel 都收敛。这是很易检查的**充分**条件，不是必要条件；许多非对角占优矩阵也会收敛。更一般地，迭代矩阵的谱半径小于一才是收敛条件：Jacobi 为 $\rho(-D^{-1}(L+U))<1$。
+则 Jacobi 和 Gauss–Seidel 都收敛。它只是充分条件；Jacobi 的一般条件是 $\rho(-D^{-1}(L+U))<1$。
 
-反例 $A=\begin{bmatrix}1&2\\2&1\end{bmatrix}$、$b=(1,1)$ 没有对角占优。从零开始的 Jacobi 更新会反复放大旧误差；把 `max_steps` 用尽后仍无足够小残差，程序应报失败，而非返回最后一个数字。
+例如 $A=\begin{bmatrix}1&2\\2&1\end{bmatrix}$ 不对角占优；Jacobi 从零开始会放大误差，应在用尽 `max_steps` 后明确失败。
+
+## 非对角占优不等于必然发散
+
+对 $2\times2$ 系统，$T=-D^{-1}(L+U)$ 满足
+
+$$\rho(T)=\sqrt{\left|\frac{a_{12}a_{21}}{a_{11}a_{22}}\right|}.$$
+
+两个非占优系统可给出相反结论：
+
+```python
+from projects.floating_point_museum.linear_iterations import jacobi_two_by_two_convergence_report
+
+good = jacobi_two_by_two_convergence_report([[1.0, 2.0], [0.2, 1.0]], [3.0, 1.2])
+bad = jacobi_two_by_two_convergence_report([[1.0, 2.0], [2.0, 1.0]], [3.0, 3.0], max_steps=12)
+assert not good["strictly_diagonally_dominant"]
+assert good["spectral_radius_below_one"] and good["finite_run"]["status"] == "converged"
+assert not bad["spectral_radius_below_one"] and bad["finite_run"]["status"] == "did_not_converge"
+```
+
+前者 $\rho(T)=\sqrt{0.4}<1$，后者为 2。故检查失败不足以判发散；二维公式不替代一般谱估计或收敛定理。
 
 ## 可运行实现与验证
 
@@ -69,7 +89,7 @@ assert iteration_trace_certificate(A, b, "gauss-seidel", solution, trace)["valid
 print(trace[-1])
 ```
 
-运行 `python -m unittest projects.floating_point_museum.test_linear_iterations`。实现返回完整轨迹；每项包含迭代编号、完整迭代向量、$\lVert x^{(k+1)}-x^{(k)}\rVert_\infty$ 和 $\lVert b-Ax^{(k+1)}\rVert_\infty$。`iteration_trace_certificate` 会从零向量逐步重放 Jacobi 或 Gauss–Seidel 更新，并重新计算两种范数和最终停止条件；篡改某一轮的估计或度量会使证书失效。测试验证两种算法能解严格对角占优系统、Gauss–Seidel 在这个固定系统上不需更多轮、残差定义正确，以及发散/零对角/错误方法会显式失败。
+运行 `python -m unittest projects.floating_point_museum.test_linear_iterations`。轨迹保存迭代向量、更新量和残差；证书从零向量重放更新与停止条件，并拒绝篡改。测试覆盖两种方法、发散、零对角与错误方法。
 
 每轮稠密实现为 $O(n^2)$ 时间、$O(n)$ 额外空间，$k$ 轮总计 $O(kn^2)$。对稀疏矩阵应只遍历非零元，使每轮成本接近 $O(\mathrm{nnz}(A))$。
 
@@ -92,14 +112,14 @@ $$\frac{\lVert x-\hat{x}\rVert}{\lVert x\rVert}\lesssim\kappa(A)\frac{\lVert b-A
 
 1. **基础**：对手算系统完成 Jacobi 的第二轮，并与 Gauss–Seidel 的第二个分量比较。
 2. **推导**：从逐行重排推导 $(D+L)x^{(k+1)}=b-Ux^{(k)}$。
-3. **编码**：给轨迹加入相对残差，并为一个零对角输入写测试。
+3. **编码**：运行两个 `jacobi_two_by_two_convergence_report` 例子，解释为何它们都不对角占优却由谱半径给出相反结论；篡改谱半径判断并重放证书。
 4. **开放**：将矩阵改成稀疏邻接结构，比较 Jacobi 的并行优势与 Gauss–Seidel 的数据依赖；说明何时应选择共轭梯度或预条件方法。
 
 ## 练习答案提示
 
 1. Jacobi 第二轮只用上一轮所有分量；Gauss–Seidel 的后续分量已用本轮更新值，逐行列式最容易看出差别。
 2. 从 $Ax=b$ 分解为 $(D+L+U)x=b$，把 $U x^{(k)}$ 移到右侧；更新时左侧使用新值，得到所给迭代式。
-3. 相对残差须除以与问题尺度匹配的量并处理零右端；零对角导致除零，应在开始前拒绝或要求重排。
+3. 两个例子都未通过充分条件；第一个 $\rho(T)<1$，第二个 $\rho(T)>1$。二维公式只服务于此反例；一般矩阵不能靠这条标量公式判断。
 4. Jacobi 可并行更新但往往迭代更多，Gauss–Seidel 有顺序依赖；对对称正定稀疏系统可考虑共轭梯度，病态/尺度差异时评估预条件与残差历史。
 
 ## 下一步
