@@ -1,0 +1,20 @@
+---
+title: 项目：数学预备实验室
+description: 用有限求和、集合运算与数组形状建立符号、循环和边界检查的共同基础。
+---
+
+# 项目：数学预备实验室
+
+## 目标
+
+这个小项目为五大专题提供第 0 层的最小实验：明确半开区间、空和、有限值和循环不变量，并把枚举平方和与闭式公式并列审计。它也明确区分集合的无序成员关系与二维数组的有序零基坐标，并把标量、向量、矩阵与行批次的形状合同接入矩阵乘法前置。
+
+## 运行
+
+```bash
+python -m unittest projects.foundations_lab.test_summation projects.foundations_lab.test_sets_arrays projects.foundations_lab.test_tensor_shapes
+```
+
+## 边界
+
+它只教学有限整数索引、有限成员集合与矩形数组的接口契约。大规模数组、任意精度算术、符号计算和浮点稳定求和属于后续专题，不应由这个示例替代生产库。

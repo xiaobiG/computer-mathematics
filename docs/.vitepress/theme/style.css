@@ -1,0 +1,66 @@
+:root {
+  --vp-c-brand-1: #0f766e;
+  --vp-c-brand-2: #14b8a6;
+  --vp-c-brand-3: #5eead4;
+  --vp-c-brand-soft: rgba(20, 184, 166, 0.14);
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(120deg, #0f766e 20%, #0f4c5c 70%);
+}
+.VPHomeHero .text { max-width: 620px; }
+.VPFeature { border-color: rgba(15, 118, 110, 0.16); }
+.VPFeature:hover { border-color: var(--vp-c-brand-2); }
+
+/* Long import paths and test commands are teaching content.  They may scroll
+   inside a code block on a narrow screen, but must never widen the document. */
+.vp-doc div[class*='language-'],
+.vp-doc pre {
+  max-width: 100%;
+}
+
+.vp-doc pre {
+  overflow-x: auto;
+}
+
+.vp-doc .katex-display {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.lesson-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0 0 24px;
+  overflow: hidden;
+  border: 1px solid rgba(15, 118, 110, 0.22);
+  border-radius: 12px;
+  background: rgba(15, 118, 110, 0.14);
+  box-shadow: 0 8px 22px rgba(15, 118, 110, 0.06);
+}
+
+.lesson-meta__item {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding: 12px 14px;
+  background: var(--vp-c-bg);
+}
+
+.lesson-meta__label {
+  color: var(--vp-c-text-2);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.025em;
+}
+
+.lesson-meta__value {
+  overflow-wrap: anywhere;
+  color: var(--vp-c-text-1);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+@media (max-width: 640px) {
+  .lesson-meta { grid-template-columns: 1fr; }
+}

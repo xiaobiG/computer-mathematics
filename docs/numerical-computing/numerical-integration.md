@@ -1,0 +1,136 @@
+---
+title: 数值积分：从求和逼近面积
+description: 从插值推导复合梯形法与 Simpson 法，比较误差阶、函数调用成本和间断/尖峰的失败边界。
+courseLevel: "2–3（算法与误差）"
+prerequisites: "积分、泰勒展开、函数与求和"
+estimatedMinutes: 55
+experiment: "比较梯形法和 Simpson 法的误差阶，并检测不光滑函数"
+---
+
+# 数值积分：从求和逼近面积
+
+## 学习目标
+
+读完后，你能从局部插值解释梯形与 Simpson 求积公式；用误差阶预测加密网格的收益；实现带输入验证的复合求积；并识别间断、尖峰、振荡和累计舍入误差何时让固定网格失效。
+
+## 从“函数只能运行，不能积分”开始
+
+物理模拟、概率密度和黑盒模型常能给出 `f(x)`，却没有可用原函数。把区间分成小段并求和似乎直接，但“分成多少段”决定误差和成本：过少遗漏曲率，过多浪费函数调用且可能累计浮点误差。
+
+数值积分不是把面积公式翻译成循环，而是用一族可控的局部近似替代函数，再验证误差是否按预期收敛。
+
+## 直觉、定义与推导：从插值到复合公式
+
+设 $x_i=a+ih,h=(b-a)/n$。在每个小区间以端点连线近似 $f$，积分线性插值得到梯形法：
+
+$$T_n=h\left[\frac{f(a)+f(b)}2+\sum_{i=1}^{n-1}f(x_i)\right].$$
+
+若 $f''$ 连续，整体误差满足 $E_T=O(h^2)$。这意味着将 $n$ 翻倍，误差约缩小四倍。
+
+Simpson 法在两个相邻区间上用过三个点的二次插值，要求 $n$ 为偶数：
+
+$$S_n=\frac h3\left[f(x_0)+f(x_n)+4\sum_{i\text{ odd}}f(x_i)+2\sum_{i\text{ even},0<i<n}f(x_i)\right].$$
+
+若四阶导数有界，误差为 $O(h^4)$；相同光滑前提下 $n$ 翻倍可约缩小十六倍。高阶并非魔法：不光滑函数没有这些导数时，理论阶会消失。
+
+## 可运行实现与验证
+
+```python
+from math import pi, sin
+
+from projects.floating_point_museum.integration import (
+    composite_simpson,
+    composite_trapezoid,
+    refinement_report,
+)
+
+assert abs(composite_trapezoid(sin, 0.0, pi, 64) - 2.0) < 1e-3
+assert abs(composite_simpson(sin, 0.0, pi, 64) - 2.0) < 1e-6
+
+report = refinement_report(sin, 0.0, pi, exact=2.0, segments=8)
+assert 3.9 < report.trapezoid_error_ratio < 4.1
+assert 15.5 < report.simpson_error_ratio < 16.5
+```
+
+以 $\int_0^\pi\sin x\,dx=2$ 为测试预言：计算 $n,2n$ 的误差比。平滑函数上，梯形法应趋近 $4$，Simpson 应趋近 $16$。`refinement_report` 在某条规则恰好精确时拒绝比值——分母为零不是“无限收敛阶”。这比只打印“看起来接近 2”的结果更能验证实现和推导。
+
+时间复杂度为 $O(n)$ 次函数调用，空间为 $O(1)$。当 `f` 是昂贵模拟器时，减少调用通常比循环优化重要；当 `f` 很便宜、$n$ 极大时，求和顺序和补偿求和开始影响最后几位。
+
+## 算法选择：固定网格还是自适应
+
+固定网格适合曲率分布相对均匀且预算清楚的函数。自适应算法比较一个区间的粗估计与二分后的细估计，将更多点放在高曲率或疑似奇异区域；它不是“自动更正确”，仍需最大深度、误差预算和函数异常处理。
+
+### 自适应 Simpson：把误差预算传给子区间
+
+对一个区间，记粗 Simpson 估计为 $S$、二分后的两个估计之和为 $S_2$。在函数足够光滑时，第四阶主误差的比例给出 Richardson 估计：
+
+$$\widehat E=\frac{|S_2-S|}{15},\qquad S_{\mathrm{corrected}}=S_2+\frac{S_2-S}{15}.$$
+
+当 $\widehat E\leq\tau$ 时接受该叶区间；否则把区间和预算都平分，两个子问题各用 $\tau/2$。因此已接受叶子的误差估计之和不超过最初预算。下面的实现将估计值、采样次数、最大调用预算、终止叶区间和是否耗尽深度都放进报告：
+
+```python
+from math import pi, sin
+
+from projects.floating_point_museum.integration import (
+    adaptive_simpson,
+    adaptive_simpson_certificate,
+)
+
+report = adaptive_simpson(
+    sin, 0.0, pi, absolute_tolerance=1e-10,
+    max_depth=20, max_evaluations=500,
+)
+assert report.converged
+assert report.certificate["valid"]
+assert abs(report.estimate - 2.0) < 1e-10
+assert adaptive_simpson_certificate(sin, 0.0, pi, report)
+
+# 不允许把深度或函数调用预算耗尽伪装成成功。
+limited = adaptive_simpson(sin, 0.0, pi, absolute_tolerance=1e-14, max_depth=0)
+assert not limited.converged
+assert not limited.certificate["valid"]
+
+budget_limited = adaptive_simpson(sin, 0.0, pi, max_evaluations=3)
+assert budget_limited.evaluation_budget_exhausted
+assert budget_limited.evaluations == 3
+assert budget_limited.leaves[0].status == "evaluation_budget_exhausted"
+```
+
+每次继续细分需要两个新的四分点。程序先检查剩余预算是否至少足以采两个点，因此不会把“半次细分”藏在报告外。叶区间的 `status` 只有 `accepted`、`max_depth_exhausted` 或 `evaluation_budget_exhausted`；独立证书会以函数、端点、容差、最大深度和调用预算重放整条叶轨迹。
+
+这里的 `estimated_error` 是**光滑函数模型下的估计**，而不是对任意黑盒函数的数学保证。预算耗尽时它为 `None`，因为尚未计算可解释的粗细差。遇到跳变、尖峰或噪声时，应把可疑断点显式分段，并把 `converged=False` 视为需要进一步诊断的结果，而不是增大深度后盲信一个数字。
+
+蒙特卡洛积分在高维中常比张量网格更可行，但收敛通常是 $O(N^{-1/2})$，与维度和方差强相关。不要把一维 Simpson 的高阶收敛外推到高维问题。
+
+## 失败案例与工程边界
+
+- **间断**：阶跃函数的导数不存在，网格是否撞上跳点会主导误差；按已知断点分段积分。
+- **窄尖峰**：等距点可能完全错过峰；使用领域知识、自适应采样或变量变换。
+- **高频振荡**：采样不足会混叠，结果可能稳定地错误；网格须解析振荡尺度。
+- **极大 n**：普通浮点累计可能吞掉小项；考虑 Kahan/pairwise 求和并报告容差。
+- **昂贵或有副作用的函数**：调用预算是资源契约，不是数值误差上界。预算耗尽时报告叶区间和未估计误差，不能把最后的父区间估计标成达标结果。
+
+## 常见误区
+
+1. “Simpson 总比梯形好。”错误：它依赖更强光滑性，且函数值噪声会破坏高阶优势。
+2. “误差小就说明积分正确。”错误：可能两个网格都漏掉同一个尖峰。
+3. “分段数翻倍必然误差减半。”错误：误差阶取决于公式和函数正则性。
+4. “数值积分只适合一维。”错误：高维可用随机方法、稀疏网格或问题结构，但策略不同。
+
+## 练习
+
+1. **基础题**：由端点线性插值推导单个小区间的梯形面积公式。
+2. **推导题**：若梯形误差为 $Ch^2$，证明分段数翻倍时误差比趋于 $4$。
+3. **编码题**：对 `sin` 比较 $n=8,16,32,64$ 的两种方法，输出误差比；再对 $|x|$ 在 $[-1,1]$ 上重复并解释结果。
+4. **工程题**：为一个昂贵且带尖峰的仿真函数设计自适应积分的停止规则、最大预算和异常值策略；说明为何 `estimated_error` 不能替代对尖峰是否被采样到的审计。
+
+## 练习答案提示
+
+1. 在区间两端取函数值，用底乘平均高近似线性插值下的面积，得到 $h(f(a)+f(b))/2$。
+2. $h$ 减半后 $Ch^2$ 变为 $C(h/2)^2$，所以旧误差与新误差之比趋于 4；前提是渐近区间且函数足够光滑。
+3. 对每个 $n$ 记录绝对误差与相邻比；$|x|$ 在 0 不光滑，理论高阶比可能不出现，不能将此当实现失败。
+4. 用粗细估计差分配局部误差预算，设函数调用/递归深度上限；`|S_2-S|/15` 只在光滑假设下可解释为误差估计。遇到 NaN、尖峰或不连续信号时记录区间并按契约分段、回退或失败；若预算不足两个新点，显式返回未收敛叶。
+
+## 延伸
+
+积分中的“缩小步长会先变好后受浮点限制”与[数值微分](/numerical-computing/numerical-differentiation)相呼应。继续学习 Richardson 外推、自适应 Gauss–Kronrod 和蒙特卡洛/重要性采样；对工程实现，优先选择经验证的科学计算库。
