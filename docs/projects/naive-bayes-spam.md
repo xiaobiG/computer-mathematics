@@ -23,6 +23,8 @@ $$P(w\mid y)=\frac{\mathrm{count}(w,y)+1}{\sum_{w'}\mathrm{count}(w',y)+|V|}.$$
 
 预测时累加 $\log P(y)+\sum_w\log P(w\mid y)$，避免小概率相乘下溢。两类分数的差经稳定 sigmoid 转为 $P(y=1\mid x)$；项目会计算精确率、召回率、F1、Brier 分数和可靠性分箱。每个非空箱还报告正例计数和 Wilson 区间，避免把计数为 1 的频率当作精确校准率。[Platt scaling 再校准器](/probability-ml/recalibration)只接收显式的验证分数与标签，以 logistic 后处理审计 Brier、对数损失与优化轨迹，避免把测试标签隐藏进 `fit`。[数据漂移报告](/probability-ml/data-drift-monitoring)用 PSI、总变差距离和独立重放证书比较参考期与当前期的类别频率；[带标签窗口报告](/probability-ml/labeled-window-performance-degradation)则在标签到达后比较混淆矩阵、准确率 Wilson 区间、Brier 分数和对数损失。[分组校准报告](/probability-ml/subgroup-calibration-uncertainty)会在预先定义且样本充足的组内固定分箱，保留 ECE、Brier、每箱正例率 Wilson 区间、阈值与重放证书，从而拒绝“总体 ECE 很低便代表每组可信”的推断；[冻结窗口校准比较](/probability-ml/frozen-window-calibration-comparison)则绑定参考/当前名称、同一分箱和最低样本政策，差异只进入人工复核。[时间分层簇级 bootstrap](/probability-ml/time-stratified-cluster-bootstrap)再将簇限制在冻结时间层内重采样，拒绝同一簇跨层复用，避免把短期趋势与簇相关混为一谈。所有报告不自动决定重训。二元后验模块验证低基率下的证据归一化、无信息证据、条件独立的连续更新，以及与显式联合模型的可重放差异；配套伯努利模块验证 MLE、端点对数似然和 Beta 先验下的 MAP。测试覆盖两类训练前提、未见词平滑、概率归一化、联合似然边界、混淆矩阵、分箱计数守恒、Wilson 边界、再校准输入契约、漂移报告、带标签窗口报告与校准报告的篡改。
 
+配对纵向报告是对跨层重复用户的受限替代：它完整重抽用户轨迹，报告每层与首末趋势区间；不建立因果或自动行动结论。入口见[时间分层簇级 bootstrap](/probability-ml/time-stratified-cluster-bootstrap)。
+
 ## 工程边界
 
 这是教学词袋模型，不是生产反垃圾邮件系统：没有真实中文分词、特征审计、生产级数据漂移监测或对抗鲁棒性。虽然现在能生成可靠性分箱、Wilson 区间、验证集上的再校准和教学用的类别漂移报告，但小样本图形不能证明校准；必须在独立验证集上选择后处理，并在保留测试集上一次性报告。准确率也不足以评价低基率任务，必须结合精确率、召回率、Brier 分数、对数损失、校准与带标签窗口的性能审计。
