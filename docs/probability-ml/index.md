@@ -32,7 +32,7 @@
 - [协方差、相关性与特征](/probability-ml/covariance-correlation)：共同变化、协方差矩阵、PCA 与因果边界；
 - [大数定律与中心极限定理](/probability-ml/laws-of-large-numbers-clt)：样本均值、标准误缩放、近似正态与独立性边界；
 - [抽样误差、置信区间与覆盖率](/probability-ml/confidence-intervals-sampling)：标准误、覆盖率、bootstrap 与实验设计边界；
-- [最大似然](/probability-ml/maximum-likelihood)：对数似然、MAP 与参数估计；
+- [最大似然](/probability-ml/maximum-likelihood)：样本均值 MLE、经验交叉熵/KL 分解与 MAP/预测的区别；
 - [交叉熵与 KL 散度](/probability-ml/cross-entropy-kl)：概率承诺、分布比较与零概率边界；
 - [生成模型、朴素贝叶斯与逻辑回归](/probability-ml/generative-discriminative-logistic)：伯努利似然、梯度下降与两条概率分类路径；
 - [共轭先验与后验预测](/probability-ml/conjugate-priors-predictive)：Beta–Bernoulli 更新、平滑与小样本边界；
