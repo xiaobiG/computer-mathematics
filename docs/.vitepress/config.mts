@@ -468,7 +468,30 @@ export default defineConfig({
       ],
     },
     socialLinks: [],
-    search: { provider: "local" },
+    search: {
+      provider: "local",
+      options: {
+        // KaTeX renders each formula as MathML, visual HTML, and a TeX annotation.
+        // Keep one escaped TeX copy for search instead of indexing those three duplicates.
+        _render: (src, env, md) => {
+          const escapeFormula = (formula: string) =>
+            formula
+              .trim()
+              .replaceAll("&", "&amp;")
+              .replaceAll("<", "&lt;")
+              .replaceAll(">", "&gt;");
+          const searchableSource = src
+            .replace(/\$\$([\s\S]*?)\$\$/g, (_match, formula: string) =>
+              `<span class="search-math">${escapeFormula(formula)}</span>`,
+            )
+            .replace(/(^|[^\\])\$([^$\n]+?)\$/gm, (_match, prefix: string, formula: string) =>
+              `${prefix}<span class="search-math">${escapeFormula(formula)}</span>`,
+            );
+          const html = md.render(searchableSource, env);
+          return env.frontmatter?.search === false ? "" : html;
+        },
+      },
+    },
     footer: {
       message: "持续构建中的计算机数学知识库",
       copyright: "内容采用 Markdown 优先的工作流维护",
