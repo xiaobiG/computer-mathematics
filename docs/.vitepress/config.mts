@@ -360,6 +360,10 @@ export default defineConfig({
               link: "/numerical-computing/numerical-integration",
             },
             {
+              text: "多维积分的结构化采样：网格与蒙特卡洛",
+              link: "/numerical-computing/multidimensional-integration",
+            },
+            {
               text: "随机模拟的误差与可复现性",
               link: "/numerical-computing/stochastic-simulation-reproducibility",
             },

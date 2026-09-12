@@ -36,6 +36,7 @@ description: 用可复现实验观察舍入、累计误差、消去误差与蒙�
 - [割线法](/numerical-computing/secant-method)：以两点插值公式、事件连接和残差审计无导数迭代。
 - [数值微分](/numerical-computing/numerical-differentiation)：扫描中心差分步长，审查二阶截断趋势与极小步长的误差反弹。
 - [数值积分](/numerical-computing/numerical-integration)：用自适应 Simpson 的叶区间、误差预算与函数调用上限审查何时真正停止。
+- [多维积分的结构化采样](/numerical-computing/multidimensional-integration)：在同一二维积分基准中比较规则网格、固定种子蒙特卡洛与样本预算。
 
 ## 运行
 
@@ -45,6 +46,7 @@ python projects/floating_point_museum/simulation.py
 python -m unittest projects.floating_point_museum.test_examples
 python -m unittest projects.floating_point_museum.test_representation
 python -m unittest projects.floating_point_museum.test_integration
+python -m unittest projects.floating_point_museum.test_multidimensional_integration
 python -m unittest projects.floating_point_museum.test_simulation
 python -m unittest projects.floating_point_museum.test_root_finding
 python -m unittest projects.floating_point_museum.test_differentiation
