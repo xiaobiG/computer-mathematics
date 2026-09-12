@@ -44,6 +44,10 @@ export default defineConfig({
               text: "符号、函数、求和与 Python",
               link: "/foundations/functions-summation-python",
             },
+            {
+              text: "集合与数组形状：成员关系与索引",
+              link: "/foundations/sets-array-shapes",
+            },
           ],
         },
       ],

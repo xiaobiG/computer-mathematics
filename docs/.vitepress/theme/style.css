@@ -10,6 +10,23 @@
 .VPFeature { border-color: rgba(15, 118, 110, 0.16); }
 .VPFeature:hover { border-color: var(--vp-c-brand-2); }
 
+/* Long import paths and test commands are teaching content.  They may scroll
+   inside a code block on a narrow screen, but must never widen the document. */
+.vp-doc div[class*='language-'],
+.vp-doc pre {
+  max-width: 100%;
+}
+
+.vp-doc pre {
+  overflow-x: auto;
+}
+
+.vp-doc .katex-display {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
 .lesson-meta {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

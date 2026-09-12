@@ -8,6 +8,7 @@ import FloatingPointExplorer from './components/FloatingPointExplorer.vue'
 import ConditioningExplorer from './components/ConditioningExplorer.vue'
 import ShortestPathComparisonExplorer from './components/ShortestPathComparisonExplorer.vue'
 import LabeledWindowExplorer from './components/LabeledWindowExplorer.vue'
+import SetsArraysExplorer from './components/SetsArraysExplorer.vue'
 import LessonMeta from './components/LessonMeta.vue'
 
 export default {
@@ -22,5 +23,6 @@ export default {
     app.component('ConditioningExplorer', ConditioningExplorer)
     app.component('ShortestPathComparisonExplorer', ShortestPathComparisonExplorer)
     app.component('LabeledWindowExplorer', LabeledWindowExplorer)
+    app.component('SetsArraysExplorer', SetsArraysExplorer)
   },
 }
