@@ -1,4 +1,5 @@
 import { defineConfig } from "vitepress";
+import katex from "katex";
 import markdownItKatex from "markdown-it-katex";
 
 const series = [
@@ -16,7 +17,26 @@ export default defineConfig({
   base: "/computer-mathematics/",
   cleanUrls: true,
   markdown: {
-    config: (md) => md.use(markdownItKatex),
+    config: (md) => {
+      // markdown-it-katex supplies the well-tested dollar-delimiter parser,
+      // but its bundled KaTeX is much older than this project's dependency.
+      // Keep the parser and replace only its renderer so supported modern TeX
+      // commands never silently fall back to literal reader-visible source.
+      md.use(markdownItKatex)
+      const renderMath = (latex: string, displayMode: boolean) => katex.renderToString(latex, {
+        displayMode,
+        throwOnError: true,
+        strict: "error",
+      })
+        // Literal braces in a rendered set (for example `\\{u,v\\}`) can
+        // form `{{`/`}}` in KaTeX HTML. VitePress then mistakes them for Vue
+        // interpolation while compiling Markdown. HTML entities preserve the
+        // reader-visible braces without handing them to the Vue compiler.
+        .replaceAll("{{", "&#123;&#123;")
+        .replaceAll("}}", "&#125;&#125;")
+      md.renderer.rules.math_inline = (tokens, index) => renderMath(tokens[index].content, false)
+      md.renderer.rules.math_block = (tokens, index) => `<p>${renderMath(tokens[index].content, true)}</p>\n`
+    },
   },
   themeConfig: {
     nav: [

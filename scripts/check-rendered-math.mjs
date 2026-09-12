@@ -18,13 +18,16 @@ async function htmlFiles(directory) {
 }
 
 function readerVisibleHtml(html) {
-  // Code examples and script payloads intentionally preserve source syntax.
-  // The check concerns text VitePress sends to readers as rendered prose.
+  // Code examples, script payloads and MathML source annotations intentionally
+  // preserve TeX syntax. The check concerns text VitePress sends to readers
+  // as rendered prose, not KaTeX's hidden source-of-truth annotation.
   return html
+    .replace(/<head\b[^>]*>[\s\S]*?<\/head>/gi, '')
     .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
     .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '')
     .replace(/<pre\b[^>]*>[\s\S]*?<\/pre>/gi, '')
     .replace(/<code\b[^>]*>[\s\S]*?<\/code>/gi, '')
+    .replace(/<annotation\b[^>]*>[\s\S]*?<\/annotation>/gi, '')
 }
 
 const errors = []
@@ -46,6 +49,9 @@ for (const path of await htmlFiles(outputRoot)) {
   // for named teaching operators and reject a regression in rendered prose.
   if (visible.includes('\\operatorname{')) {
     errors.push(`${path}: 正文仍包含未渲染的 \\operatorname 命令`)
+  }
+  if (/\\[A-Za-z]+/.test(visible)) {
+    errors.push(`${path}: 正文仍包含未渲染的 TeX 命令`)
   }
 }
 

@@ -72,9 +72,10 @@ for (const path of await markdownFiles(docsRoot)) {
     }
   }
   // A TeX command outside a supported delimiter becomes literal reader text.
-  // Check only high-signal math commands after removing valid formulas and
-  // code examples, so ordinary prose and documented code remain unrestricted.
-  const bareMath = /\\(?:sum|prod|int|frac|sqrt|operatorname)\b/g
+  // Check every command-shaped token after removing valid formulas and code
+  // examples.  Earlier, a short allow-list missed \bmod, \mathrm and other
+  // real course notation, letting browser-visible source commands pass CI.
+  const bareMath = /\\[A-Za-z]+/g
   const outsideFormula = proseWithoutFormulas(source)
   for (const match of outsideFormula.matchAll(bareMath)) {
     errors.push(`${label}:${lineAt(outsideFormula, match.index)} 数学命令 ${match[0]} 缺少 $ 定界符`)

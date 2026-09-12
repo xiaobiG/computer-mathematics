@@ -1,6 +1,6 @@
 ---
 title: 蒙特卡洛与重要性采样：随机样本如何估计积分
-description: 从大数定律推导蒙特卡洛估计，解释 $1/\sqrt{N}$ 误差、重要性权重与有效样本量，并实现可复现实验。
+description: 从大数定律推导蒙特卡洛估计，解释 1/√N 误差、重要性权重与有效样本量，并实现可复现实验。
 courseLevel: "2–3（推导、算法与模拟）"
 prerequisites: "期望、方差、概率分布与 Python 随机数"
 estimatedMinutes: 60
