@@ -21,7 +21,7 @@ MSE 将每个坐标独立比较。若整块纹理被反转或平移，逐像素�
 
 把矩阵展平为 $x_1,\ldots,x_N$ 与 $y_1,\ldots,y_N$。样本均值、方差和协方差为 $\mu_x,\mu_y,\sigma_x^2,\sigma_y^2,\sigma_{xy}$。设 $C_1=(K_1P)^2,C_2=(K_2P)^2$，本课使用全局形式
 
-$$\operatorname{SSIM}(x,y)=\frac{(2\mu_x\mu_y+C_1)(2\sigma_{xy}+C_2)}{(\mu_x^2+\mu_y^2+C_1)(\sigma_x^2+\sigma_y^2+C_2)}.$$
+$$\mathrm{SSIM}(x,y)=\frac{(2\mu_x\mu_y+C_1)(2\sigma_{xy}+C_2)}{(\mu_x^2+\mu_y^2+C_1)(\sigma_x^2+\sigma_y^2+C_2)}.$$
 
 第一项比较亮度，第二项由协方差比较对比度/结构。$C_1,C_2$ 在低方差或低亮度时避免分母不稳定。完全相同的有限矩阵有相同均值、方差与协方差，因此 SSIM 为 1。
 

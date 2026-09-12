@@ -22,16 +22,16 @@ experiment: "消费已验证的随机 SVD 重构，计算 MSE、RMSE、PSNR、�
 令 $e_{ij}=A_{ij}-\hat A_{ij}$，样本数 $N=mn$。定义
 
 $$
-\operatorname{MSE}=\frac1N\sum_{i,j}e_{ij}^2,
-\qquad \operatorname{RMSE}=\sqrt{\operatorname{MSE}},
+\mathrm{MSE}=\frac1N\sum_{i,j}e_{ij}^2,
+\qquad \mathrm{RMSE}=\sqrt{\mathrm{MSE}},
 \qquad E_\infty=\max_{i,j}|e_{ij}|.
 $$
 
 对于峰值为 $P$ 的编码（8 位灰度通常取 $P=255$），当 MSE 非零时
 
 $$
-\operatorname{PSNR}=20\log_{10}\frac{P}{\operatorname{RMSE}}
-=10\log_{10}\frac{P^2}{\operatorname{MSE}}.
+\mathrm{PSNR}=20\log_{10}\frac{P}{\mathrm{RMSE}}
+=10\log_{10}\frac{P^2}{\mathrm{MSE}}.
 $$
 
 MSE 是平均平方误差，较重惩罚大偏差；RMSE 恢复原像素量纲；$E_\infty$ 暴露最坏点；PSNR 是 RMSE 相对于表示范围的对数刻度。完全相同的图像 MSE 为零，PSNR 写作 $+\infty$，而不是选一个任意大的有限数字。
@@ -47,9 +47,9 @@ $$
 两边除以 $N$，便得到
 
 $$
-\operatorname{MSE}=\frac{\|A-\hat A\|_F^2}{N},
+\mathrm{MSE}=\frac{\|A-\hat A\|_F^2}{N},
 \qquad
-\operatorname{RMSE}=\frac{\|A-\hat A\|_F}{\sqrt N}.
+\mathrm{RMSE}=\frac{\|A-\hat A\|_F}{\sqrt N}.
 $$
 
 因此，同样的 Frobenius 误差在更大的图上对应更小的平均每像素误差。再代入 PSNR 定义得到第二个等式。若 RMSE 减半，PSNR 增加 $20\log_{10}2\approx6.02$ dB；PSNR 不是线性百分比分数。
@@ -92,7 +92,7 @@ assert review.automatic_action == "none"
 
 ## 正确性与复杂度
 
-每个像素恰好贡献一次 $e_{ij}^2$ 与 $|e_{ij}|$，故累加器分别等于定义中的求和与最大值；除以样本数和开平方便给出 MSE、RMSE。只要 MSE 正，PSNR 的两种写法由 $\operatorname{RMSE}^2=\operatorname{MSE}$ 与对数规则严格等价。MSE 为零时不做除零，而是按定义报告无穷 PSNR。
+每个像素恰好贡献一次 $e_{ij}^2$ 与 $|e_{ij}|$，故累加器分别等于定义中的求和与最大值；除以样本数和开平方便给出 MSE、RMSE。只要 MSE 正，PSNR 的两种写法由 $\mathrm{RMSE}^2=\mathrm{MSE}$ 与对数规则严格等价。MSE 为零时不做除零，而是按定义报告无穷 PSNR。
 
 这验证的是**度量实现**，不是低秩算法的最优性。只有精确截断 SVD 才有特定秩约束下 Frobenius 最优的定理；有限迭代的教学压缩器必须把实际误差另外测量。上面的跨课评审还验证“报告来自可重放的随机 SVD”，但不把 MSE 预算升级为感知或任务层面的承诺。
 

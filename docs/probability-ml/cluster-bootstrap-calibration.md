@@ -28,7 +28,7 @@ experiment: "cluster-window-calibration-bootstrap/v1：固定种子下按完整�
 
 $$C_{I_1}\Vert C_{I_2}\Vert\cdots\Vert C_{I_G}.$$
 
-对参考与当前窗口分别重复，重算 ECE 差 $\Delta=\operatorname{ECE}_{current}-\operatorname{ECE}_{reference}$，最后取固定百分位端点。簇内顺序和样本数都保留；同一簇可被抽到多次，也可能在某次重采样中未出现。
+对参考与当前窗口分别重复，重算 ECE 差 $\Delta=\mathrm{ECE}_{current}-\mathrm{ECE}_{reference}$，最后取固定百分位端点。簇内顺序和样本数都保留；同一簇可被抽到多次，也可能在某次重采样中未出现。
 
 这个推导使用的不是“每一行独立”，而是“冻结后的簇在目标总体中近似可交换”。固定种子只能使簇索引重放，不能证明簇数量足够、簇间可交换或簇定义没有泄漏。
 

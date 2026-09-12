@@ -21,11 +21,11 @@ experiment: "实现 Beta–Bernoulli 后验参数、MAP 与下一次观测的后
 
 伯努利参数 $p$ 的 Beta 先验为
 
-$$p\sim\operatorname{Beta}(\alpha,\beta),\qquad \pi(p)\propto p^{\alpha-1}(1-p)^{\beta-1}.$$
+$$p\sim\mathrm{Beta}(\alpha,\beta),\qquad \pi(p)\propto p^{\alpha-1}(1-p)^{\beta-1}.$$
 
 若数据中成功 $h$ 次、失败 $t$ 次，似然正比于 $p^h(1-p)^t$。相乘得到
 
-$$p\mid D\sim\operatorname{Beta}(\alpha+h,\beta+t).$$
+$$p\mid D\sim\mathrm{Beta}(\alpha+h,\beta+t).$$
 
 先验与后验属于同一族称为共轭；更新只需加计数，无需数值积分。$\alpha-1,\beta-1$ 可看作对模式位置有影响的伪计数，但这只是有用直觉，不能掩盖其来自先验选择。
 
@@ -39,7 +39,7 @@ $$p_{MAP}=\frac{\alpha+h-1}{\alpha+\beta+h+t-2}.$$
 
 $$P(X_{next}=1\mid D)=E[p\mid D]=\frac{\alpha+h}{\alpha+\beta+h+t}.$$
 
-均匀先验 $\operatorname{Beta}(1,1)$、一次正面时，MAP 落在边界而后验预测为 $2/3$。因此“平滑后的概率”通常对应后验预测，不能无条件标成 MAP。
+均匀先验 $\mathrm{Beta}(1,1)$、一次正面时，MAP 落在边界而后验预测为 $2/3$。因此“平滑后的概率”通常对应后验预测，不能无条件标成 MAP。
 
 ## 可运行实验
 

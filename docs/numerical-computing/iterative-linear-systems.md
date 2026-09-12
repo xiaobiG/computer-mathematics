@@ -71,7 +71,7 @@ print(trace[-1])
 
 运行 `python -m unittest projects.floating_point_museum.test_linear_iterations`。实现返回完整轨迹；每项包含迭代编号、完整迭代向量、$\lVert x^{(k+1)}-x^{(k)}\rVert_\infty$ 和 $\lVert b-Ax^{(k+1)}\rVert_\infty$。`iteration_trace_certificate` 会从零向量逐步重放 Jacobi 或 Gauss–Seidel 更新，并重新计算两种范数和最终停止条件；篡改某一轮的估计或度量会使证书失效。测试验证两种算法能解严格对角占优系统、Gauss–Seidel 在这个固定系统上不需更多轮、残差定义正确，以及发散/零对角/错误方法会显式失败。
 
-每轮稠密实现为 $O(n^2)$ 时间、$O(n)$ 额外空间，$k$ 轮总计 $O(kn^2)$。对稀疏矩阵应只遍历非零元，使每轮成本接近 $O(\operatorname{nnz}(A))$。
+每轮稠密实现为 $O(n^2)$ 时间、$O(n)$ 额外空间，$k$ 轮总计 $O(kn^2)$。对稀疏矩阵应只遍历非零元，使每轮成本接近 $O(\mathrm{nnz}(A))$。
 
 ## 停止准则、正确性与工程边界
 

@@ -49,7 +49,7 @@ $$x\equiv2\cdot5\cdot2+3\cdot3\cdot2=38\equiv8\pmod{15}.$$
 
 $$mt\equiv b-a\pmod n.$$
 
-它有解当且仅当 $g=\gcd(m,n)$ 整除 $b-a$。先除以 $g$，再在互素的 $m/g$ 与 $n/g$ 上求逆元，即可得到模 $\operatorname{lcm}(m,n)$ 的合并解。这比只实现“完全互素版”更能显式表达边界。
+它有解当且仅当 $g=\gcd(m,n)$ 整除 $b-a$。先除以 $g$，再在互素的 $m/g$ 与 $n/g$ 上求逆元，即可得到模 $\mathrm{lcm}(m,n)$ 的合并解。这比只实现“完全互素版”更能显式表达边界。
 
 ```python
 from projects.crypto_toybox.chinese_remainder import chinese_remainder, combine_congruences

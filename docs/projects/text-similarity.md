@@ -17,7 +17,7 @@ description: 用词频向量和余弦相似度构建一个可测试的文档排�
 
 余弦相似度为：
 
-$$\operatorname{sim}(q,d)=\frac{q\cdot d}{\lVert q\rVert\lVert d\rVert}$$
+$$\mathrm{sim}(q,d)=\frac{q\cdot d}{\lVert q\rVert\lVert d\rVert}$$
 
 ## 运行
 

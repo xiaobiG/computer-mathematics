@@ -27,7 +27,7 @@ $$d'(1)\le d(0)+1=1<10=d(1),$$
 
 设旧图 $G$ 的非负权最短距离为 $d$，插入一条边 $(u,v,w)$，其中 $w\ge0$。新距离满足
 
-$$d'(x)=\min\left(d(x),\;d'(v)+\operatorname{dist}_{G'}(v,x)\right),\qquad d'(v)\le d(u)+w.$$
+$$d'(x)=\min\left(d(x),\;d'(v)+\mathrm{dist}_{G'}(v,x)\right),\qquad d'(v)\le d(u)+w.$$
 
 若 $d(u)+w\ge d(v)$，新边无法提供到达 $v$ 的更短路径；由于新增的是唯一边，任何经过它的路径都不会改善，故所有旧标签仍有效。若严格小于，则把 $v$ 的标签降为 $d(u)+w$，在包含新边的邻接表上从 $v$ 运行 Dijkstra 的松弛传播。
 

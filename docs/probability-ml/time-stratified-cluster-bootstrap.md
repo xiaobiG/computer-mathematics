@@ -34,7 +34,7 @@ $$C_{t,I_{t,1}}\Vert\cdots\Vert C_{t,I_{t,G_t}}.$$
 
 因此早期层仍是早期层，晚期层仍是晚期层；某个设备簇被抽到时，它的概率、标签和全部观测仍一起出现。对参考/当前窗口各自重采样、重算 ECE，再保存
 
-$$\Delta^*=\operatorname{ECE}_{current}^*-\operatorname{ECE}_{reference}^*$$
+$$\Delta^*=\mathrm{ECE}_{current}^*-\mathrm{ECE}_{reference}^*$$
 
 的固定百分位区间。这里的“分层”不是让时间趋势消失，而是拒绝让重采样把已冻结的时间位置互换。
 

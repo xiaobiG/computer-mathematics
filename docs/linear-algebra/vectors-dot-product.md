@@ -67,7 +67,7 @@ $$
 当两个向量都非零时，除去长度便得到余弦相似度：
 
 $$
-\operatorname{cosine}(\mathbf x,\mathbf y)
+\mathrm{cosine}(\mathbf x,\mathbf y)
 =\frac{\mathbf x\cdot\mathbf y}
        {\lVert\mathbf x\rVert\lVert\mathbf y\rVert}.
 $$
@@ -84,12 +84,12 @@ q\cdot a=3\times6+1\times2=20,
 \quad \lVert a\rVert=\sqrt{40}=2\sqrt{10}.
 $$
 
-因此 $\operatorname{cosine}(q,a)=20/(\sqrt{10}\cdot2\sqrt{10})=1$。再计算 $b=(2,5)$：
+因此 $\mathrm{cosine}(q,a)=20/(\sqrt{10}\cdot2\sqrt{10})=1$。再计算 $b=(2,5)$：
 
 $$
 q\cdot b=11,
 \quad \lVert b\rVert=\sqrt{29},
-\quad \operatorname{cosine}(q,b)=\frac{11}{\sqrt{290}}\approx0.646.
+\quad \mathrm{cosine}(q,b)=\frac{11}{\sqrt{290}}\approx0.646.
 $$
 
 点积和余弦在这个例子中都让 $a$ 排在前面；区别在于，将 $a$ 再放大一百倍，余弦仍为 $1$，点积却会放大一百倍。

@@ -27,7 +27,7 @@ $$q(x)=\tfrac12x^TAx-b^Tx,$$
 
 $$\alpha_k=\frac{r_k^Tz_k}{p_k^TAp_k},\qquad z_k=M^{-1}r_k.$$
 
-这里 $M$ 是预条件器。Jacobi 取 $M=\operatorname{diag}(A)$，故只需逐分量除以对角元。再令
+这里 $M$ 是预条件器。Jacobi 取 $M=\mathrm{diag}(A)$，故只需逐分量除以对角元。再令
 
 $$\beta_k=\frac{r_{k+1}^Tz_{k+1}}{r_k^Tz_k},\qquad p_{k+1}=z_{k+1}+\beta_kp_k,$$
 
@@ -48,7 +48,7 @@ assert abs(solution[1] - 7 / 11) < 1e-10
 assert pcg_trace_certificate(A, b, solution, trace)["valid"]
 ```
 
-运行 `python -m unittest projects.floating_point_museum.test_preconditioned_cg`。轨迹记录 $\alpha$、$\beta$、近似解、残差范数和 $r^Tz$；证书从输入重新执行迭代，故可拒绝伪造的步长或“看似很小”的残差。稠密矩阵每轮为 $O(n^2)$，稀疏实现则主要为一次矩阵—向量乘，接近 $O(\operatorname{nnz}(A))$。
+运行 `python -m unittest projects.floating_point_museum.test_preconditioned_cg`。轨迹记录 $\alpha$、$\beta$、近似解、残差范数和 $r^Tz$；证书从输入重新执行迭代，故可拒绝伪造的步长或“看似很小”的残差。稠密矩阵每轮为 $O(n^2)$，稀疏实现则主要为一次矩阵—向量乘，接近 $O(\mathrm{nnz}(A))$。
 
 ## 正确性、停止与工程边界
 
@@ -65,7 +65,7 @@ Jacobi 预条件器最便宜，却无法处理零/负对角，也未必显著聚
 
 ## 练习
 
-1. **基础题**：对 $A=\operatorname{diag}(4,9)$ 写出 Jacobi 预条件后的 $z$ 与残差关系。
+1. **基础题**：对 $A=\mathrm{diag}(4,9)$ 写出 Jacobi 预条件后的 $z$ 与残差关系。
 2. **推导题**：沿 $x+\alpha p$ 对 $q$ 求导，推出 $\alpha$ 的分子和分母。
 3. **编码题**：篡改一条 `CgEvent.alpha`，确认 `pcg_trace_certificate` 拒绝它；再测试非对称输入。
 4. **开放题**：为一个稀疏 PDE 系统比较无预条件、Jacobi 与多重网格的报告指标，并说明为何不能只比较迭代次数。

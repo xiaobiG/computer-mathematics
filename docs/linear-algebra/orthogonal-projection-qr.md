@@ -30,9 +30,9 @@ description: 从投影推导 Gram–Schmidt 正交化和 QR 分解，理解它�
 
 若 $q$ 是单位向量，$v$ 在 $q$ 方向的投影是
 
-$$\operatorname{proj}_q(v)=(q^Tv)q.$$
+$$\mathrm{proj}_q(v)=(q^Tv)q.$$
 
-投影后残差 $v-\operatorname{proj}_q(v)$ 与 $q$ 正交。对一组正交单位列组成的 $Q$，投影到其列空间可写成 $QQ^Tb$；因为 $Q^TQ=I$，坐标就是 $Q^Tb$。
+投影后残差 $v-\mathrm{proj}_q(v)$ 与 $q$ 正交。对一组正交单位列组成的 $Q$，投影到其列空间可写成 $QQ^Tb$；因为 $Q^TQ=I$，坐标就是 $Q^Tb$。
 
 ## 分步推导：Gram–Schmidt 与 QR
 

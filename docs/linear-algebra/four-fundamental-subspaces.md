@@ -38,7 +38,7 @@ description: 用列空间、零空间、行空间和左零空间统一解释方�
 | 行空间 $C(A^T)$ | $\mathbb R^n$ | $A$ 的行张成空间 | 哪些输入方向被测量？ |
 | 左零空间 $N(A^T)$ | $\mathbb R^m$ | 所有 $A^Ty=0$ | 哪些输出约束必须成立？ |
 
-若 $r=\operatorname{rank}(A)$，秩—零度定理给出
+若 $r=\mathrm{rank}(A)$，秩—零度定理给出
 
 $$\dim N(A)=n-r,\qquad \dim N(A^T)=m-r.$$
 
@@ -46,7 +46,7 @@ $$\dim N(A)=n-r,\qquad \dim N(A^T)=m-r.$$
 
 ## 手算一个完整例子
 
-令 $A=\begin{bmatrix}1&1\\2&2\end{bmatrix}$。两列相同方向，因此 $r=1$。列空间是 $\operatorname{span}((1,2)^T)$：只有满足 $b_2=2b_1$ 的输出可精确解出。零空间由 $(1,-1)^T$ 张成，因为两种输入变化会相互抵消。左零空间由 $(2,-1)^T$ 张成，它正好表达输出约束 $2b_1-b_2=0$。
+令 $A=\begin{bmatrix}1&1\\2&2\end{bmatrix}$。两列相同方向，因此 $r=1$。列空间是 $\mathrm{span}((1,2)^T)$：只有满足 $b_2=2b_1$ 的输出可精确解出。零空间由 $(1,-1)^T$ 张成，因为两种输入变化会相互抵消。左零空间由 $(2,-1)^T$ 张成，它正好表达输出约束 $2b_1-b_2=0$。
 
 这也解释了为何 $Ax=b$ 对某些 $b$ 无解、对另一些 $b$ 有无穷多解：前者不在列空间，后者来自非零零空间。
 
@@ -74,8 +74,8 @@ assert fundamental_subspaces_certificate(A, report)
 
 对这个例子，零空间向量 $(-1,1)^T$ 与行空间基 $(1,1)$ 点积为零；左零空间向量 $(-2,1)^T$ 与列空间基 $(1,2)^T$ 点积也为零。报告还会显示
 
-$$\operatorname{rank}(A)+\dim N(A)=n,\qquad
-\operatorname{rank}(A)+\dim N(A^T)=m.$$
+$$\mathrm{rank}(A)+\dim N(A)=n,\qquad
+\mathrm{rank}(A)+\dim N(A^T)=m.$$
 
 这让“两个秩—零度式”和“两个正交补”不再是四条孤立记忆。`fundamental_subspaces_certificate` 会独立重做 $A$ 与 $A^T$ 的 RREF、自由变量基和所有检查；篡改某个维数、主元列或任一基向量都会失败。对 $m\times n$ 密集矩阵，两次消元的时间为 $O(\min(m,n)^2\max(m,n))$，RREF、基与报告使用 $O(mn)$ 级存储。
 

@@ -67,7 +67,7 @@ $$
 \begin{aligned}
 -\frac1n\ell(p)
 &=-\hat q\log p-(1-\hat q)\log(1-p)\\
-&=H(\operatorname{Bern}(\hat q),\operatorname{Bern}(p)).
+&=H(\mathrm{Bern}(\hat q),\mathrm{Bern}(p)).
 \end{aligned}
 $$
 
@@ -97,7 +97,7 @@ $$
 
 ## MLE、MAP 与后验预测回答三个问题
 
-设先验为 $p\sim\operatorname{Beta}(\alpha,\beta)$。把其对数加到似然上，得到对数后验（忽略常数）：
+设先验为 $p\sim\mathrm{Beta}(\alpha,\beta)$。把其对数加到似然上，得到对数后验（忽略常数）：
 
 $$
 (h+\alpha-1)\log p+(t+\beta-1)\log(1-p).
@@ -116,7 +116,7 @@ P(X_{\mathrm{next}}=1\mid D)=E[p\mid D]
 =\frac{h+\alpha}{n+\alpha+\beta}.
 $$
 
-例如只看到一次正面、取 $\operatorname{Beta}(2,2)$ 先验：
+例如只看到一次正面、取 $\mathrm{Beta}(2,2)$ 先验：
 
 | 输出 | 数值 | 它回答的问题 |
 | --- | ---: | --- |
@@ -124,7 +124,7 @@ $$
 | MAP | $2/3$ | 加入该先验后，后验密度的内部众数在哪里？ |
 | 后验预测 | $3/5$ | 积掉参数不确定性后，下一次正面的概率是多少？ |
 
-三者不同不是实现分歧，而是目标不同。均匀 $\operatorname{Beta}(1,1)$ 先验、一次正面时，后验众数落在边界；因此代码拒绝把它伪装成“唯一内部 MAP”，而后验预测仍清楚地等于 $2/3$。
+三者不同不是实现分歧，而是目标不同。均匀 $\mathrm{Beta}(1,1)$ 先验、一次正面时，后验众数落在边界；因此代码拒绝把它伪装成“唯一内部 MAP”，而后验预测仍清楚地等于 $2/3$。
 
 ## 可运行实现与验证
 

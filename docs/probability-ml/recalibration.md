@@ -23,7 +23,7 @@ experiment: "在独立验证集拟合可重放的 Platt 产物，并把保留分
 
 设原模型输出 $p\in[0,1]$。先取稳定的对数赔率
 
-$$x=\operatorname{logit}(p)=\log\frac{p}{1-p}.$$
+$$x=\mathrm{logit}(p)=\log\frac{p}{1-p}.$$
 
 Platt scaling 用验证集拟合两个参数 $a,b$：
 
@@ -126,7 +126,7 @@ Brier 分数关注平方概率误差；对数损失对“极度自信但错误�
 
 ## 练习答案提示
 
-1. $\operatorname{logit}(0.8)=\log4$；代入 $\sigma(\operatorname{logit}(p))$ 即回到 $p$。
+1. $\mathrm{logit}(0.8)=\log4$；代入 $\sigma(\mathrm{logit}(p))$ 即回到 $p$。
 2. 令 $t_i=ax_i+b$，使用链式法则；每项对 $b$ 的导数为 $q_i-y_i$，最后取均值。
 3. 复用 `brier_score` 与 `log_loss`，只接受已经拟合的对象和显式传入的评估数组；测试报告调用前后 `slope`、`intercept` 不变。
 4. 按到达时间切分，不能随机打乱未来样本；监控分箱偏差、对数损失、类别比例和词汇分布，异常时先检查标注、来源和业务风险。

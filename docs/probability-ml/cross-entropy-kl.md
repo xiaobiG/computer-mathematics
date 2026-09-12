@@ -72,7 +72,7 @@ $$
 \log\sum_j e^{z_j}=z_{\max}+\log\sum_j e^{z_j-z_{\max}}.
 $$
 
-减去同一个 $z_{\max}$ 不改变 softmax 的概率比，而所有指数项至多为 $1$。`categorical_cross_entropy_from_logits` 因而直接返回 $-\log\operatorname{softmax}(z)_y$；`logit_cross_entropy_certificate` 会重算对数概率、目标损失与 $\log\sum_j e^{\log p_j}=0$ 的归一化证据。对 $k$ 个类别，分布指标和该稳定实现都是 $O(k)$ 时间与 $O(1)$ 额外空间（不计输入/报告）。
+减去同一个 $z_{\max}$ 不改变 softmax 的概率比，而所有指数项至多为 $1$。`categorical_cross_entropy_from_logits` 因而直接返回 $-\log\mathrm{softmax}(z)_y$；`logit_cross_entropy_certificate` 会重算对数概率、目标损失与 $\log\sum_j e^{\log p_j}=0$ 的归一化证据。对 $k$ 个类别，分布指标和该稳定实现都是 $O(k)$ 时间与 $O(1)$ 额外空间（不计输入/报告）。
 
 ## 零概率、稳定性与工程边界
 

@@ -81,8 +81,8 @@ $$
 中间的比值称为似然比（likelihood ratio）。如果 $E_1,\ldots,E_k$ 在给定 $A$ 与给定 $\neg A$ 时都条件独立，则连续更新变为
 
 $$
-\log\operatorname{odds}(A\mid E_{1:k})
-=\log\operatorname{odds}(A)+
+\log\mathrm{odds}(A\mid E_{1:k})
+=\log\mathrm{odds}(A)+
 \sum_{i=1}^{k}\log\frac{P(E_i\mid A)}{P(E_i\mid\neg A)}.
 $$
 

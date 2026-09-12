@@ -51,7 +51,7 @@ assert mod_pow_trace_certificate(3, 13, 7, result, events)
 
 对非零指数，循环总会做 `bit_length(e)` 次平方，却只在位为 1 时做额外乘法。因此总模乘数为
 
-$$\operatorname{bit\_length}(e)+\operatorname{popcount}(e).$$
+$$\mathrm{bit\_length}(e)+\mathrm{popcount}(e).$$
 
 ```python
 from projects.crypto_toybox.main import mod_pow_operation_profile

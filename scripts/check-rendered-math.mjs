@@ -41,6 +41,12 @@ for (const path of await htmlFiles(outputRoot)) {
   if (visible.includes('\\(') || visible.includes('\\[')) {
     errors.push(`${path}: 正文仍包含未渲染的 LaTeX 定界符`)
   }
+  // The site's Markdown math plugin leaves \operatorname{...} as plain
+  // reader-visible text instead of handing it to KaTeX.  Use \mathrm{...}
+  // for named teaching operators and reject a regression in rendered prose.
+  if (visible.includes('\\operatorname{')) {
+    errors.push(`${path}: 正文仍包含未渲染的 \\operatorname 命令`)
+  }
 }
 
 if (errors.length) {

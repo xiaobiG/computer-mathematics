@@ -23,7 +23,7 @@ description: 从样本均值的期望和方差推导标准误，区分收敛、�
 
 ## 严格定义与分步推导
 
-若 $X_1,\ldots,X_n$ 独立同分布、$\mathbb E[X_i]=\mu$、$\operatorname{Var}(X_i)=\sigma^2<\infty$，则
+若 $X_1,\ldots,X_n$ 独立同分布、$\mathbb E[X_i]=\mu$、$\mathrm{Var}(X_i)=\sigma^2<\infty$，则
 
 $$\bar X_n=\frac1n\sum_{i=1}^nX_i,\qquad
 \mathbb E[\bar X_n]=\mu,$$
@@ -31,7 +31,7 @@ $$\bar X_n=\frac1n\sum_{i=1}^nX_i,\qquad
 并且独立性消去交叉协方差：
 
 $$
-\operatorname{Var}(\bar X_n)=\frac1{n^2}\sum_{i=1}^n\sigma^2=\frac{\sigma^2}{n}.
+\mathrm{Var}(\bar X_n)=\frac1{n^2}\sum_{i=1}^n\sigma^2=\frac{\sigma^2}{n}.
 $$
 
 所以标准误为 $\sigma/\sqrt n$。弱大数定律说明 $\bar X_n$ 依概率收敛到 $\mu$；它不表示每个有限样本都接近。中心极限定理在适当条件下进一步给出
@@ -51,7 +51,7 @@ assert report["certificate"]["larger_sample_has_smaller_empirical_standard_error
 assert report["certificate"]["observed_ratio_matches_inverse_sqrt_scaling"]
 ```
 
-运行 `python -m unittest projects.naive_bayes_spam.test_sampling_limit_laws`。实验重复生成许多个伯努利样本均值，分别报告经验标准误、理论标准误与用 $\pm1.96\operatorname{SE}$ 形成的经验覆盖率。它的证书只检查固定参数和种子下的合理范围；模拟能揭示理论后果，不能替代 LLN/CLT 的证明。
+运行 `python -m unittest projects.naive_bayes_spam.test_sampling_limit_laws`。实验重复生成许多个伯努利样本均值，分别报告经验标准误、理论标准误与用 $\pm1.96\mathrm{SE}$ 形成的经验覆盖率。它的证书只检查固定参数和种子下的合理范围；模拟能揭示理论后果，不能替代 LLN/CLT 的证明。
 
 生成 $T$ 次大小为 $n$ 的试验成本为 $O(Tn)$、储存为 $O(T)$（实现只保留均值）。生产统计系统会流式更新均值与方差，且必须记录抽样单位和随机种子。
 
@@ -68,14 +68,14 @@ assert report["certificate"]["observed_ratio_matches_inverse_sqrt_scaling"]
 ## 练习
 
 1. **基础**：伯努利 $p=0.2,n=400$ 的理论标准误是多少？
-2. **推导**：在不独立时，把 $\operatorname{Var}(\sum_iX_i)$ 展开到协方差项。
+2. **推导**：在不独立时，把 $\mathrm{Var}(\sum_iX_i)$ 展开到协方差项。
 3. **编码**：比较 $n=10,100,1000$ 的经验标准误，并记录不同 seed 的波动。
 4. **开放**：为按城市随机化的实验设计合适的重抽样/方差估计单位。
 
 ## 练习答案提示
 
 1. 伯努利标准误为 $\sqrt{p(1-p)/n}$；代入 $p=0.2,n=400$，不要把单次观测方差直接当均值方差。
-2. 展开 $\operatorname{Var}(\sum_iX_i)$，得到各方差之和加两两协方差；独立性正是在协方差为零处使用。
+2. 展开 $\mathrm{Var}(\sum_iX_i)$，得到各方差之和加两两协方差；独立性正是在协方差为零处使用。
 3. 对每个 $n$ 固定重复次数并记录种子，比较经验标准误与理论 $1/\sqrt n$ 比例；单个 seed 的偏离是模拟噪声，不是理论反例。
 4. 随机化在城市层就以城市/簇为重抽样或聚合单位；逐用户重抽样会错误假定同城用户独立，通常低估方差。
 

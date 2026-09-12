@@ -27,7 +27,7 @@ experiment: "删除一条边后重放 Dijkstra，比较旧路径、替代路径�
 令 $G'=(V,E\setminus\{e\})$ 是从非负权图 $G=(V,E)$ 删除一条边得到的图。$G'$ 的每一条 $s\to x$ 路径原本也在 $G$ 中，因此可选路径集合变小：
 
 $$
-\operatorname{dist}_{G'}(s,x)\ge \operatorname{dist}_{G}(s,x),
+\mathrm{dist}_{G'}(s,x)\ge \mathrm{dist}_{G}(s,x),
 $$
 
 其中不可达可视为 $+\infty$。这与插入边时的“距离只能下降”形成对偶，却不能直接得到新标签：若旧最短路径经过 $e$，必须寻找绕开 $e$ 的替换路径。

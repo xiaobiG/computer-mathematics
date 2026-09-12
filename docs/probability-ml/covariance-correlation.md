@@ -15,7 +15,7 @@ description: 从共同变化到协方差矩阵，理解线性相关、PCA 与因
 
 完成本课后，你应该能够：
 
-- 从定义推导 $\operatorname{Cov}(X,Y)=\mathbb E[XY]-\mathbb E[X]\mathbb E[Y]$；
+- 从定义推导 $\mathrm{Cov}(X,Y)=\mathbb E[XY]-\mathbb E[X]\mathbb E[Y]$；
 - 正确解释样本协方差、相关系数与协方差矩阵；
 - 用“零协方差但不独立”的反例划清线性关系与一般依赖；
 - 说明 PCA 为什么从中心化数据的协方差矩阵出发；
@@ -37,7 +37,7 @@ description: 从共同变化到协方差矩阵，理解线性相关、PCA 与因
 对随机变量 $X,Y$，定义
 
 $$
-\operatorname{Cov}(X,Y)=\mathbb E[(X-\mu_X)(Y-\mu_Y)],
+\mathrm{Cov}(X,Y)=\mathbb E[(X-\mu_X)(Y-\mu_Y)],
 \qquad \mu_X=\mathbb E[X],\;\mu_Y=\mathbb E[Y].
 $$
 
@@ -57,7 +57,7 @@ $$
 \end{aligned}
 $$
 
-当 $X=Y$ 时，协方差就是方差：$\operatorname{Cov}(X,X)=\operatorname{Var}(X)$。这也解释了为什么协方差的量纲是两个变量量纲的乘积；“小时”和“分数”的协方差不便直接与“厘米”和“千克”的协方差比较。
+当 $X=Y$ 时，协方差就是方差：$\mathrm{Cov}(X,X)=\mathrm{Var}(X)$。这也解释了为什么协方差的量纲是两个变量量纲的乘积；“小时”和“分数”的协方差不便直接与“厘米”和“千克”的协方差比较。
 
 ### 样本版本与 $n-1$
 
@@ -74,7 +74,7 @@ $$
 皮尔逊相关系数定义为
 
 $$
-\rho_{XY}=\frac{\operatorname{Cov}(X,Y)}{\sigma_X\sigma_Y},
+\rho_{XY}=\frac{\mathrm{Cov}(X,Y)}{\sigma_X\sigma_Y},
 \qquad
 r=\frac{s_{xy}}{s_xs_y}.
 $$
@@ -92,13 +92,13 @@ $$
 令 $X$ 在 $[-1,1]$ 上均匀分布，$Y=X^2$。显然 $Y$ 完全由 $X$ 决定，二者绝不独立。但对称性给出 $\mathbb E[X]=0$、$\mathbb E[X^3]=0$，所以
 
 $$
-\operatorname{Cov}(X,Y)=\mathbb E[X^3]-\mathbb E[X]\mathbb E[X^2]=0.
+\mathrm{Cov}(X,Y)=\mathbb E[X^3]-\mathbb E[X]\mathbb E[X^2]=0.
 $$
 
 散点图是一条抛物线：左半边下降、右半边上升，线性趋势正好相互抵消。结论是：
 
 $$
-X\perp Y \Longrightarrow \operatorname{Cov}(X,Y)=0,
+X\perp Y \Longrightarrow \mathrm{Cov}(X,Y)=0,
 \quad\text{但反向一般不成立。}
 $$
 
@@ -119,7 +119,7 @@ $$
 
 $$
 \mathbf v^\mathsf T\Sigma\mathbf v
-=\operatorname{Var}(\mathbf v^\mathsf T\mathbf X)\ge0.
+=\mathrm{Var}(\mathbf v^\mathsf T\mathbf X)\ge0.
 $$
 
 第二式表示：沿任意方向投影后，方差绝不会是负数。它保证了协方差矩阵的特征值非负，也为 PCA 选择主方向提供了数学基础。
@@ -135,7 +135,7 @@ $$
 把样本投影到单位向量 $\mathbf v$ 上，投影后的样本方差正是
 
 $$
-\operatorname{Var}(Z\mathbf v)=\mathbf v^\mathsf T S\mathbf v.
+\mathrm{Var}(Z\mathbf v)=\mathbf v^\mathsf T S\mathbf v.
 $$
 
 所以 PCA 的第一主成分是在 $\|\mathbf v\|=1$ 约束下最大化这个二次型。拉格朗日乘子条件给出 $S\mathbf v=\lambda\mathbf v$：最大特征值对应的特征向量，就是方差最大的方向。
@@ -182,7 +182,7 @@ assert sample_correlation(xs, ys) == 0.0
 ## 练习
 
 1. **基础**：从 $\mathbb E[(X-\mu_X)(Y-\mu_Y)]$ 逐项展开，证明本课的协方差计算式。
-2. **推导**：证明协方差矩阵的对称性，并完成 $\mathbf v^\mathsf T\Sigma\mathbf v=\operatorname{Var}(\mathbf v^\mathsf T\mathbf X)$ 的推导。
+2. **推导**：证明协方差矩阵的对称性，并完成 $\mathbf v^\mathsf T\Sigma\mathbf v=\mathrm{Var}(\mathbf v^\mathsf T\mathbf X)$ 的推导。
 3. **编码**：为 `covariance_report` 添加三维样本，检查对称性与对角方差；篡改一项协方差后确认重放证书拒绝，再传入常量列，验证相关系数被拒绝。
 4. **开放**：找一份两列以上的真实数据：分别在原始尺度与标准化后做 PCA，比较第一主方向，并写出量纲理由。
 5. **开放**：新闻中出现“冰淇淋销量与溺水人数正相关”。画出一个含季节变量的因果图，说明为何该相关不能支持因果结论。

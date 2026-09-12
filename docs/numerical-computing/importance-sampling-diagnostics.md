@@ -19,7 +19,7 @@ experiment: "importance-sampling-x8/v1：均匀与重要性采样的固定种子
 
 $$I=\int_0^1x^8\,dx=\frac19.$$
 
-均匀采样把大部分预算花在接近 0 的低贡献区域。令 $U\sim\operatorname{Unif}(0,1)$、$X=\sqrt U$，则 $X$ 的密度为 $q(x)=2x$，更常访问接近 1 的区域。无偏估计器是
+均匀采样把大部分预算花在接近 0 的低贡献区域。令 $U\sim\mathrm{Unif}(0,1)$、$X=\sqrt U$，则 $X$ 的密度为 $q(x)=2x$，更常访问接近 1 的区域。无偏估计器是
 
 $$\hat I_q=\frac1N\sum_{i=1}^N\frac{X_i^8}{2X_i}=\frac1N\sum_{i=1}^N\frac{X_i^7}{2}.$$
 

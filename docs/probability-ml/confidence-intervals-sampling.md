@@ -38,7 +38,7 @@ $$
 是一个随机变量；已观察到的数 $\bar x$ 才是一次实验的结果。
 
 - **总体标准差 $\sigma$**：单个用户或单次观测的波动。
-- **标准误 $\operatorname{SE}(\bar X)$**：统计量 $\bar X$ 在重复实验中的波动。
+- **标准误 $\mathrm{SE}(\bar X)$**：统计量 $\bar X$ 在重复实验中的波动。
 - **点估计 $\bar x$**：本次实验给出的中心位置。
 - **置信区间**：由数据和固定规则生成的随机区间。
 
@@ -50,9 +50,9 @@ $$
 
 $$
 \begin{aligned}
-\operatorname{Var}(\bar X)
-&=\operatorname{Var}\left(\frac1n\sum_{i=1}^nX_i\right)\\
-&=\frac1{n^2}\sum_{i=1}^n\operatorname{Var}(X_i)\\
+\mathrm{Var}(\bar X)
+&=\mathrm{Var}\left(\frac1n\sum_{i=1}^nX_i\right)\\
+&=\frac1{n^2}\sum_{i=1}^n\mathrm{Var}(X_i)\\
 &=\frac{\sigma^2}{n}.
 \end{aligned}
 $$
@@ -60,7 +60,7 @@ $$
 第二步把交叉协方差设为零，恰恰依赖独立性。因此
 
 $$
-\operatorname{SE}(\bar X)=\frac{\sigma}{\sqrt n}.
+\mathrm{SE}(\bar X)=\frac{\sigma}{\sqrt n}.
 $$
 
 样本量翻四倍，标准误才减半。这是“多收集一点数据”常常效果有限的数学原因。若用户按会话、地区或时间簇相关，交叉协方差不为零，实际标准误会大于这个公式；此时不能把日志行数当成独立样本量。
@@ -165,7 +165,7 @@ print(round(coverage_experiment(), 3))  # 通常接近 0.95，不会恰好等于
 若实验组和对照组独立，均值差 $\hat\Delta=\bar X_T-\bar X_C$ 的标准误近似为
 
 $$
-\operatorname{SE}(\hat\Delta)
+\mathrm{SE}(\hat\Delta)
 =\sqrt{\frac{s_T^2}{n_T}+\frac{s_C^2}{n_C}}.
 $$
 
@@ -205,7 +205,7 @@ assert review["automatic_action"] == "none"
 
 ## 练习
 
-1. 在独立同分布假设下，完整推导 $\operatorname{Var}(\bar X)=\sigma^2/n$，并指出哪一步会被相关样本破坏。
+1. 在独立同分布假设下，完整推导 $\mathrm{Var}(\bar X)=\sigma^2/n$，并指出哪一步会被相关样本破坏。
 2. 假设 $s=12,n=144$，用 1.96 近似计算均值的 95% 区间半宽。若半宽希望减半，样本量要变为多少？
 3. 修改 `coverage_experiment`，比较 $n=10,30,100$ 的经验覆盖率；说明为什么每次运行不必恰好为 0.95。
 4. 为“每位用户有多次点击”的 A/B 测试设计重采样单位，并解释逐点击 bootstrap 为什么会过度自信。
@@ -214,7 +214,7 @@ assert review["automatic_action"] == "none"
 
 ## 练习答案提示
 
-1. 独立时 $\operatorname{Var}(\sum X_i)=\sum\operatorname{Var}(X_i)=n\sigma^2$，再除以 $n^2$；相关样本会留下协方差项。
+1. 独立时 $\mathrm{Var}(\sum X_i)=\sum\mathrm{Var}(X_i)=n\sigma^2$，再除以 $n^2$；相关样本会留下协方差项。
 2. 标准误为 $12/\sqrt{144}=1$，半宽为 1.96；若半宽减半，因其按 $1/\sqrt n$ 缩放，样本量需约四倍。
 3. 每个 $n$ 重复足够多次才会接近名义覆盖率；单次实验的覆盖比例是随机变量，不要求精确等于 0.95。
 4. 以用户为重采样单位并保留其全部点击序列；逐点击重采样把相关点击伪装成独立信息，区间会过窄。

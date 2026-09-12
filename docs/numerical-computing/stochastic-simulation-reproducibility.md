@@ -25,14 +25,14 @@ experiment: "以多个固定种子重复估计圆周率，并报告均值、样�
 
 $$I_i=\mathbf1\{X_i^2+Y_i^2\le1\}.$$
 
-点落入四分之一圆的概率为 $p=\pi/4$，故 $I_i\sim\operatorname{Bernoulli}(p)$，且
+点落入四分之一圆的概率为 $p=\pi/4$，故 $I_i\sim\mathrm{Bernoulli}(p)$，且
 
 $$\hat\pi=4\bar I=\frac4N\sum_{i=1}^N I_i.$$
 
 线性性给出 $E[\hat\pi]=4p=\pi$；若样本独立，
 
-$$\operatorname{Var}(\hat\pi)=\frac{16p(1-p)}N,
-\qquad \operatorname{SE}(\hat\pi)=4\sqrt{\frac{p(1-p)}N}.$$
+$$\mathrm{Var}(\hat\pi)=\frac{16p(1-p)}N,
+\qquad \mathrm{SE}(\hat\pi)=4\sqrt{\frac{p(1-p)}N}.$$
 
 标准误按 $1/\sqrt N$ 缩小：要将典型抽样误差减半，通常需四倍样本。这个误差来源于有限随机样本，即使使用精确实数算术仍会存在；浮点误差是另一条链路，不能混为一谈。
 
@@ -56,7 +56,7 @@ python -m unittest projects.floating_point_museum.test_simulation
 若重复估计值为 $z_1,\ldots,z_R$，则
 
 $$s=\sqrt{\frac1{R-1}\sum_{r=1}^R(z_r-\bar z)^2},\qquad
-\operatorname{SE}(\bar z)\approx\frac{s}{\sqrt R}.$$
+\mathrm{SE}(\bar z)\approx\frac{s}{\sqrt R}.$$
 
 这里 $s$ 描述不同运行间的散布；$s/\sqrt R$ 描述报告均值的抽样不确定性。只有一次运行时，无法从运行间数据估计 $s$，项目明确返回零作为“未估计”的占位值，而不是把它误解为实验没有不确定性。
 
@@ -93,7 +93,7 @@ $$s=\sqrt{\frac1{R-1}\sum_{r=1}^R(z_r-\bar z)^2},\qquad
 
 ## 练习
 
-1. **基础题**：由 $I_i\sim\operatorname{Bernoulli}(p)$ 推导 $\operatorname{Var}(\hat\pi)$。
+1. **基础题**：由 $I_i\sim\mathrm{Bernoulli}(p)$ 推导 $\mathrm{Var}(\hat\pi)$。
 2. **推导题**：证明样本数从 $N$ 增至 $4N$ 时理论标准误减半；说明这依赖哪些独立性假设。
 3. **编码题**：为 `simulation_report` 加入置信区间近似，并测试一个 seed 与多个 seed 的边界语义。
 4. **开放题**：设计一个并行蒙特卡洛实验的复现记录：包括随机流拆分、版本、硬件、样本数和停止准则。

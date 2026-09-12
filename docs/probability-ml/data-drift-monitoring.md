@@ -43,7 +43,7 @@ $$
 其中 $m$ 是两个时期类别的并集数。Population Stability Index 定义为
 
 $$
-\operatorname{PSI}(p,q)=\sum_j(q_j-p_j)\log\frac{q_j}{p_j}.
+\mathrm{PSI}(p,q)=\sum_j(q_j-p_j)\log\frac{q_j}{p_j}.
 $$
 
 它对调换 $p,q$ 是对称的，且每一项在两频率相等时为零。PSI 的数值会受分箱、样本量、平滑和业务风险影响；阈值不是自然常数，必须写入报告并经人工审查。
@@ -51,7 +51,7 @@ $$
 总变差距离提供另一种更直观的量：
 
 $$
-\operatorname{TV}(p,q)=\frac12\sum_j|p_j-q_j|.
+\mathrm{TV}(p,q)=\frac12\sum_j|p_j-q_j|.
 $$
 
 它位于 $[0,1]$，可理解为两个分类分布可区分程度的一种上界刻画。PSI 与 TV 都只描述观察到的输入分布差异，不衡量公平性、因果机制或预测性能。

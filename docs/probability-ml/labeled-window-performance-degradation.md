@@ -26,15 +26,15 @@ experiment: "比较参考与当前带标签窗口，生成含混淆矩阵、Wils
 准确率衡量阈值决定：
 
 $$
-\operatorname{accuracy}=\frac1n\sum_{i=1}^{n}\mathbb{1}[\hat y_i=y_i].
+\mathrm{accuracy}=\frac1n\sum_{i=1}^{n}\mathbb{1}[\hat y_i=y_i].
 $$
 
 它会丢掉概率的强弱。Brier 分数与对数损失分别保留平方误差和概率承诺：
 
 $$
-\operatorname{Brier}=\frac1n\sum_i(p_i-y_i)^2,
+\mathrm{Brier}=\frac1n\sum_i(p_i-y_i)^2,
 \qquad
-\operatorname{LogLoss}=-\frac1n\sum_i\left[y_i\log p_i+(1-y_i)\log(1-p_i)\right].
+\mathrm{LogLoss}=-\frac1n\sum_i\left[y_i\log p_i+(1-y_i)\log(1-p_i)\right].
 $$
 
 对数损失会严厉惩罚“接近 1 却押错”的预测。因此可能出现准确率几乎不变、但概率承诺明显变坏的窗口。实现会把概率裁剪到一个极小的正数附近，避免数学上的 $\log 0$；这只保证数值可算，不会抹去过度自信错误的高损失。
@@ -76,9 +76,9 @@ python -m unittest \
 本实验有两条政策信号：
 
 $$
-\Delta_{acc}=\operatorname{accuracy}(R)-\operatorname{accuracy}(C)
+\Delta_{acc}=\mathrm{accuracy}(R)-\mathrm{accuracy}(C)
 \ge \tau_{acc},\qquad
-\Delta_{loss}=\operatorname{LogLoss}(C)-\operatorname{LogLoss}(R)
+\Delta_{loss}=\mathrm{LogLoss}(C)-\mathrm{LogLoss}(R)
 \ge \tau_{loss}.
 $$
 

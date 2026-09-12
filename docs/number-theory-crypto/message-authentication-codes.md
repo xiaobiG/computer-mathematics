@@ -19,9 +19,9 @@ experiment: "用标准库 HMAC 为消息生成标签，并验证消息或标签�
 
 ## 定义与 HMAC 结构
 
-MAC 是函数 $t=\operatorname{MAC}_K(m)$；接收者重新计算并比较标签。安全目标是选择消息攻击下的不可伪造性，而不是“摘要看起来随机”。HMAC 以哈希 $H$ 组合内外两层：
+MAC 是函数 $t=\mathrm{MAC}_K(m)$；接收者重新计算并比较标签。安全目标是选择消息攻击下的不可伪造性，而不是“摘要看起来随机”。HMAC 以哈希 $H$ 组合内外两层：
 
-$$\operatorname{HMAC}_K(m)=H((K'\oplus opad)\,\|\,H((K'\oplus ipad)\,\|\,m)).$$
+$$\mathrm{HMAC}_K(m)=H((K'\oplus opad)\,\|\,H((K'\oplus ipad)\,\|\,m)).$$
 
 这里 $K'$ 是按块大小处理的密钥，`ipad`/`opad` 是固定不同填充。不要用 `hash(key || message)` 替代 HMAC：某些哈希构造会受长度扩展等问题影响；直接调用标准库 HMAC。
 

@@ -34,9 +34,9 @@ $$E[X]=\sum_x xP(X=x).$$
 
 公平骰子的期望为 3.5，不是可能出现的结果，而是大量重复下的长期平均。方差衡量围绕均值的平方偏离：
 
-$$\operatorname{Var}(X)=E[(X-\mu)^2]=E[X^2]-\mu^2,\qquad\mu=E[X].$$
+$$\mathrm{Var}(X)=E[(X-\mu)^2]=E[X^2]-\mu^2,\qquad\mu=E[X].$$
 
-平方避免正负偏离抵消，并使远离均值的风险贡献更大；标准差 $\sigma=\sqrt{\operatorname{Var}(X)}$ 保留原单位。
+平方避免正负偏离抵消，并使远离均值的风险贡献更大；标准差 $\sigma=\sqrt{\mathrm{Var}(X)}$ 保留原单位。
 
 ## 分步推导：从条件到总体
 
@@ -46,7 +46,7 @@ $$E[X]=E[E[X\mid Y]].$$
 
 将 $X-E[X]$ 拆成 $(X-E[X\mid Y])+(E[X\mid Y]-E[X])$，交叉项条件期望为零，得到全方差公式：
 
-$$\operatorname{Var}(X)=E[\operatorname{Var}(X\mid Y)]+\operatorname{Var}(E[X\mid Y]).$$
+$$\mathrm{Var}(X)=E[\mathrm{Var}(X\mid Y)]+\mathrm{Var}(E[X\mid Y]).$$
 
 第一项是组内波动，第二项是组均值差异。它解释了为什么合并数据时，总方差不仅是各组方差的平均。
 
@@ -72,7 +72,7 @@ report = total_variance_report(
 assert report["total_variance"] == report["within_variance"] + report["between_variance"]
 ```
 
-运行 `python -m unittest projects.naive_bayes_spam.test_moments`。有限分布模块检查概率质量后计算 $E[X]$ 与 $\operatorname{Var}(X)$；`welford_population` 逐项维护均值和平方偏差和；`total_variance_report` 分别给出组内项、组间项和总量，形成全方差公式的可运行证书。两遍实现与 Welford 均为 $O(n)$ 时间和 $O(1)$ 额外空间；对巨大或流式数据，后者避免累计平方与均值相减造成的消去误差。
+运行 `python -m unittest projects.naive_bayes_spam.test_moments`。有限分布模块检查概率质量后计算 $E[X]$ 与 $\mathrm{Var}(X)$；`welford_population` 逐项维护均值和平方偏差和；`total_variance_report` 分别给出组内项、组间项和总量，形成全方差公式的可运行证书。两遍实现与 Welford 均为 $O(n)$ 时间和 $O(1)$ 额外空间；对巨大或流式数据，后者避免累计平方与均值相减造成的消去误差。
 
 ## 正确性与工程边界
 
@@ -87,7 +87,7 @@ assert report["total_variance"] == report["within_variance"] + report["between_v
 ## 练习
 
 1. **基础**：构造两组均值相同、方差不同的三元数据。
-2. **推导**：从定义证明 $\operatorname{Var}(X)=E[X^2]-E[X]^2$。
+2. **推导**：从定义证明 $\mathrm{Var}(X)=E[X^2]-E[X]^2$。
 3. **编码**：实现 Welford 在线方差，并与两遍算法比较。
 4. **开放**：将垃圾邮件分类器按不同来源分组，设计检查组内/组间错误率差异的方案。
 

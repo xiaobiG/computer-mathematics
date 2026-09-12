@@ -21,7 +21,7 @@ experiment: "重放单位正方形上网格和固定种子蒙特卡洛的二维�
 
 $$I=\int_0^1\int_0^1 (x^2+y)\,dx\,dy=\frac13+\frac12=\frac56.$$
 
-规则网格在每个小方格中心取样；蒙特卡洛则从 $(X,Y)\sim\operatorname{Uniform}([0,1]^2)$ 独立采样，并以
+规则网格在每个小方格中心取样；蒙特卡洛则从 $(X,Y)\sim\mathrm{Uniform}([0,1]^2)$ 独立采样，并以
 
 $$\widehat I_N=\frac1N\sum_{i=1}^{N}(X_i^2+Y_i)$$
 
@@ -65,7 +65,7 @@ $$I-I_{\mathrm{mid}}=\frac{1}{12m^2}.$$
 
 蒙特卡洛没有利用函数在空间中的平滑结构。若函数值方差为 $\sigma^2$，均值估计器的标准误约为
 
-$$\operatorname{SE}(\widehat I_N)=\frac{\sigma}{\sqrt N}.$$
+$$\mathrm{SE}(\widehat I_N)=\frac{\sigma}{\sqrt N}.$$
 
 此基准报告的是样本方差导出的**估计**标准误，不能将它读成“本次绝对误差必不超过该数”。固定种子让一次轨迹可复现，却不会消除抽样随机性；要研究覆盖率或不同种子的波动，必须预先指定重复次数和汇总规则。
 
