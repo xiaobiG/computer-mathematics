@@ -460,6 +460,18 @@ npm run build
 | 差异 | 原实验只度量像素残差；现在可重放亮度、方差、协方差和 SSIM，并以列反转反例说明相同统计层级之外的结构变化。 |
 | 下一决策 | 不把全局 SSIM 冒充感知模型；下一步应审计局部窗口、颜色空间和下游任务之间的边界。 |
 
+## 正在推进：v2.4「概率差异的重采样边界」
+
+### v2.4-a：冻结窗口 ECE 差的固定 bootstrap（已完成）
+
+| 字段 | 记录 |
+| --- | --- |
+| 目标 | 读者能为预先定义的两个窗口 ECE 差描述固定重采样设计下的百分位区间。 |
+| 范围 | 新增[冻结窗口差异的 Bootstrap](/probability-ml/frozen-window-bootstrap)课程、`window-calibration-bootstrap/v1` 报告/证书及反例测试；同步概率路线与成熟度看板。 |
+| 验证 | `python -m unittest projects.naive_bayes_spam.test_window_calibration_bootstrap`、全项目测试、内容检查与生产构建。 |
+| 差异 | 原比较只给 ECE/Brier 点差；现在报告将重复次数、种子、置信水平与观测级重采样单位绑定，篡改端点或种子会被拒绝。 |
+| 下一决策 | 不将观测级 bootstrap 推广到时间相关或用户簇数据；下一轮应先为 block/cluster 重采样建立独立合同，或切换专题。 |
+
 ## 读者如何使用
 
 - 先沿专题首页完成当前主线；

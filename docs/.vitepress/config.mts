@@ -302,6 +302,7 @@ export default defineConfig({
               text: "冻结窗口的校准比较：先定义，再看差异",
               link: "/probability-ml/frozen-window-calibration-comparison",
             },
+            { text: "冻结窗口差异的 Bootstrap", link: "/probability-ml/frozen-window-bootstrap" },
           ],
         },
       ],
