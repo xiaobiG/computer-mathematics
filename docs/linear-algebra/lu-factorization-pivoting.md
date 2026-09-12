@@ -24,7 +24,7 @@ description: 从高斯消元推导 PA=LU，理解重复求解、部分选主元�
 
 ## 从一个计算问题开始
 
-同一个系数矩阵 $A$ 可能需要解很多次：物理仿真每帧只改变外力 $b$，回归要比较多个目标列。每次都重新消元浪费了什么？LU 分解将一次昂贵的消元结果保存下来。
+物理仿真或多目标回归会反复使用同一个 $A$、只改变 $b$。LU 保存一次消元结果，避免重复分解。
 
 ## 定义与推导
 
@@ -64,17 +64,34 @@ assert matmul(factorization.lower, factorization.upper) == permuted_rows(matrix,
 assert solve_many_lu(factorization, [[2.0, 4.0], [4.0, 8.0]]) == [[1.0, 1.0], [2.0, 2.0]]
 ```
 
-这里的 `permuted_rows` 给出 $PA$，`matmul(L,U)` 则给出分解重构证书；两个结果相同才能说明记录的交换与乘子一致。对 $n\times n$ 密集矩阵，分解耗时 $O(n^3)$、存储 $O(n^2)$；每个新右侧向量的前代和回代合计 $O(n^2)$。实际实现通常将 $L,U$ 覆盖存于同一数组并记录置换向量。
+`permuted_rows` 给出 $PA$，`matmul(L,U)` 重构它。密集 $n\times n$ 分解为 $O(n^3)$、存储 $O(n^2)$；每个新右端的三角求解为 $O(n^2)$。实际实现常覆盖存储 $L,U$。
+
+## 同一矩阵、两条工作路径
+
+报告在同一矩阵/右端上重放“一次分解”与“每次重分解”，只计消元乘减更新和三角点积项：
+
+```python
+from projects.linear_algebra_lab.lu_factorization import lu_reuse_work_certificate, lu_reuse_work_report
+
+matrix = [[0.0, 2.0], [1.0, 3.0]]
+right_sides = [[2.0, 4.0], [4.0, 8.0]]
+report = lu_reuse_work_report(matrix, right_sides)
+assert report.reuse_work_units == 6
+assert report.refactor_every_time_work_units == 8
+assert report.solutions_match and report.pa_equals_lu
+assert lu_reuse_work_certificate(matrix, right_sides, report)
+```
+
+单次分解计数为 $F=\sum_{k=0}^{n-1}(n-k-1)(n-k)$，每个右端的两次三角点积为 $T=n(n-1)$。$r$ 个右端的两条路径为 $F+rT$、$r(F+T)$，差为 $(r-1)F$。计数不含主元搜索、除法、内存、稀疏填充或设备效应，不能替代基准；`automatic_action` 为 `none`。
 
 ## 正确性与工程边界
 
-每一步消元左乘一个初等下三角矩阵，其逆的乘积形成 $L$；因此重排后必有 $PA=LU$。前代、回代分别满足两个等价三角系统，合并即解原系统。部分选主元选择当前列绝对值最大的行，通常抑制除以小数的误差放大；但条件数极大时，任何直接法的解都可能对输入敏感。稀疏矩阵还需控制填充（fill-in），不能直接套密集 LU。
+初等消元矩阵的逆相乘形成 $L$，故重排后有 $PA=LU$；前代、回代合并即解原系统。部分选主元通常抑制小主元误差，但不修复病态；稀疏矩阵还须控制填充。
 
 ## 常见误区
 
-- $PA=LU$ 中的 $P$ 不能省略：有主元交换时 $A\ne LU$。
-- LU 不比消元“更准确”，它是将同一过程保存并复用。
-- 多个右侧向量才显著体现分解复用的收益。
+- 有换行时必须验证 $PA=LU$，不是 $A=LU$。
+- LU 保存消元，不自动改善病态或只解一次右端。
 
 ## 练习
 
@@ -85,11 +102,11 @@ assert solve_many_lu(factorization, [[2.0, 4.0], [4.0, 8.0]]) == [[1.0, 1.0], [2
 
 ## 练习答案提示
 
-1. 先注意示例发生了行交换，应验证的是 $PA=LU$ 而非直接 $A=LU$；再用同一分解对新右端做前代、回代。
-2. 第 $k$ 列下方的乘子正是消去该列时使用的系数；把所有初等消元矩阵的逆相乘会得到单位下三角的 $L$。
-3. 选当前列绝对值最大的可用行并同步交换此前 $L$ 的已填部分；测试首元为零或极小的矩阵，另测奇异矩阵的失败契约。
-4. 方阵多右端适合 LU，最小二乘优先 QR，秩亏/截断近似用 SVD；病态时还须分开讨论问题条件数与算法稳定性。
+1. 有换行时验证 $PA=LU$，再复用同一分解。
+2. 第 $k$ 列下方存放该列消元乘子。
+3. 换主元时同步交换已填的 $L$；奇异矩阵必须拒绝。
+4. 多右端方阵用 LU，最小二乘用 QR，秩亏用 SVD；病态另行诊断。
 
 ## 延伸与下一步
 
-LU 擅长反复求解方阵系统；[正交投影与 QR](/linear-algebra/orthogonal-projection-qr)更适合稳定最小二乘，SVD 则处理秩亏和低秩近似。
+LU 用于多右端方阵；[QR](/linear-algebra/orthogonal-projection-qr)处理稳定最小二乘，SVD 处理秩亏。

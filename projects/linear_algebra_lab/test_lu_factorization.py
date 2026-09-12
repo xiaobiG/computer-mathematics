@@ -1,6 +1,9 @@
 import unittest
+from dataclasses import replace
 
-from projects.linear_algebra_lab.lu_factorization import lu_factorize, permuted_rows, solve_lu, solve_many_lu
+from projects.linear_algebra_lab.lu_factorization import (
+    lu_factorize, lu_reuse_work_certificate, lu_reuse_work_report, permuted_rows, solve_lu, solve_many_lu,
+)
 from projects.linear_algebra_lab.main import matmul
 
 
@@ -23,3 +26,20 @@ class LUFactorizationTests(unittest.TestCase):
             lu_factorize([[float("nan")]])
         with self.assertRaises(ValueError):
             solve_lu(lu_factorize([[1.0]]), [float("inf")])
+
+    def test_reuse_report_separates_one_factorization_from_repeated_elimination(self):
+        matrix = [[0.0, 2.0], [1.0, 3.0]]
+        right_sides = [[2.0, 4.0], [4.0, 8.0]]
+        report = lu_reuse_work_report(matrix, right_sides)
+        self.assertEqual(report.factorization_elimination_updates, 2)
+        self.assertEqual(report.triangular_dot_terms_per_right_side, 2)
+        self.assertEqual(report.reuse_work_units, 6)
+        self.assertEqual(report.refactor_every_time_work_units, 8)
+        self.assertEqual(report.saved_work_units, 2)
+        self.assertTrue(report.solutions_match)
+        self.assertTrue(report.pa_equals_lu)
+        self.assertEqual(report.automatic_action, "none")
+        self.assertTrue(lu_reuse_work_certificate(matrix, right_sides, report))
+        self.assertFalse(lu_reuse_work_certificate(matrix, right_sides, replace(report, saved_work_units=0)))
+        with self.assertRaisesRegex(ValueError, "at least two"):
+            lu_reuse_work_report(matrix, [right_sides[0]])
