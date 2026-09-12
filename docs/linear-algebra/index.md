@@ -33,6 +33,7 @@
 | 10 | [SVD](/linear-algebra/svd) | 如何用低秩近似压缩矩阵？ | 深度正文 · 55 分钟 |
 | 11 | [低秩图像压缩](/linear-algebra/low-rank-image-compression) | 保留多少模式才能以可测误差压缩图像？ | 深度正文 · 70 分钟 |
 | 12 | [图像误差指标](/linear-algebra/image-error-metrics) | MSE、PSNR 能说明什么，又不能说明什么？ | 深度正文 · 55 分钟 |
+| 13 | [结构相似度 SSIM](/linear-algebra/structural-similarity) | 均值、方差与协方差如何补充逐像素误差？ | 深度正文 · 60 分钟 |
 | 13 | [随机范围发现](/linear-algebra/randomized-range-finder) | 大矩阵如何用随机草图近似主子空间？ | 深度正文 · 70 分钟 |
 | 14 | [随机 SVD](/linear-algebra/randomized-svd) | 如何把随机子空间变成可审计的低秩分解？ | 深度正文 · 60 分钟 |
 | 14 | [低秩推荐](/linear-algebra/low-rank-recommendation) | 缺失评分如何变成可学习的预测？ | 深度正文 · 70 分钟 |

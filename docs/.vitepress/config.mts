@@ -104,6 +104,7 @@ export default defineConfig({
               text: "图像误差指标：MSE 与 PSNR",
               link: "/linear-algebra/image-error-metrics",
             },
+            { text: "结构相似度 SSIM", link: "/linear-algebra/structural-similarity" },
             {
               text: "随机范围发现：近似低秩结构",
               link: "/linear-algebra/randomized-range-finder",

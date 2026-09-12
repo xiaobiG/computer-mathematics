@@ -2,7 +2,9 @@ import unittest
 from dataclasses import replace
 from math import inf
 
-from projects.linear_algebra_lab.image_metrics import image_quality_certificate, image_quality_report
+from projects.linear_algebra_lab.image_metrics import (
+    image_quality_certificate, image_quality_report, structural_similarity_certificate, structural_similarity_report,
+)
 
 
 class ImageMetricsTests(unittest.TestCase):
@@ -34,6 +36,19 @@ class ImageMetricsTests(unittest.TestCase):
             image_quality_report([[float("nan")]], [[0.0]])
         with self.assertRaises(ValueError):
             image_quality_report([[0.0]], [[0.0]], peak=0)
+
+    def test_global_ssim_is_one_for_identical_matrix_and_certifies(self):
+        pixels = [[0.0, 30.0], [120.0, 255.0]]
+        report = structural_similarity_report(pixels, pixels)
+        self.assertAlmostEqual(report.ssim, 1.0)
+        self.assertTrue(structural_similarity_certificate(pixels, pixels, report))
+
+    def test_global_ssim_detects_structure_change_and_tampering(self):
+        reference = [[0.0, 255.0], [0.0, 255.0]]
+        shifted = [[255.0, 0.0], [255.0, 0.0]]
+        report = structural_similarity_report(reference, shifted)
+        self.assertLess(report.ssim, 0.0)
+        self.assertFalse(structural_similarity_certificate(reference, shifted, replace(report, covariance=0.0)))
 
 
 if __name__ == "__main__":

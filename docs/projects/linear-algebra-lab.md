@@ -21,6 +21,7 @@ description: 用可测试的教学实现串起矩阵计算、消元、投影、�
 - [SVD](/linear-algebra/svd)：通过 $A^TA$ 的幂迭代获得主奇异方向；另以已验证的谱尾公式计算精确截断误差与参数量。
 - [低秩图像压缩](/linear-algebra/low-rank-image-compression)：以逐次秩一近似比较保留秩与重构误差。
 - [图像误差指标](/linear-algebra/image-error-metrics)：将同一重构残差转换为 MSE、RMSE、PSNR 与最大误差。
+- [结构相似度 SSIM](/linear-algebra/structural-similarity)：用均值、方差和协方差审计全局结构相似性。
 - [随机范围发现](/linear-algebra/randomized-range-finder)：用带种子的随机草图构造可重放的 $QQ^TA$ 投影。
 - [低秩推荐](/linear-algebra/low-rank-recommendation)：只对观测评分做交替最小二乘，并分离训练误差与缺失预测。
 - [向量与点积](/linear-algebra/vectors-dot-product)：以余弦相似度对同形图像向量排序。
