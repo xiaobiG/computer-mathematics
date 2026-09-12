@@ -400,6 +400,7 @@ export default defineConfig({
               text: "数字签名与公开验证",
               link: "/number-theory-crypto/digital-signatures",
             },
+            { text: "公钥身份与密钥生命周期", link: "/number-theory-crypto/public-key-lifecycle" },
             {
               text: "中国剩余定理：拆分模运算",
               link: "/number-theory-crypto/chinese-remainder-theorem",

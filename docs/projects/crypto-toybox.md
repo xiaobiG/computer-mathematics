@@ -19,6 +19,7 @@ description: 用快速幂、模逆元、小参数 RSA、教学签名验签与有
 - [最大公约数与模逆元](/number-theory-crypto/extended-euclid)
 - [RSA](/number-theory-crypto/rsa)
 - [数字签名](/number-theory-crypto/digital-signatures)
+- [公钥身份与密钥生命周期](/number-theory-crypto/public-key-lifecycle)
 - [Diffie–Hellman 密钥交换](/number-theory-crypto/diffie-hellman)
 - [中国剩余定理](/number-theory-crypto/chinese-remainder-theorem)
 - [椭圆曲线密码学预备](/number-theory-crypto/elliptic-curve-prelude)
