@@ -5,6 +5,9 @@ from __future__ import annotations
 from math import isqrt
 
 
+MAX_TEACHING_PRIME = 1_000
+
+
 def is_prime(value: int) -> bool:
     if value < 2:
         return False
@@ -14,13 +17,23 @@ def is_prime(value: int) -> bool:
 
 
 def _require_prime_field(prime: int) -> None:
+    if not isinstance(prime, int) or isinstance(prime, bool):
+        raise ValueError("teaching multiplicative groups require an integer prime modulus")
+    if prime > MAX_TEACHING_PRIME:
+        raise ValueError("teaching multiplicative-group enumeration is limited to tiny prime fields")
     if not is_prime(prime):
         raise ValueError("teaching multiplicative groups require a prime modulus")
+
+
+def _require_group_element(element: int) -> None:
+    if not isinstance(element, int) or isinstance(element, bool):
+        raise ValueError("group elements must be integers")
 
 
 def multiplicative_order(element: int, prime: int) -> int:
     """Return the order of a nonzero element in F_p^* by small-group enumeration."""
     _require_prime_field(prime)
+    _require_group_element(element)
     element %= prime
     if element == 0:
         raise ValueError("zero is not in the multiplicative group")
@@ -110,8 +123,11 @@ def discrete_log_toy(generator: int, target: int, prime: int, *, max_prime: int 
     The explicit bound prevents this teaching helper from being mistaken for a
     general cryptanalytic tool.
     """
+    if not isinstance(max_prime, int) or isinstance(max_prime, bool) or max_prime < 2:
+        raise ValueError("max_prime must be an integer at least 2")
     if prime > max_prime:
         raise ValueError("toy discrete-log enumeration is limited to tiny prime fields")
+    _require_group_element(target)
     target %= prime
     powers = subgroup_elements(generator, prime)
     return powers.index(target) if target in powers else None

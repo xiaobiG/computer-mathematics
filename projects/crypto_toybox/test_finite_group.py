@@ -29,6 +29,16 @@ class FiniteGroupTests(unittest.TestCase):
             multiplicative_order(0, 23)
         with self.assertRaises(ValueError):
             discrete_log_toy(2, 3, 1_009)
+        # The teaching cap applies to every exhaustive group operation, not
+        # only discrete logs; otherwise a different API could bypass it.
+        with self.assertRaises(ValueError):
+            multiplicative_order(2, 1_009)
+        with self.assertRaises(ValueError):
+            primitive_generators(1_009)
+        with self.assertRaises(ValueError):
+            finite_group_report(2, 1_009)
+        with self.assertRaises(ValueError):
+            multiplicative_order(True, 23)
 
     def test_group_report_certifies_subgroup_closure_inverses_and_generator_scope(self):
         subgroup = finite_group_report(2, 23)
