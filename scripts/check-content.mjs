@@ -141,6 +141,7 @@ const priorityDeepLessons = new Set([
   'discrete-math/breadth-first-search.md',
   'discrete-math/dijkstra.md',
   'discrete-math/deletion-shortest-path.md',
+  'discrete-math/max-flow-min-cut.md',
   'probability-ml/bayes.md',
   'probability-ml/maximum-likelihood.md',
   'probability-ml/block-bootstrap-calibration.md',
