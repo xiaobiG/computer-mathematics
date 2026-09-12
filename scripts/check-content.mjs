@@ -151,6 +151,7 @@ const priorityDeepLessons = new Set([
   'numerical-computing/floating-point.md',
   'numerical-computing/condition-number.md',
   'number-theory-crypto/rsa.md',
+  'number-theory-crypto/hashing-passwords.md',
 ])
 const priorityStagePatterns = [
   ['问题场景', /^##\s+.*(?:问题|开始|场景|案例).*$/m],

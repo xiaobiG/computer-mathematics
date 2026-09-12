@@ -10,6 +10,7 @@ from secrets import token_bytes
 
 ALGORITHM = "pbkdf2_sha256"
 SALT_BYTES = 16
+DERIVED_KEY_BYTES = 32
 
 
 @dataclass(frozen=True)
@@ -32,6 +33,17 @@ def _validate_rounds(rounds: int) -> None:
         raise ValueError("rounds must be a positive integer")
 
 
+def _validate_record(record: PasswordRecord) -> None:
+    """Reject malformed stored data before deriving or comparing a password."""
+    if not isinstance(record, PasswordRecord) or record.algorithm != ALGORITHM:
+        raise ValueError("unsupported password record")
+    _validate_rounds(record.rounds)
+    if not isinstance(record.salt, bytes) or len(record.salt) < SALT_BYTES:
+        raise ValueError("invalid password-record salt")
+    if not isinstance(record.derived_key, bytes) or len(record.derived_key) != DERIVED_KEY_BYTES:
+        raise ValueError("invalid password-record derived key")
+
+
 def make_password_record(password: str, *, rounds: int, salt: bytes | None = None) -> PasswordRecord:
     """Create a PBKDF2 record with a unique random salt by default.
 
@@ -52,11 +64,7 @@ def make_password_record(password: str, *, rounds: int, salt: bytes | None = Non
 def verify_password(password: str, record: PasswordRecord) -> bool:
     """Derive with record parameters and compare without early-exit equality."""
     _validate_password(password)
-    if not isinstance(record, PasswordRecord) or record.algorithm != ALGORITHM:
-        raise ValueError("unsupported password record")
-    _validate_rounds(record.rounds)
-    if not isinstance(record.salt, bytes) or len(record.salt) < SALT_BYTES:
-        raise ValueError("invalid password-record salt")
+    _validate_record(record)
     candidate = pbkdf2_hmac("sha256", password.encode("utf-8"), record.salt, record.rounds)
     return compare_digest(candidate, record.derived_key)
 

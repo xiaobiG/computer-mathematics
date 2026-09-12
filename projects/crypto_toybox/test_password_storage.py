@@ -40,3 +40,7 @@ class PasswordStorageTests(unittest.TestCase):
             make_password_record("password", rounds=1_000, salt=b"short")
         with self.assertRaises(ValueError):
             verify_password("password", PasswordRecord("unknown", 1_000, b"a" * 16, b"x" * 32))
+        with self.assertRaises(ValueError):
+            verify_password("password", PasswordRecord(ALGORITHM, 1_000, b"a" * 16, b"x" * 31))
+        with self.assertRaises(ValueError):
+            verify_password("password", PasswordRecord(ALGORITHM, 1_000, b"a" * 16, "not-bytes"))  # type: ignore[arg-type]
