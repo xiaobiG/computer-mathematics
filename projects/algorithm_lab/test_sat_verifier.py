@@ -1,6 +1,13 @@
 import unittest
 
-from projects.algorithm_lab.sat_verifier import find_satisfying_assignment, verify_assignment, variables
+from projects.algorithm_lab.sat_verifier import (
+    find_satisfying_assignment,
+    independent_set_cnf_certificate,
+    independent_set_cnf_report,
+    independent_set_to_cnf,
+    verify_assignment,
+    variables,
+)
 
 
 class SatVerifierTests(unittest.TestCase):
@@ -36,6 +43,32 @@ class SatVerifierTests(unittest.TestCase):
             variables(((0,),))
         with self.assertRaises(ValueError):
             variables(((),))
+
+    def test_independent_set_reduction_matches_a_small_exhaustive_oracle(self):
+        vertices = ["a", "b", "c", "d"]
+        path_edges = [("a", "b"), ("b", "c"), ("c", "d")]
+        report = independent_set_cnf_report(vertices, path_edges, 2)
+        self.assertTrue(report["cnf_satisfiable"])
+        self.assertTrue(report["small_instance_independent_set_oracle"])
+        self.assertTrue(report["yes_no_agree"])
+        self.assertEqual(len(report["decoded_independent_set"]), 2)
+        self.assertTrue(independent_set_cnf_certificate(vertices, path_edges, 2, report))
+
+        triangle = [("a", "b"), ("b", "c"), ("a", "c")]
+        impossible = independent_set_cnf_report(["a", "b", "c"], triangle, 2)
+        self.assertFalse(impossible["cnf_satisfiable"])
+        self.assertFalse(impossible["small_instance_independent_set_oracle"])
+
+    def test_reduction_rejects_changed_formula_and_invalid_graph_contracts(self):
+        vertices, edges = ["a", "b", "c"], [("a", "b")]
+        report = independent_set_cnf_report(vertices, edges, 2)
+        changed = dict(report)
+        changed["clause_count"] = report["clause_count"] + 1
+        self.assertFalse(independent_set_cnf_certificate(vertices, edges, 2, changed))
+        with self.assertRaises(ValueError):
+            independent_set_to_cnf(["a", "a"], [], 1)
+        with self.assertRaises(ValueError):
+            independent_set_to_cnf(["a", "b"], [("a", "a")], 1)
 
 
 if __name__ == "__main__":

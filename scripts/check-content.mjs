@@ -149,6 +149,7 @@ const priorityDeepLessons = new Set([
   'discrete-math/deletion-shortest-path.md',
   'discrete-math/ordered-shortest-path-updates.md',
   'discrete-math/max-flow-min-cut.md',
+  'discrete-math/p-np-reductions.md',
   'probability-ml/bayes.md',
   'probability-ml/maximum-likelihood.md',
   'probability-ml/hypothesis-testing.md',
