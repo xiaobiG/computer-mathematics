@@ -25,6 +25,7 @@ export default defineConfig({
       { text: "课程架构", link: "/curriculum-architecture" },
       { text: "成熟度看板", link: "/course-maturity" },
       { text: "版本迭代", link: "/version-iteration" },
+      { text: "深度升级路线", link: "/course-depth-roadmap" },
       { text: "12 周计划", link: "/study-plan" },
       { text: "专题系列", items: series },
       { text: "综合项目", link: "/projects/" },
