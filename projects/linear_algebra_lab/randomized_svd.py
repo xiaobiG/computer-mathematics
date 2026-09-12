@@ -55,4 +55,16 @@ def randomized_svd_certificate(matrix, report, tolerance=1e-10):
         return False
     if report.singular_values != expected.singular_values or not isclose(report.frobenius_error, expected.frobenius_error, rel_tol=tolerance, abs_tol=tolerance):
         return False
-    return all(isclose(actual, target, rel_tol=tolerance, abs_tol=tolerance) for row, target_row in zip(report.approximation, expected.approximation) for actual, target in zip(row, target_row))
+    # ``zip`` alone silently accepts a truncated or overlong approximation.
+    # Shape is part of the report claim: an m-by-n reconstruction cannot be
+    # verified by comparing only a matching prefix of its rows or columns.
+    if len(report.approximation) != len(expected.approximation):
+        return False
+    return all(
+        len(row) == len(target_row)
+        and all(
+            isclose(actual, target, rel_tol=tolerance, abs_tol=tolerance)
+            for actual, target in zip(row, target_row)
+        )
+        for row, target_row in zip(report.approximation, expected.approximation)
+    )

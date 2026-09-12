@@ -69,8 +69,10 @@ assert steps[-1].next_left == steps[-1].next_right  # 终止时是空区间
 真实程序更常问的是“应插到哪里”，或“重复值块从哪里开始”。定义
 
 $$
-p=\min\{i\in\{0,\ldots,n\}: i=n\ \text{或}\ a_i\ge target\}。
+p=\min\{i\in\{0,\ldots,n\}: i=n\ \text{或}\ a_i\ge target\}
 $$
+
+。
 
 这个定义允许 $p=0$ 和 $p=n$，所以空数组、全部元素较小和重复值都不需要额外分支。此时比“目标还在候选区间”更强、也更有用的不变量是：
 

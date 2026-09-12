@@ -23,3 +23,13 @@ class RandomizedSVDTests(unittest.TestCase):
         first = randomized_svd_report(matrix, rank=1, oversampling=1, seed=29)
         second = randomized_svd_report(matrix, rank=1, oversampling=1, seed=29)
         self.assertEqual(first, second)
+
+    def test_certificate_rejects_approximation_with_missing_or_extra_shape(self):
+        matrix = [[3., 1.], [0., 2.], [1., 0.]]
+        report = randomized_svd_report(matrix, rank=1, oversampling=1, seed=29)
+        self.assertFalse(randomized_svd_certificate(
+            matrix, replace(report, approximation=report.approximation[:-1])
+        ))
+        self.assertFalse(randomized_svd_certificate(
+            matrix, replace(report, approximation=(report.approximation[0][:-1],) + report.approximation[1:])
+        ))
