@@ -1,6 +1,10 @@
 import unittest
 
-from projects.algorithm_lab.relations import equivalence_classes, relation_report
+from projects.algorithm_lab.relations import (
+    equivalence_classes,
+    relation_report,
+    relation_report_certificate,
+)
 
 
 class RelationTests(unittest.TestCase):
@@ -10,6 +14,8 @@ class RelationTests(unittest.TestCase):
         report = relation_report(items, parity)
         self.assertTrue(report["equivalence"])
         self.assertFalse(report["partial_order"])
+        self.assertEqual(report["counterexamples"]["missing_transitive_pair"], None)
+        self.assertTrue(relation_report_certificate(items, parity, report))
         self.assertEqual({frozenset(group) for group in equivalence_classes(items, parity)},
                          {frozenset({1, 3, 5}), frozenset({2, 4, 6})})
 
@@ -20,6 +26,19 @@ class RelationTests(unittest.TestCase):
         self.assertTrue(report["partial_order"])
         self.assertFalse(report["symmetric"])
         self.assertFalse(report["equivalence"])
+        self.assertEqual(report["counterexamples"]["missing_symmetric_reverse"], (1, 2))
+
+    def test_report_exposes_a_transitivity_witness_and_rejects_changed_diagnosis(self):
+        items = {0, 1, 2}
+        near = {(left, right) for left in items for right in items if abs(left - right) <= 1}
+        report = relation_report(items, near)
+        self.assertFalse(report["transitive"])
+        self.assertEqual(report["counterexamples"]["missing_transitive_pair"], (0, 1, 2))
+        self.assertTrue(relation_report_certificate(items, near, report))
+        changed = dict(report)
+        changed["counterexamples"] = dict(report["counterexamples"])
+        changed["counterexamples"]["missing_transitive_pair"] = (0, 1, 1)
+        self.assertFalse(relation_report_certificate(items, near, changed))
 
     def test_rejects_outside_items_and_non_equivalence_partitioning(self):
         with self.assertRaises(ValueError):

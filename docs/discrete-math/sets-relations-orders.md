@@ -1,8 +1,8 @@
 ---
 courseLevel: "0–2（离散结构预备）"
 prerequisites: "命题逻辑、集合符号与 Python 基础"
-estimatedMinutes: 55
-experiment: "实现并验证等价关系划分与偏序上的拓扑排序"
+estimatedMinutes: 65
+experiment: "诊断关系性质的反例，并验证等价关系划分与偏序"
 title: 集合、关系、等价类与偏序
 description: 用集合与二元关系描述程序状态，推导等价类划分、偏序和拓扑排序的共同结构。
 ---
@@ -17,7 +17,7 @@ description: 用集合与二元关系描述程序状态，推导等价类划分�
 - 判断关系的自反、对称、反对称与传递性质；
 - 从等价关系推导不相交的等价类划分；
 - 区分等价关系与偏序，并理解拓扑序为何是偏序的线性扩展；
-- 用小程序验证关系性质与依赖约束。
+- 用小程序验证关系性质、定位违反定义的反例，并检查依赖约束。
 
 ## 从“用户是否同一群组”开始
 
@@ -59,61 +59,33 @@ description: 用集合与二元关系描述程序状态，推导等价类划分�
 有限集合上可以把量词直接翻译成 `all`。下面的代码故意不追求大规模性能：它让每个循环都对应一条数学定义，因此既可做单元测试，也可用于发现输入关系没有满足的性质。
 
 ```python
-def relation_report(items, relation):
-    """检查有限集合上的 R 是否满足定义；集合外端点是输入错误。"""
-    if any(left not in items or right not in items for left, right in relation):
-        raise ValueError("relation contains an item outside the domain")
-
-    reflexive = all((item, item) in relation for item in items)
-    symmetric = all((right, left) in relation for left, right in relation)
-    antisymmetric = all(
-        left == right or (right, left) not in relation
-        for left, right in relation
-    )
-    transitive = all(
-        (left, last) in relation
-        for left in items for middle in items for last in items
-        if (left, middle) in relation and (middle, last) in relation
-    )
-    return {
-        "reflexive": reflexive,
-        "symmetric": symmetric,
-        "antisymmetric": antisymmetric,
-        "transitive": transitive,
-        "equivalence": reflexive and symmetric and transitive,
-        "partial_order": reflexive and antisymmetric and transitive,
-    }
-
-
-def equivalence_classes(items, relation):
-    if not relation_report(items, relation)["equivalence"]:
-        raise ValueError("equivalence_classes requires an equivalence relation")
-    unseen, result = set(items), []
-    while unseen:
-        representative = next(iter(unseen))
-        current = {item for item in items if (representative, item) in relation}
-        result.append(current)
-        unseen -= current
-    return result
-
+from projects.algorithm_lab.relations import (
+    equivalence_classes,
+    relation_report,
+    relation_report_certificate,
+)
 
 items = {1, 2, 3, 4, 5, 6}
 same_parity = {(a, b) for a in items for b in items if a % 2 == b % 2}
-assert relation_report(items, same_parity)["equivalence"]
+report = relation_report(items, same_parity)
+assert report["equivalence"]
+assert relation_report_certificate(items, same_parity, report)
 assert {frozenset(group) for group in equivalence_classes(items, same_parity)} == {
     frozenset({1, 3, 5}), frozenset({2, 4, 6}),
 }
 
 # “相差不超过 1”有自反性和对称性，却缺少传递性。
 near = {(a, b) for a in {0, 1, 2} for b in {0, 1, 2} if abs(a - b) <= 1}
-assert not relation_report({0, 1, 2}, near)["transitive"]
+near_report = relation_report({0, 1, 2}, near)
+assert not near_report["transitive"]
+assert near_report["counterexamples"]["missing_transitive_pair"] == (0, 1, 2)
 ```
 
-`relation_report` 分别返回自反、对称、反对称、传递、等价和偏序六项证据；其中三重循环就是传递性量词的逐项检查，时间为 $O(|S|^3)$，空间除输入外为 $O(1)$。`equivalence_classes` 依次选择一个尚未分类的代表元；等价关系保证所得类彼此不重叠，所以每个元素只会被移出 `unseen` 一次。运行 `python -m unittest projects.algorithm_lab.test_relations` 可再验证奇偶关系、$\le$ 和非法域元素。真实的“同组”关系常由图连通性或 DSU 增量维护，而不显式存储所有有序对。
+`relation_report` 分别返回自反、对称、反对称、传递、等价和偏序六项结论；更重要的是，当某性质不成立时，`counterexamples` 给出一个具体见证。上例的 `(0,1,2)` 表示 $(0,1)$、$(1,2)$ 都存在，但 $(0,2)$ 缺失，正好对应传递性量词失败。自反性会给出缺少的 $(a,a)$，对称性给出缺反向边的 $(a,b)$，反对称性给出不同元素的双向对。`relation_report_certificate` 从输入重新枚举这些量，因而不能把正确的 `False` 与任意编造的解释配对。三重枚举仍为 $O(|S|^3)$，空间除输入和单个见证外为 $O(1)$。`equivalence_classes` 依次选择一个尚未分类的代表元；等价关系保证所得类彼此不重叠，所以每个元素只会被移出 `unseen` 一次。运行 `python -m unittest projects.algorithm_lab.test_relations` 可再验证奇偶关系、$\le$、反例诊断和非法域元素。真实的“同组”关系常由图连通性或 DSU 增量维护，而不显式存储所有有序对。
 
 ## 正确性：代码为何得到真正的等价类
 
-`relation_report` 的每个布尔值都是定义的有限域全称量词：例如 `reflexive` 遍历每个 `item`，只有全部 $(item,item)$ 都在 `relation` 中才为真；传递性同理遍历全部三元组。因此它返回 `equivalence=True` 当且仅当输入关系满足三项定义。
+`relation_report` 的每个布尔值都是定义的有限域全称量词：例如 `reflexive` 遍历每个 `item`，只有全部 $(item,item)$ 都在 `relation` 中才为真；传递性同理遍历全部三元组。诊断见证是使对应 `all` 失败的第一个规范化候选，并不声称它是数学上唯一或最小的反例。因此它返回 `equivalence=True` 当且仅当输入关系满足三项定义；为假时还能展示哪条前提不足。证书重新生成布尔值和见证，而不是把日志文字当证据。
 
 对 `equivalence_classes`，循环不变量是：`result` 中的集合两两不交，且它们的并集恰为原始 `items - unseen`。初始时显然成立。每次选择代表元得到完整的 $[a]$，由上节“相交则相等”的结论，它不会与已有类部分重叠；移除后不变量仍成立。`unseen` 严格变小，循环终止时为空，于是 `result` 是全集的划分。
 
