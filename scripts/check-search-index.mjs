@@ -1,0 +1,38 @@
+import { readdir, readFile, stat } from "node:fs/promises";
+import { join } from "node:path";
+
+const chunksDirectory = "docs/.vitepress/dist/assets/chunks";
+const maximumBytes = 1.5 * 1024 * 1024;
+const excludedTitles = [
+  "版本迭代看板",
+  "课程深度升级路线图",
+  "编辑与发布流程",
+  "十二周计算机数学学习计划",
+];
+const requiredCourseTitle = "最大流最小割：残量网络为何能证明最优";
+
+const candidates = (await readdir(chunksDirectory)).filter((name) =>
+  /^@localSearchIndexroot\..+\.js$/.test(name),
+);
+if (candidates.length !== 1) {
+  throw new Error("expected exactly one local-search index, found " + candidates.length);
+}
+
+const indexPath = join(chunksDirectory, candidates[0]);
+const bytes = (await stat(indexPath)).size;
+if (bytes > maximumBytes) {
+  throw new Error(
+    "local-search index is " + (bytes / 1024).toFixed(1) + " KiB; budget is " + (maximumBytes / 1024).toFixed(0) + " KiB",
+  );
+}
+
+const source = await readFile(indexPath, "utf8");
+const leakedTitle = excludedTitles.find((title) => source.includes(title));
+if (leakedTitle) {
+  throw new Error("excluded operational page remains in local search: " + leakedTitle);
+}
+if (!source.includes(requiredCourseTitle)) {
+  throw new Error("course content is unexpectedly absent from local search");
+}
+
+console.log("本地搜索索引校验通过：" + (bytes / 1024).toFixed(1) + " KiB，课程可搜索，辅助页面已排除。");

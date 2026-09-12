@@ -1,6 +1,7 @@
 ---
 title: 项目状态
 description: 计算机数学站点的当前内容规模、实践项目与发布标准。
+search: false
 ---
 
 # 项目状态

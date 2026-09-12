@@ -1,5 +1,6 @@
 ---
 title: "[课程标题]"
+search: false
 description: "[用一句话说明问题、推导与工程价值]"
 courseLevel: "[0 预备 / 1 核心 / 2 推导与算法 / 3 工程与前沿]"
 prerequisites: "[必须先会的概念或课程]"
