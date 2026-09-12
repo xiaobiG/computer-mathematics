@@ -30,43 +30,13 @@ experiment: "比较朴素链式合并与路径压缩的 find 路径长度"
 ## 算法实现
 
 ```python
-class UnionFind:
-    def __init__(self, n: int):
-        if n < 0:
-            raise ValueError("n 必须非负")
-        self.parent = list(range(n))
-        self.size = [1] * n
-        self.components = n
+from projects.algorithm_lab.union_find import UnionFind
 
-    def _check(self, x: int) -> None:
-        if not 0 <= x < len(self.parent):
-            raise IndexError("顶点编号越界")
-
-    def find(self, x: int) -> int:
-        self._check(x)
-        root = x
-        while self.parent[root] != root:
-            root = self.parent[root]
-        # 路径压缩：不改变根，因而不改变集合划分。
-        while x != root:
-            next_x = self.parent[x]
-            self.parent[x] = root
-            x = next_x
-        return root
-
-    def union(self, a: int, b: int) -> bool:
-        root_a, root_b = self.find(a), self.find(b)
-        if root_a == root_b:
-            return False
-        if self.size[root_a] < self.size[root_b]:
-            root_a, root_b = root_b, root_a
-        self.parent[root_b] = root_a
-        self.size[root_a] += self.size[root_b]
-        self.components -= 1
-        return True
-
-    def connected(self, a: int, b: int) -> bool:
-        return self.find(a) == self.find(b)
+uf = UnionFind(5)
+assert uf.union(0, 1)
+assert uf.union(1, 2)
+assert uf.connected(0, 2)
+assert not uf.union(0, 2)
 ```
 
 `union(a,b)` 返回 `False` 当且仅当 $a,b$ 原本同集合。在无向图中，这正是“新边会形成环”的判据，也是 Kruskal 算法的关键。
@@ -82,16 +52,18 @@ class UnionFind:
 测试不应只断言某个根编号，因为代表元可随合并顺序改变。应断言等价关系：
 
 ```python
-uf = UnionFind(5)
-assert uf.union(0, 1)
-assert uf.union(1, 2)
-assert uf.connected(0, 2)
-assert not uf.union(0, 2)  # 同一分量内加边会成环
-assert not uf.connected(0, 3)
-assert uf.components == 3
+from projects.algorithm_lab.union_find import (
+    path_compression_chain_certificate, path_compression_chain_report,
+)
+
+report = path_compression_chain_report(6)
+assert report["first_find_hops"] == 5
+assert report["compressed_second_find_hops"] == 1
+assert report["uncompressed_second_find_hops"] == 5
+assert path_compression_chain_certificate(6, report)
 ```
 
-可构造连续 `union(i, i+1)` 的输入，再重复查询最后一个节点。观察第一次 `find` 后父指针被压平；这验证的是优化效果，而正确性仍来自集合不变量。
+运行 `python -m unittest projects.algorithm_lab.test_union_find`。受控链刻意与按大小合并分开，只观察路径压缩对同一重复查询的影响；它是有限操作计数，不是对任意序列 $O(\alpha(n))$ 均摊界的替代证明。
 
 ## 失败案例与工程边界
 
