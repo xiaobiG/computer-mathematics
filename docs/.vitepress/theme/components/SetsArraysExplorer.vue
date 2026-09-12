@@ -43,7 +43,7 @@ const selected = computed(() => matrix[row.value][column.value])
         <div class="operation-tabs" role="group" aria-label="选择集合运算">
           <button v-for="(item, key) in operations" :key="key" type="button" :class="{ active: operation === key }" :aria-pressed="operation === key" @click="operation = key">{{ item.label }}</button>
         </div>
-        <p class="operation-result"><strong>{{ operations[operation].label }}</strong> = { {{ result.join(', ') || '∅' }} }<span>{{ operations[operation].explain }}</span></p>
+        <p class="operation-result" aria-live="polite"><strong>{{ operations[operation].label }}</strong> = { {{ result.join(', ') || '∅' }} }<span>{{ operations[operation].explain }}</span></p>
       </div>
       <div class="membership" aria-label="集合成员关系">
         <div class="membership__circles" aria-hidden="true"><div class="circle circle--a"></div><div class="circle circle--b"></div><div class="membership__items membership__items--a">{{ onlyLeft.join(' · ') || '—' }}</div><div class="membership__items membership__items--both">{{ both.join(' · ') || '—' }}</div><div class="membership__items membership__items--b">{{ onlyRight.join(' · ') || '—' }}</div></div>

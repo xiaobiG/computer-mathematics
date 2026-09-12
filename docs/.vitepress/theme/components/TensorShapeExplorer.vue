@@ -29,7 +29,7 @@ const active = computed(() => modes[mode.value])
         <div class="shape-tabs" role="group" aria-label="选择形状操作"><button v-for="(item, key) in modes" :key="key" type="button" :class="{ active: mode === key }" :aria-pressed="mode === key" @click="mode = key">{{ item.label }}</button></div>
         <h3>{{ active.title }}</h3>
         <div class="operation-flow"><div v-for="(input, index) in active.inputs" :key="input" class="flow-value"><span>输入 {{ String.fromCharCode(65 + index) }}</span><code>{{ input }}</code><small>shape: {{ active.shapes[index] }}</small></div><span class="flow-arrow" aria-hidden="true">→</span><div class="flow-value flow-value--output"><span>输出</span><code>{{ active.output }}</code><small>shape: {{ active.outputShape }}</small></div></div>
-        <p class="shape-conclusion"><span>形状结论</span><strong>{{ active.formula }}</strong></p>
+        <p class="shape-conclusion" aria-live="polite"><span>形状结论</span><strong>{{ active.formula }}</strong></p>
         <aside class="shape-warning"><strong>注意：<code>(3,)</code> 与 <code>(3, 1)</code> 不同</strong><p>前者是一维长度为 3 的向量；后者是 3 行 1 列的二维矩阵。维度数量不同，不能把它们当成同一种接口。</p></aside>
       </div>
     </div>
