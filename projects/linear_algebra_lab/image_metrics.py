@@ -44,6 +44,21 @@ class StructuralSimilarityReport:
     ssim: float
 
 
+@dataclass(frozen=True)
+class SameMseStructuralComparison:
+    """Keep a shared pixel-error scale while comparing global structure scores."""
+
+    first_quality: ImageQualityReport
+    second_quality: ImageQualityReport
+    first_structure: StructuralSimilarityReport
+    second_structure: StructuralSimilarityReport
+    mse_tolerance: float
+    shared_mse: float
+    ssim_difference: float
+    higher_ssim: str
+    automatic_action: str
+
+
 def _validate(reference, approximation, peak):
     if not isinstance(peak, (int, float)) or isinstance(peak, bool) or not isfinite(peak) or peak <= 0:
         raise ValueError("peak must be a finite positive number")
@@ -171,3 +186,44 @@ def structural_similarity_certificate(reference, approximation, report, peak=255
         return False
     return all(isclose(getattr(report, field), getattr(expected, field), rel_tol=tolerance, abs_tol=tolerance)
                for field in ("reference_mean", "approximation_mean", "reference_variance", "approximation_variance", "covariance", "ssim")) and report.samples == expected.samples
+
+
+def same_mse_structural_comparison_report(
+    reference, first, second, peak=255.0, k1=0.01, k2=0.03, mse_tolerance=1e-12,
+):
+    """Compare global SSIM only after explicitly matching two MSE values.
+
+    A higher score is a statement about this global formula and declared
+    constants, not a claim about human preference or a deployment action.
+    """
+    if (not isinstance(mse_tolerance, (int, float)) or isinstance(mse_tolerance, bool)
+            or not isfinite(mse_tolerance) or mse_tolerance < 0):
+        raise ValueError("mse_tolerance must be a finite non-negative number")
+    first_quality = image_quality_report(reference, first, peak)
+    second_quality = image_quality_report(reference, second, peak)
+    tolerance = float(mse_tolerance)
+    if not isclose(first_quality.mse, second_quality.mse, rel_tol=tolerance, abs_tol=tolerance):
+        raise ValueError("first and second images must have matching MSE within mse_tolerance")
+    first_structure = structural_similarity_report(reference, first, peak, k1, k2)
+    second_structure = structural_similarity_report(reference, second, peak, k1, k2)
+    difference = first_structure.ssim - second_structure.ssim
+    higher = "first" if difference > 0 else "second" if difference < 0 else "tied"
+    return SameMseStructuralComparison(
+        first_quality, second_quality, first_structure, second_structure, tolerance,
+        first_quality.mse, difference, higher, "none",
+    )
+
+
+def same_mse_structural_comparison_certificate(
+    reference, first, second, report, peak=255.0, k1=0.01, k2=0.03,
+):
+    """Rebuild the paired comparison and reject changed metrics or conclusion."""
+    if not isinstance(report, SameMseStructuralComparison):
+        return False
+    try:
+        expected = same_mse_structural_comparison_report(
+            reference, first, second, peak, k1, k2, report.mse_tolerance,
+        )
+    except ValueError:
+        return False
+    return report == expected

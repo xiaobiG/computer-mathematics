@@ -11,11 +11,11 @@ experiment: "为两幅小灰度矩阵重放全局 SSIM、统计量与证书"
 
 ## 学习目标
 
-你将能从两幅同形灰度矩阵的均值、方差和协方差计算全局 SSIM；解释它为何会关注共同的亮暗结构；并能说明全局 SSIM 既不等于局部窗口 SSIM，也不等于真实人类感知质量。
+你将能由均值、方差和协方差计算全局 SSIM，并区分它、窗口 SSIM 与真实感知质量。
 
 ## 从一个计算问题开始
 
-MSE 将每个坐标独立比较。若整块纹理被反转或平移，逐像素误差可能很大；若噪声分散，MSE 也可能相同。但图像中的相邻像素和明暗结构常有意义。SSIM 用两组矩阵统计量问：亮度是否相近、对比度是否相近、变化趋势是否共同出现？
+MSE 独立比较每个坐标，不能说明亮暗变化是否共同出现。SSIM 用两组矩阵统计量比较亮度、对比度和结构。
 
 ## 定义与推导
 
@@ -39,27 +39,45 @@ assert report.ssim < 0.0
 assert structural_similarity_certificate(reference, reversed_columns, report)
 ```
 
-运行 `python -m unittest projects.linear_algebra_lab.test_image_metrics`。实现以样本方差（分母 $N-1$）计算全局统计量；证书从矩阵和 $P,K_1,K_2$ 独立重建报告，篡改协方差或 SSIM 会失败。时间为 $O(N)$，额外空间在本教学实现中为 $O(N)$，因为它显式展平两幅小矩阵以便可读审计。
+运行 `python -m unittest projects.linear_algebra_lab.test_image_metrics`。实现用分母 $N-1$ 的样本方差；证书从矩阵与 $P,K_1,K_2$ 重建报告，篡改协方差或 SSIM 会失败。时间为 $O(N)$，教学实现为便于审计显式展平，额外空间为 $O(N)$。
 
 ## 正确性与边界
 
-全局 SSIM 对完全相同矩阵严格给出 1；列反转例的协方差为负，结构项降低，因而分数低于 0。这个结论只属于给定峰值、常量和全局聚合。SSIM 通常可接近 1，但在这种公式和有限样本下不应把任何固定范围当作脱离输入契约的真理。
+相同矩阵的全局 SSIM 为 1；列反转的负协方差使它低于 0。结论依赖峰值、常量和全局聚合，不能把固定范围脱离输入契约解释。
 
-生产图像质量评估常按滑动窗口计算 SSIM，并还要处理彩色空间、动态范围、预处理和聚合规则。本课程故意不加载图像文件、不模拟视觉系统，也不以一个分数替代用户研究、文件大小或下游任务测量。
+生产评估还须声明窗口、色彩空间、动态范围和聚合。本课不加载图像文件、不模拟视觉或以单个分数替代任务测量。
+
+## 共享 MSE 后，结构项还留下什么
+
+为避免把“SSIM 更高”误说成“只是 MSE 更小”，下面固定每个像素的误差平方平均值。常量亮度偏移与交错的正负噪声都使每个像素偏离 $10$，故 MSE 都是 $100$；但前者保留常量结构，后者引入交错方差，全局 SSIM 会不同：
+
+```python
+from projects.linear_algebra_lab.image_metrics import (
+    same_mse_structural_comparison_certificate,
+    same_mse_structural_comparison_report,
+)
+
+reference = [[128.0] * 4 for _ in range(4)]
+brightness_shift = [[138.0] * 4 for _ in range(4)]
+alternating_noise = [[118.0 if (r + c) % 2 == 0 else 138.0 for c in range(4)] for r in range(4)]
+report = same_mse_structural_comparison_report(reference, brightness_shift, alternating_noise)
+assert report.first_quality.mse == report.second_quality.mse == 100.0
+assert report.higher_ssim == "first"
+assert same_mse_structural_comparison_certificate(reference, brightness_shift, alternating_noise, report)
+```
+
+报告拒绝 MSE 不同的输入，并重放两份指标及排序。它只区分给定公式下的有限矩阵；不把常量偏移升级为人眼偏好，`automatic_action` 固定为 `none`。
 
 ## 失败案例与工程边界
 
-- **全局平均掩盖局部损坏。** 一小块严重伪影可能被整图统计稀释。
-- **错误颜色空间。** 在非线性 RGB、亮度或线性光中计算会得到不同数字。
-- **窗口与参数不一致。** 不同 $P,K_1,K_2$ 或窗口规则不能直接比较。
-- **把 SSIM 当安全门槛。** 高 SSIM 不能保证文字、医疗细节或分类结果正确。
+- **局部损坏。** 全局平均可能稀释小块伪影。
+- **颜色、窗口或参数不同。** 数字不能直接比较。
+- **安全门槛。** 高 SSIM 不保证文字、医疗细节或分类正确。
 
 ## 常见误区
 
-- **“SSIM 是百分比。”** 它是依赖定义和参数的相似度统计量。
-- **“SSIM 取代 MSE。”** 两者回答不同问题，应并列报告。
-- **“负值一定是实现错误。”** 反相关结构在该全局公式下可给出负结构项。
-- **“相同均值就结构相同。”** 还需方差与协方差。
+- **“SSIM 是百分比或取代 MSE。”** 错；两者依赖不同定义并回答不同问题。
+- **“负值或相同均值是错误/同结构。”** 错；还要看协方差与方差。
 
 ## 练习
 
@@ -70,11 +88,11 @@ assert structural_similarity_certificate(reference, reversed_columns, report)
 
 ## 练习答案提示
 
-1. 负号表示反向变化；取绝对值会把反转结构误写为一致。
-2. 代入 $\mu_x=\mu_y$、$\sigma_x^2=\sigma_y^2=\sigma_{xy}$，分子与分母各因子相同。
-3. 常量会降低统计量接近零时的敏感性；它们是模型选择，不是万能默认值。
-4. 指定颜色空间、窗口、峰值、样本和任务；每项保留独立结论，避免由一个指标推出全部质量。
+1. 负号记录反向变化，不能取绝对值。
+2. 代入相同均值、方差和协方差后分子分母相同。
+3. 常量是模型选择，不是万能默认值。
+4. 声明颜色、窗口、峰值、样本和任务，分开解释各指标。
 
 ## 延伸
 
-[图像误差指标：MSE、PSNR](/linear-algebra/image-error-metrics)给出逐像素误差基线；[低秩图像压缩](/linear-algebra/low-rank-image-compression)产生重构矩阵；[协方差与相关性](/probability-ml/covariance-correlation)复习共同变化的统计含义。
+[图像误差指标：MSE、PSNR](/linear-algebra/image-error-metrics)给出逐像素基线；[低秩图像压缩](/linear-algebra/low-rank-image-compression)产生重构；[协方差与相关性](/probability-ml/covariance-correlation)复习共同变化。

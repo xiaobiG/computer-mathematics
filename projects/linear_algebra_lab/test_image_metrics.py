@@ -4,7 +4,8 @@ from math import inf
 
 from projects.linear_algebra_lab.image_metrics import (
     image_quality_certificate, image_quality_report, randomized_svd_image_quality_review,
-    randomized_svd_image_quality_review_certificate, structural_similarity_certificate, structural_similarity_report,
+    randomized_svd_image_quality_review_certificate, same_mse_structural_comparison_certificate,
+    same_mse_structural_comparison_report, structural_similarity_certificate, structural_similarity_report,
 )
 from projects.linear_algebra_lab.randomized_svd import randomized_svd_report
 
@@ -51,6 +52,23 @@ class ImageMetricsTests(unittest.TestCase):
         report = structural_similarity_report(reference, shifted)
         self.assertLess(report.ssim, 0.0)
         self.assertFalse(structural_similarity_certificate(reference, shifted, replace(report, covariance=0.0)))
+
+    def test_same_mse_can_have_different_global_structure_scores(self):
+        reference = [[128.0] * 4 for _ in range(4)]
+        brightness_shift = [[138.0] * 4 for _ in range(4)]
+        alternating_noise = [[118.0 if (row + column) % 2 == 0 else 138.0 for column in range(4)] for row in range(4)]
+        report = same_mse_structural_comparison_report(reference, brightness_shift, alternating_noise)
+        self.assertEqual(report.first_quality.mse, 100.0)
+        self.assertEqual(report.second_quality.mse, 100.0)
+        self.assertEqual(report.higher_ssim, "first")
+        self.assertGreater(report.first_structure.ssim, report.second_structure.ssim)
+        self.assertEqual(report.automatic_action, "none")
+        self.assertTrue(same_mse_structural_comparison_certificate(reference, brightness_shift, alternating_noise, report))
+        self.assertFalse(same_mse_structural_comparison_certificate(
+            reference, brightness_shift, alternating_noise, replace(report, higher_ssim="second"),
+        ))
+        with self.assertRaisesRegex(ValueError, "matching MSE"):
+            same_mse_structural_comparison_report(reference, brightness_shift, reference)
 
     def test_randomized_svd_artifact_drives_a_numeric_quality_budget_review(self):
         pixels = [[5.0, 0.0], [0.0, 1.0]]
