@@ -146,6 +146,7 @@ const priorityDeepLessons = new Set([
   'probability-ml/bayes.md',
   'probability-ml/maximum-likelihood.md',
   'probability-ml/block-bootstrap-calibration.md',
+  'probability-ml/cluster-bootstrap-calibration.md',
   'numerical-computing/floating-point.md',
   'numerical-computing/condition-number.md',
   'number-theory-crypto/rsa.md',
