@@ -21,6 +21,7 @@ description: 用快速幂、模逆元、小参数 RSA、教学签名验签与有
 - [数字签名](/number-theory-crypto/digital-signatures)
 - [公钥身份与密钥生命周期](/number-theory-crypto/public-key-lifecycle)
 - [已签名更新为何仍可能回滚](/number-theory-crypto/signed-release-anti-rollback)
+- [透明日志的 Merkle 证明](/number-theory-crypto/transparency-logs)
 - [Diffie–Hellman 密钥交换](/number-theory-crypto/diffie-hellman)
 - [中国剩余定理](/number-theory-crypto/chinese-remainder-theorem)
 - [椭圆曲线密码学预备](/number-theory-crypto/elliptic-curve-prelude)
@@ -38,6 +39,7 @@ python -m unittest projects.crypto_toybox.test_elliptic_curve
 python -m unittest projects.crypto_toybox.test_message_auth
 python -m unittest projects.crypto_toybox.test_signatures
 python -m unittest projects.crypto_toybox.test_release_policy
+python -m unittest projects.crypto_toybox.test_transparency_log
 ```
 
 ## 实验问题

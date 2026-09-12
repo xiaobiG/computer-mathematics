@@ -402,6 +402,7 @@ export default defineConfig({
             },
             { text: "公钥身份与密钥生命周期", link: "/number-theory-crypto/public-key-lifecycle" },
             { text: "已签名更新与防回滚", link: "/number-theory-crypto/signed-release-anti-rollback" },
+            { text: "透明日志的 Merkle 证明", link: "/number-theory-crypto/transparency-logs" },
             {
               text: "中国剩余定理：拆分模运算",
               link: "/number-theory-crypto/chinese-remainder-theorem",
