@@ -4,6 +4,7 @@ from __future__ import annotations
 import random
 from math import isfinite
 
+from projects.naive_bayes_spam.bootstrap_support import percentile, require_integer
 from projects.naive_bayes_spam.labeled_window_monitoring import normalize_labeled_window
 from projects.naive_bayes_spam.subgroup_calibration import _calibration_metrics
 from projects.naive_bayes_spam.window_calibration_comparison import window_calibration_comparison_report
@@ -11,21 +12,9 @@ from projects.naive_bayes_spam.window_calibration_comparison import window_calib
 CONTRACT = "window-calibration-bootstrap/v1"
 
 
-def _integer(value, field, minimum):
-    if isinstance(value, bool) or not isinstance(value, int) or value < minimum:
-        raise ValueError(f"{field} must be an integer at least {minimum}")
-    return value
-
-
-def _quantile(values, probability):
-    ordered = sorted(values)
-    index = round((len(ordered) - 1) * probability)
-    return ordered[index]
-
-
 def window_calibration_bootstrap_report(reference_name, reference_window, current_name, current_window, *, bins=5, minimum_window_size=20, ece_delta_review_threshold=.05, repeats=400, seed=0, confidence_level=.95):
     """Describe bootstrap sampling variation; never infer cause or deployment action."""
-    repeats, seed = _integer(repeats, "repeats", 20), _integer(seed, "seed", 0)
+    repeats, seed = require_integer(repeats, "repeats", 20), require_integer(seed, "seed", 0)
     if isinstance(confidence_level, bool) or not isinstance(confidence_level, (int, float)) or not isfinite(confidence_level) or not 0 < confidence_level < 1:
         raise ValueError("confidence_level must be in (0, 1)")
     point = window_calibration_comparison_report(reference_name, reference_window, current_name, current_window, bins=bins, minimum_window_size=minimum_window_size, ece_delta_review_threshold=ece_delta_review_threshold)
@@ -39,7 +28,7 @@ def window_calibration_bootstrap_report(reference_name, reference_window, curren
         cur_ece = _calibration_metrics([current["probabilities"][i] for i in cur_indices], [current["labels"][i] for i in cur_indices], bins, 1.96)["expected_calibration_error"]
         deltas.append(cur_ece - ref_ece)
     alpha = (1 - float(confidence_level)) / 2
-    interval = [_quantile(deltas, alpha), _quantile(deltas, 1 - alpha)]
+    interval = [percentile(deltas, alpha), percentile(deltas, 1 - alpha)]
     return {"contract": CONTRACT, "point_report": point, "bootstrap_policy": {"repeats": repeats, "seed": seed, "confidence_level": float(confidence_level), "resampling_unit": "labeled_observation", "automatic_action": "none"}, "ece_delta_percentile_interval": interval, "causal_interpretation": "not_established", "interpretation": "sampling_uncertainty_for_frozen_descriptive_difference"}
 
 

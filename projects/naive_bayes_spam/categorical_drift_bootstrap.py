@@ -10,7 +10,7 @@ from __future__ import annotations
 import random
 from math import isfinite
 
-from projects.naive_bayes_spam.block_window_calibration_bootstrap import _integer, _quantile
+from projects.naive_bayes_spam.bootstrap_support import percentile, require_integer
 from projects.naive_bayes_spam.drift_monitoring import _categorical_drift_report, _categories, _positive_finite
 
 
@@ -38,7 +38,7 @@ def categorical_drift_bootstrap_report(
     current = _categories(current, "current")
     smoothing = _positive_finite(smoothing, "smoothing")
     psi_threshold = _positive_finite(psi_threshold, "psi_threshold")
-    repeats, seed = _integer(repeats, "repeats", 20), _integer(seed, "seed", 0)
+    repeats, seed = require_integer(repeats, "repeats", 20), require_integer(seed, "seed", 0)
     confidence_level = _confidence_level(confidence_level)
     category_universe = sorted(set(reference) | set(current))
     point_report = _categorical_drift_report(
@@ -66,8 +66,8 @@ def categorical_drift_bootstrap_report(
             "resampling_unit": "iid_categorical_observation",
             "automatic_action": "none",
         },
-        "psi_percentile_interval": [_quantile(psi_values, alpha), _quantile(psi_values, 1 - alpha)],
-        "total_variation_percentile_interval": [_quantile(tv_values, alpha), _quantile(tv_values, 1 - alpha)],
+        "psi_percentile_interval": [percentile(psi_values, alpha), percentile(psi_values, 1 - alpha)],
+        "total_variation_percentile_interval": [percentile(tv_values, alpha), percentile(tv_values, 1 - alpha)],
         "causal_interpretation": "not_established",
         "interpretation": "sampling_uncertainty_under_iid_categorical_observation_resampling",
     }

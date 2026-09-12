@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from math import isfinite
 
+from projects.naive_bayes_spam.bootstrap_support import require_integer
 from projects.naive_bayes_spam.labeled_window_monitoring import normalize_labeled_window
 from projects.naive_bayes_spam.subgroup_calibration import _calibration_metrics
 
@@ -14,12 +15,6 @@ WINDOW_CALIBRATION_COMPARISON_CONTRACT_VERSION = "window-calibration-comparison/
 def _name(value: object, field: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"{field} must be a non-empty frozen window name")
-    return value
-
-
-def _integer(value: object, field: str, minimum: int) -> int:
-    if isinstance(value, bool) or not isinstance(value, int) or value < minimum:
-        raise ValueError(f"{field} must be an integer at least {minimum}")
     return value
 
 
@@ -51,8 +46,8 @@ def window_calibration_comparison_report(
         raise ValueError("reference_name and current_name must differ")
     reference = normalize_labeled_window(reference_window)
     current = normalize_labeled_window(current_window)
-    bins = _integer(bins, "bins", 2)
-    minimum_window_size = _integer(minimum_window_size, "minimum_window_size", 2)
+    bins = require_integer(bins, "bins", 2)
+    minimum_window_size = require_integer(minimum_window_size, "minimum_window_size", 2)
     threshold = _unit(ece_delta_review_threshold, "ece_delta_review_threshold")
     if isinstance(confidence_z, bool) or not isinstance(confidence_z, (int, float)) or not isfinite(confidence_z) or confidence_z <= 0:
         raise ValueError("confidence_z must be a positive finite number")

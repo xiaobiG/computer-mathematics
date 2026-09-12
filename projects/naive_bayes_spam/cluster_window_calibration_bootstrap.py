@@ -4,7 +4,7 @@ from __future__ import annotations
 import random
 from math import isfinite
 
-from projects.naive_bayes_spam.block_window_calibration_bootstrap import _integer, _quantile
+from projects.naive_bayes_spam.bootstrap_support import percentile, require_integer
 from projects.naive_bayes_spam.labeled_window_monitoring import LABELED_WINDOW_CONTRACT_VERSION, normalize_labeled_window
 from projects.naive_bayes_spam.subgroup_calibration import _calibration_metrics
 from projects.naive_bayes_spam.window_calibration_comparison import window_calibration_comparison_report
@@ -43,7 +43,7 @@ def cluster_window_calibration_bootstrap_report(
     confidence_level=.95,
 ):
     """Resample whole user/device clusters under an explicit frozen contract."""
-    repeats, seed = _integer(repeats, "repeats", 20), _integer(seed, "seed", 0)
+    repeats, seed = require_integer(repeats, "repeats", 20), require_integer(seed, "seed", 0)
     if (isinstance(confidence_level, bool) or not isinstance(confidence_level, (int, float))
             or not isfinite(confidence_level) or not 0 < confidence_level < 1):
         raise ValueError("confidence_level must be in (0, 1)")
@@ -77,7 +77,7 @@ def cluster_window_calibration_bootstrap_report(
             "reference": [{"cluster_id": cluster["cluster_id"], "observations": len(cluster["window"]["labels"])} for cluster in reference],
             "current": [{"cluster_id": cluster["cluster_id"], "observations": len(cluster["window"]["labels"])} for cluster in current],
         },
-        "ece_delta_percentile_interval": [_quantile(deltas, alpha), _quantile(deltas, 1 - alpha)],
+        "ece_delta_percentile_interval": [percentile(deltas, alpha), percentile(deltas, 1 - alpha)],
         "causal_interpretation": "not_established",
         "interpretation": "sampling_uncertainty_under_predefined_cluster_resampling",
     }

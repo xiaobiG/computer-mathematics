@@ -5,7 +5,7 @@ from __future__ import annotations
 import random
 from math import isfinite
 
-from projects.naive_bayes_spam.block_window_calibration_bootstrap import _integer, _quantile
+from projects.naive_bayes_spam.bootstrap_support import percentile, require_integer
 from projects.naive_bayes_spam.cluster_window_calibration_bootstrap import _flatten, _normalize_clusters
 from projects.naive_bayes_spam.subgroup_calibration import _calibration_metrics
 from projects.naive_bayes_spam.window_calibration_comparison import window_calibration_comparison_report
@@ -77,7 +77,7 @@ def time_stratified_cluster_calibration_bootstrap_report(
     moves a cluster from one stratum to another.  It is a pedagogical design
     for disjoint clusters, not a generic solution for serial dependence.
     """
-    repeats, seed = _integer(repeats, "repeats", 20), _integer(seed, "seed", 0)
+    repeats, seed = require_integer(repeats, "repeats", 20), require_integer(seed, "seed", 0)
     if (isinstance(confidence_level, bool) or not isinstance(confidence_level, (int, float))
             or not isfinite(confidence_level) or not 0 < confidence_level < 1):
         raise ValueError("confidence_level must be in (0, 1)")
@@ -111,7 +111,7 @@ def time_stratified_cluster_calibration_bootstrap_report(
         "time_stratum_cluster_sizes": {
             "reference": _stratum_shape(reference), "current": _stratum_shape(current),
         },
-        "ece_delta_percentile_interval": [_quantile(deltas, alpha), _quantile(deltas, 1 - alpha)],
+        "ece_delta_percentile_interval": [percentile(deltas, alpha), percentile(deltas, 1 - alpha)],
         "causal_interpretation": "not_established",
         "interpretation": "sampling_uncertainty_under_time_stratified_cluster_resampling",
     }

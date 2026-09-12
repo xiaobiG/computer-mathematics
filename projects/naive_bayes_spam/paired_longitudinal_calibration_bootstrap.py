@@ -5,7 +5,7 @@ from __future__ import annotations
 import random
 from math import isfinite
 
-from projects.naive_bayes_spam.block_window_calibration_bootstrap import _integer, _quantile
+from projects.naive_bayes_spam.bootstrap_support import percentile, require_integer
 from projects.naive_bayes_spam.labeled_window_monitoring import LABELED_WINDOW_CONTRACT_VERSION, normalize_labeled_window
 from projects.naive_bayes_spam.subgroup_calibration import _calibration_metrics
 from projects.naive_bayes_spam.window_calibration_comparison import window_calibration_comparison_report
@@ -91,7 +91,7 @@ def paired_longitudinal_cluster_calibration_bootstrap_report(
     and stratum order; it neither estimates a time-series model nor attributes
     changes to an intervention.
     """
-    repeats, seed = _integer(repeats, "repeats", 20), _integer(seed, "seed", 0)
+    repeats, seed = require_integer(repeats, "repeats", 20), require_integer(seed, "seed", 0)
     if (isinstance(confidence_level, bool) or not isinstance(confidence_level, (int, float))
             or not isfinite(confidence_level) or not 0 < confidence_level < 1):
         raise ValueError("confidence_level must be in (0, 1)")
@@ -136,12 +136,12 @@ def paired_longitudinal_cluster_calibration_bootstrap_report(
         "per_time_stratum_ece_delta_intervals": [{
             "time_stratum_id": stratum_id,
             "point_estimate": point_deltas[index],
-            "percentile_interval": [_quantile(samples[index], alpha), _quantile(samples[index], 1 - alpha)],
+            "percentile_interval": [percentile(samples[index], alpha), percentile(samples[index], 1 - alpha)],
         } for index, stratum_id in enumerate(stratum_ids)],
         "first_to_last_time_trend": {
             "from_time_stratum_id": stratum_ids[0], "to_time_stratum_id": stratum_ids[-1],
             "point_estimate": point_deltas[-1] - point_deltas[0],
-            "percentile_interval": [_quantile(trend_samples, alpha), _quantile(trend_samples, 1 - alpha)],
+            "percentile_interval": [percentile(trend_samples, alpha), percentile(trend_samples, 1 - alpha)],
         },
         "causal_interpretation": "not_established",
         "interpretation": "sampling_uncertainty_under_paired_cluster_trajectory_resampling",
