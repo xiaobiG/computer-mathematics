@@ -3,15 +3,15 @@ title: 数字签名：公开验证为何不同于加密和 MAC
 description: 从 RSA 指数关系推导教学签名验签，区分机密性、完整性、来源认证与可公开验证，并解释裸 RSA 签名为何不安全。
 courseLevel: 2
 prerequisites: 模逆元、快速幂、RSA、哈希与消息认证码
-estimatedMinutes: 55
-experiment: projects/crypto_toybox/main.py
+estimatedMinutes: 70
+experiment: "重放教学签名验签与裸 RSA 的可乘结构"
 ---
 
 # 数字签名：公开验证为何不同于加密和 MAC
 
 ## 学习目标
 
-读完后，你能说明数字签名解决的安全目标；从 RSA 的指数关系推导教学验签等式；区分签名、加密与 HMAC；并指出裸 RSA 签名缺失的安全组件。
+读完后，你能说明数字签名解决的安全目标；从 RSA 的指数关系推导教学验签等式；区分签名、加密与 HMAC；运行裸 RSA 签名的可乘反例；并指出它缺失的安全组件。
 
 ## 从“任何人都能检查”开始
 
@@ -72,6 +72,32 @@ assert not toy_rsa_verify(66, signature, key)
 
 这个玩具函数直接计算 $m^d\bmod n$，具有乘法结构：若攻击者有两个签名 $s_1,s_2$，则 $s_1s_2\bmod n$ 对应 $m_1m_2\bmod n$。再加上小模数、可猜测代表元、无哈希、无随机/确定性标准编码、无密钥保护和非恒定时间大整数运算，它不能用于任何真实数据或身份认证。
 
+下面的反例只在既有小参数教学密钥上重放这个等式。它不接受文本、不实现填充、更不构成真实签名或攻击工具：
+
+```python
+from projects.crypto_toybox.main import (
+    raw_rsa_signature_structure_certificate,
+    raw_rsa_signature_structure_report,
+    toy_rsa_keypair,
+)
+
+key = toy_rsa_keypair(61, 53, 17)
+report = raw_rsa_signature_structure_report(2, 3, key)
+assert report["left_verifies"]
+assert report["right_verifies"]
+assert report["combined_representative"] == 6
+assert report["combined_signature_verifies"]
+assert raw_rsa_signature_structure_certificate(2, 3, key, report)
+```
+
+因为
+
+$$
+(s_1s_2)^e\equiv s_1^es_2^e\equiv m_1m_2\pmod n,
+$$
+
+两个代表元 $2,3$ 的裸签名相乘后会验证为代表元 $6$ 的签名。报告保存两个原代表元、签名、乘积代表元与验证结论；证书从输入重算它们，篡改组合代表元或签名就会失败。这个例子说明“验签等式正确”远不足以成为不可伪造的签名方案；标准化哈希、消息编码、域分离和安全证明并不是可随意省略的装饰。
+
 生产系统应使用成熟库提供的规范算法与密钥管理，例如 Ed25519 或 RSA-PSS，并将签名的上下文、算法和公钥身份纳入协议。本文不提供生产替代代码，也不把玩具密钥写入任何网络服务。
 
 ## 常见误区
@@ -85,14 +111,14 @@ assert not toy_rsa_verify(66, signature, key)
 
 1. **基础**：用 $ed=1+k\varphi(n)$ 写出上面验签等式的每一步。
 2. **推导**：说明为何 $s_1s_2\bmod n$ 会成为裸 RSA 签名的结构性风险。
-3. **编码**：为玩具验签添加签名范围的属性测试；不要加入任何自制填充。
+3. **编码**：运行 `raw_rsa_signature_structure_report(2, 3, key)`，篡改组合代表元后确认重放失败；不要加入任何自制填充。
 4. **开放**：为“发布软件更新”画出密钥生成、签名、公钥分发、验签、密钥撤销的威胁模型，并标出本课程代码无法承担的环节。
 
 ## 练习答案提示
 
 1. 由 $ed=1+k\varphi(n)$ 写 $s^e\equiv m^{ed}=m(m^{\varphi(n)})^k\equiv m\pmod n$；需说明消息代表元与模数的条件。
 2. 裸 RSA 的乘法结构使 $(s_1s_2)^e\equiv m_1m_2\pmod n$，可构造相关签名；安全方案的编码和域分离正是为破坏这种可塑性。
-3. 测试只接受规范范围内的签名代表元，覆盖负数、等于模数和大于模数；不要用教学代码添加填充或声称生成真实签名。
+3. 先确认两个原签名各自验证，再核对乘积签名验证为乘积代表元；重放必须从原代表元和同一教学密钥重新算，而不是相信报告的 `combined_representative`。不要用教学代码添加填充或声称生成真实签名。
 4. 威胁图至少区分私钥保护、公钥可信分发、包完整性、撤销/轮换和验签环境；玩具算术不覆盖硬件保护、证书基础设施和供应链流程。
 
 ## 下一步

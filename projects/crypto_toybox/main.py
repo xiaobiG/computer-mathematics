@@ -357,6 +357,50 @@ def toy_rsa_verify(representative: int, signature: int, key: RsaKeyPair) -> bool
     return mod_pow(signature, key.public_exponent, key.modulus) == representative
 
 
+RAW_RSA_SIGNATURE_STRUCTURE_CONTRACT = "raw-rsa-signature-multiplicativity/v1"
+
+
+def raw_rsa_signature_structure_report(left: int, right: int, key: RsaKeyPair) -> dict[str, object]:
+    """Make the unsafe multiplicative signature relation visible on toy inputs.
+
+    This is a finite algebra demonstration, not a forgery API: it accepts only
+    classroom representatives and returns explanatory values already derivable
+    from the toy signing equation.  Production signatures must use audited
+    schemes such as Ed25519 or RSA-PSS, never this raw operation.
+    """
+    if not isinstance(key, RsaKeyPair):
+        raise ValueError("key must be a teaching RSA key pair")
+    left_signature = toy_rsa_sign(left, key)
+    right_signature = toy_rsa_sign(right, key)
+    combined_representative = (left * right) % key.modulus
+    combined_signature = (left_signature * right_signature) % key.modulus
+    return {
+        "contract": RAW_RSA_SIGNATURE_STRUCTURE_CONTRACT,
+        "left_representative": left,
+        "right_representative": right,
+        "left_signature": left_signature,
+        "right_signature": right_signature,
+        "combined_representative": combined_representative,
+        "combined_signature": combined_signature,
+        "left_verifies": toy_rsa_verify(left, left_signature, key),
+        "right_verifies": toy_rsa_verify(right, right_signature, key),
+        "combined_signature_verifies": toy_rsa_verify(combined_representative, combined_signature, key),
+        "interpretation": "raw_rsa_signature_operation_is_multiplicative_and_unsafe",
+    }
+
+
+def raw_rsa_signature_structure_certificate(
+    left: int, right: int, key: RsaKeyPair, report: object,
+) -> bool:
+    """Recompute the toy algebra report and reject changed representatives or results."""
+    if not isinstance(report, dict) or report.get("contract") != RAW_RSA_SIGNATURE_STRUCTURE_CONTRACT:
+        return False
+    try:
+        return report == raw_rsa_signature_structure_report(left, right, key)
+    except (TypeError, ValueError):
+        return False
+
+
 if __name__ == "__main__":
     key = toy_rsa_keypair(61, 53, 17)
     message = 65

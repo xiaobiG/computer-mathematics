@@ -161,6 +161,7 @@ const priorityDeepLessons = new Set([
   'numerical-computing/numerical-integration.md',
   'numerical-computing/importance-sampling-diagnostics.md',
   'number-theory-crypto/rsa.md',
+  'number-theory-crypto/digital-signatures.md',
   'number-theory-crypto/hashing-passwords.md',
   'number-theory-crypto/trust-root-rotation.md',
 ])
