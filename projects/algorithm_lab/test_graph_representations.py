@@ -2,6 +2,8 @@ import copy
 import unittest
 
 from projects.algorithm_lab.graph_representations import (
+    graph_representation_bfs_certificate,
+    graph_representation_bfs_report,
     graph_representations_certificate,
     graph_representations_report,
 )
@@ -36,6 +38,18 @@ class GraphRepresentationTests(unittest.TestCase):
         altered = copy.deepcopy(report)
         altered["edge_queries"][1]["adjacency_list_answer"] = True
         self.assertFalse(graph_representations_certificate(4, self.edges, False, self.queries, altered))
+
+    def test_bfs_keeps_distances_but_changes_actual_scan_counts(self):
+        report = graph_representation_bfs_report(5, [[0, 1], [1, 2], [2, 3]], False, 0)
+        self.assertEqual(report["adjacency_list_bfs"]["distances"], [0, 1, 2, 3, None])
+        self.assertEqual(report["adjacency_matrix_bfs"]["distances"], [0, 1, 2, 3, None])
+        self.assertEqual(report["adjacency_list_bfs"]["neighbor_slot_checks"], 6)
+        self.assertEqual(report["adjacency_matrix_bfs"]["matrix_cell_checks"], 20)
+        self.assertTrue(report["distances_agree"])
+        self.assertTrue(graph_representation_bfs_certificate(5, [[0, 1], [1, 2], [2, 3]], False, 0, report))
+        altered = copy.deepcopy(report)
+        altered["adjacency_matrix_bfs"]["matrix_cell_checks"] = 19
+        self.assertFalse(graph_representation_bfs_certificate(5, [[0, 1], [1, 2], [2, 3]], False, 0, altered))
 
     def test_contract_rejects_duplicate_loops_and_invalid_queries(self):
         with self.assertRaisesRegex(ValueError, "duplicate"):

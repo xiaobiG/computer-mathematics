@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import deque
 from math import isfinite
 
 
@@ -49,6 +50,12 @@ def _queries(value: object, vertex_count: int) -> list[tuple[int, int]]:
             raise ValueError("query endpoints must be in range")
         result.append((source, target))
     return result
+
+
+def _vertex(value: object, vertex_count: int, name: str) -> int:
+    if not isinstance(value, int) or isinstance(value, bool) or not 0 <= value < vertex_count:
+        raise ValueError(f"{name} must be an in-range integer vertex index")
+    return value
 
 
 def graph_representations_report(vertex_count: object, edges: object, directed: object, queries: object) -> dict[str, object]:
@@ -105,5 +112,68 @@ def graph_representations_certificate(vertex_count: object, edges: object, direc
         return False
     try:
         return report == graph_representations_report(vertex_count, edges, directed, queries)
+    except (TypeError, ValueError):
+        return False
+
+
+def _bfs_from_list(adjacency: list[list[int]], source: int) -> tuple[list[int | None], list[int], int]:
+    distances: list[int | None] = [None] * len(adjacency)
+    distances[source] = 0
+    queue = deque([source])
+    order, checks = [], 0
+    while queue:
+        vertex = queue.popleft()
+        order.append(vertex)
+        for neighbor in adjacency[vertex]:
+            checks += 1
+            if distances[neighbor] is None:
+                distances[neighbor] = distances[vertex] + 1
+                queue.append(neighbor)
+    return distances, order, checks
+
+
+def _bfs_from_matrix(matrix: list[list[int]], source: int) -> tuple[list[int | None], list[int], int]:
+    distances: list[int | None] = [None] * len(matrix)
+    distances[source] = 0
+    queue = deque([source])
+    order, checks = [], 0
+    while queue:
+        vertex = queue.popleft()
+        order.append(vertex)
+        for neighbor, is_edge in enumerate(matrix[vertex]):
+            checks += 1
+            if is_edge and distances[neighbor] is None:
+                distances[neighbor] = distances[vertex] + 1
+                queue.append(neighbor)
+    return distances, order, checks
+
+
+def graph_representation_bfs_report(vertex_count: object, edges: object, directed: object, source: object) -> dict[str, object]:
+    """Replay the same BFS through two graph representations and count scans."""
+    count = _count(vertex_count)
+    start = _vertex(source, count, "source")
+    representation = graph_representations_report(count, edges, directed, [])
+    adjacency = representation["adjacency_list"]
+    matrix = representation["adjacency_matrix"]
+    list_distances, list_order, list_checks = _bfs_from_list(adjacency, start)
+    matrix_distances, matrix_order, matrix_checks = _bfs_from_matrix(matrix, start)
+    return {
+        "contract_version": GRAPH_REPRESENTATIONS_CONTRACT_VERSION,
+        "operation": "breadth_first_search",
+        "source": start,
+        "representation": representation,
+        "adjacency_list_bfs": {"distances": list_distances, "dequeue_order": list_order, "neighbor_slot_checks": list_checks},
+        "adjacency_matrix_bfs": {"distances": matrix_distances, "dequeue_order": matrix_order, "matrix_cell_checks": matrix_checks},
+        "distances_agree": list_distances == matrix_distances,
+        "reachable_vertex_count": sum(distance is not None for distance in list_distances),
+    }
+
+
+def graph_representation_bfs_certificate(vertex_count: object, edges: object, directed: object, source: object, report: object) -> bool:
+    """Rebuild both BFS paths so altered scan counts or distances fail."""
+    if not isinstance(report, dict):
+        return False
+    try:
+        return report == graph_representation_bfs_report(vertex_count, edges, directed, source)
     except (TypeError, ValueError):
         return False

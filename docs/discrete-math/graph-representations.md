@@ -62,6 +62,31 @@ python -m unittest projects.algorithm_lab.test_graph_representations
 
 报告分别记录每个顶点的列表检查次数和矩阵行扫描次数；对每个指定查边问题，同时计算两个表示的布尔答案。证书从原始边表重新构造两种表示，因此把矩阵格数改成 7、篡改查询答案或调换有向边方向都会失败。
 
+## 运行实验：同一 BFS 的实际扫描数
+
+静态的槽位计数并不自动等于一次算法实际花费：BFS 只会扫描从起点可达的顶点。下面用一条 5 顶点路径加一个不可达顶点，分别重放两个表示：
+
+```python
+from projects.algorithm_lab.graph_representations import (
+    graph_representation_bfs_certificate,
+    graph_representation_bfs_report,
+)
+
+edges = [[0, 1], [1, 2], [2, 3]]
+report = graph_representation_bfs_report(5, edges, False, source=0)
+
+assert report["adjacency_list_bfs"]["distances"] == [0, 1, 2, 3, None]
+assert report["adjacency_matrix_bfs"]["distances"] == [0, 1, 2, 3, None]
+assert report["adjacency_list_bfs"]["neighbor_slot_checks"] == 6
+assert report["adjacency_matrix_bfs"]["matrix_cell_checks"] == 20
+assert report["distances_agree"]
+assert graph_representation_bfs_certificate(5, edges, False, 0, report)
+```
+
+两个实现得到同一组无权最短距离，因为它们逐顶点判断的边关系相同；但列表只扫描已访问顶点的真实邻居槽位，矩阵为每个已访问顶点扫描完整一行。此例访问 4 个顶点：无向列表扫描 $2E_{\mathrm{reachable}}=6$ 个槽位，矩阵扫描 $4\times5=20$ 个格。不可达的顶点 4 不被出队，所以它的邻居（若有）不应被算入这次 BFS 的工作量。
+
+这份证书绑定距离、出队顺序、扫描计数和表示本身。它仍然是小规模、固定邻居排序的教学审计，不是不同语言或硬件之间的墙钟基准。
+
 ## 推导：操作决定成本，而非表示名称
 
 设顶点 $u$ 的度为 $\deg(u)$。未排序邻接表的单次查边 `u -> v` 最坏检查 $\deg(u)$ 个邻居，邻接矩阵只读取 $A_{uv}$，即 $O(1)$。但枚举 `u` 的全部邻居时，列表只读这 $\deg(u)$ 个真实邻居，而矩阵必须测试 $V$ 个列位置：
@@ -69,7 +94,7 @@ python -m unittest projects.algorithm_lab.test_graph_representations
 $$\text{查边：列表 }O(\deg(u))\ \text{vs. 矩阵 }O(1),\qquad
 \text{枚举邻居：列表 }O(\deg(u))\ \text{vs. 矩阵 }O(V).$$
 
-因此 BFS/DFS 配邻接表通常为 $O(V+E)$：所有被扫描的列表长度相加为有向图 $E$、无向图 $2E$。若机械改为邻接矩阵，扫描每个顶点的一整行，复杂度变为 $O(V^2)$；这在稀疏图上可能大幅浪费，但在本来就稠密的图上未必是主要劣势。
+因此 BFS/DFS 配邻接表通常为 $O(V+E)$：所有被扫描的列表长度相加为有向图 $E$、无向图 $2E$。若机械改为邻接矩阵，扫描每个已访问顶点的一整行；完整可达时复杂度为 $O(V^2)$。这在稀疏图上可能大幅浪费，但在本来就稠密的图上未必是主要劣势。上面的重放报告进一步把“大 O”落到某个起点实际访问的顶点数上，而不把一次小图计数误报为普遍性能结论。
 
 ## 正确性：两种表示为何回答同一个边问题
 
