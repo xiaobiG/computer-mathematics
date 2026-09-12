@@ -9,7 +9,7 @@
     "dev": "vitepress dev docs",
     "content:check": "node scripts/check-content.mjs && node scripts/check-math.mjs",
     "projects:test": "python -m unittest discover -s projects -t . -p \"test_*.py\"",
-    "build": "npm run content:check && npm run projects:test && vitepress build docs && node scripts/prepare-sites.mjs",
+    "build": "npm run content:check && npm run projects:test && vitepress build docs && node scripts/check-rendered-math.mjs docs/.vitepress/dist && node scripts/prepare-sites.mjs",
     "preview": "vitepress preview docs"
   },
   "devDependencies": {
