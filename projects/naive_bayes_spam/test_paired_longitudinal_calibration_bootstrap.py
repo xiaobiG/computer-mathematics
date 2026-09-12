@@ -46,6 +46,10 @@ class PairedLongitudinalBootstrapTests(unittest.TestCase):
         malformed[1]["time_strata"][1]["time_stratum_id"] = "week-two"
         with self.assertRaises(ValueError):
             paired_longitudinal_cluster_calibration_bootstrap_report("old", "new", malformed, minimum_window_size=4, repeats=20)
+        duplicate = copy.deepcopy(self.trajectories)
+        duplicate[1]["cluster_id"] = "u-1"
+        with self.assertRaises(ValueError):
+            paired_longitudinal_cluster_calibration_bootstrap_report("old", "new", duplicate, minimum_window_size=4, repeats=20)
 
 
 if __name__ == "__main__":
