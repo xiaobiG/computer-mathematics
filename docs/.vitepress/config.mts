@@ -194,6 +194,7 @@ export default defineConfig({
               text: "最短路边删除：旧路径失效后的重算审计",
               link: "/discrete-math/deletion-shortest-path",
             },
+            { text: "批量最短路更新：边身份与顺序快照", link: "/discrete-math/ordered-shortest-path-updates" },
             {
               text: "最大流最小割：残量网络",
               link: "/discrete-math/max-flow-min-cut",

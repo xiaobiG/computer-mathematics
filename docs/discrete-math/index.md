@@ -9,7 +9,7 @@
 | 0 · 预备 | 函数、有限求和与程序索引 | 读懂规格、循环区间与计数 | [符号、函数、求和与 Python](/foundations/functions-summation-python) |
 | 1 · 核心 | 逻辑、集合、关系与图表示 | 用量词和结构准确描述问题 | [命题逻辑、量词与归纳法](/discrete-math/logic-induction-proofs) → [集合、关系、等价类与偏序](/discrete-math/sets-relations-orders) |
 | 2 · 推导与算法 | 循环不变量、BFS/DFS、最短路 | 证明算法正确并分析复杂度 | [循环不变量](/discrete-math/loop-invariants) → [BFS](/discrete-math/breadth-first-search) → [Dijkstra 交互轨迹实验](/discrete-math/dijkstra) |
-| 3 · 工程与前沿 | 负边、图更新、网络流、归约与测试 | 在前提变化时选择、修复或审计算法 | [Bellman–Ford](/discrete-math/bellman-ford) → [增量最短路](/discrete-math/incremental-shortest-path) → [最大流最小割](/discrete-math/max-flow-min-cut) → [算法实验室](/projects/algorithm-lab) |
+| 3 · 工程与前沿 | 负边、图更新、网络流、归约与测试 | 在前提变化时选择、修复或审计算法 | [Bellman–Ford](/discrete-math/bellman-ford) → [增量最短路](/discrete-math/incremental-shortest-path) → [批量最短路更新](/discrete-math/ordered-shortest-path-updates) → [最大流最小割](/discrete-math/max-flow-min-cut) → [算法实验室](/projects/algorithm-lab) |
 
 可以从熟悉的层级开始，但图算法前请先补齐循环不变量与图表示；专题首页的每篇元信息会给出更细的前置条件。
 
@@ -41,6 +41,7 @@
 - [最短路算法选择：同图对照](/discrete-math/shortest-path-algorithm-selection)：在同一规模图上检查四种算法的前提、路径与拒绝边界；
 - [增量最短路：一条边插入后，哪些距离真的需要重算](/discrete-math/incremental-shortest-path)：在单边非负插入合同下局部修复距离，并逐点核对完整重算；
 - [最短路边删除：旧路径失效后为何不能只做下降松弛](/discrete-math/deletion-shortest-path)：在单边非负删除合同下，用完整重算审计替代路径与距离上升边界；
+- [批量最短路更新：边身份、顺序快照与重算审计](/discrete-math/ordered-shortest-path-updates)：平行边 ID、顺序语义与每步完整 oracle；
 - [最大流最小割](/discrete-math/max-flow-min-cut)：残量边、增广路与可审计的最优证书；
 - [P、NP 与多项式归约](/discrete-math/p-np-reductions)：候选解验证、指数搜索与归约方向；
 - [离散数学深度版路线](/discrete-math/rewrite-plan)：后续文章、项目和验收标准。
