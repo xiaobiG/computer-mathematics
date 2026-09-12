@@ -1,6 +1,8 @@
 import unittest
 
-from projects.algorithm_lab.strongly_connected import condensation_report, strongly_connected_components
+from projects.algorithm_lab.strongly_connected import (
+    condensation_report, scc_partition_review, strongly_connected_components,
+)
 
 
 class StronglyConnectedTests(unittest.TestCase):
@@ -29,6 +31,19 @@ class StronglyConnectedTests(unittest.TestCase):
         self.assertEqual(component_of["c"], component_of["d"])
         self.assertNotEqual(component_of["a"], component_of["c"])
         self.assertEqual(len(report["topological_order"]), len(components))
+
+    def test_direct_mutual_reachability_review_rejects_a_nonmaximal_partition(self):
+        graph = {"a": ["b"], "b": []}
+        correct = strongly_connected_components(graph)
+        self.assertTrue(scc_partition_review(graph, correct)["valid"])
+
+        # A single claimed component has a one-vertex condensation DAG, but
+        # its vertices cannot reach each other and therefore are not one SCC.
+        incorrect_merge = [{"a", "b"}]
+        review = scc_partition_review(graph, incorrect_merge)
+        self.assertTrue(review["partition_covers_each_vertex_once"])
+        self.assertFalse(review["partition_matches_mutual_reachability"])
+        self.assertFalse(review["valid"])
 
 
 if __name__ == "__main__":

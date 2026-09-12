@@ -6,6 +6,7 @@ from typing import Hashable
 
 Node = Hashable
 Graph = dict[Node, list[Node]]
+SCC_REVIEW_MAX_VERTICES = 20
 
 
 def _validate(graph: Graph) -> None:
@@ -55,6 +56,57 @@ def strongly_connected_components(graph: Graph) -> list[set[Node]]:
                     stack.append(neighbor)
         components.append(component)
     return components
+
+
+def scc_partition_review(graph: Graph, components: object) -> dict[str, bool]:
+    """Independently compare a claimed small-graph partition with mutual reachability.
+
+    A condensation DAG alone cannot prove that its vertices are *maximal* SCCs:
+    an incorrect merge can remove a cross-component edge.  For at most twenty
+    teaching vertices, direct reachability gives an independent oracle for the
+    equivalence relation that SCCs must represent.
+    """
+    _validate(graph)
+    if len(graph) > SCC_REVIEW_MAX_VERTICES:
+        raise ValueError("direct SCC review is limited to twenty teaching vertices")
+    empty = {
+        "partition_covers_each_vertex_once": False,
+        "partition_matches_mutual_reachability": False,
+        "valid": False,
+    }
+    if not isinstance(components, list) or any(not isinstance(component, set) for component in components):
+        return empty
+    membership: dict[Node, int] = {}
+    for component_id, component in enumerate(components):
+        for node in component:
+            if node not in graph or node in membership:
+                return empty
+            membership[node] = component_id
+    covers_once = set(membership) == set(graph)
+    if not covers_once:
+        return empty
+
+    reachable: dict[Node, set[Node]] = {}
+    for start in graph:
+        seen = {start}
+        stack = [start]
+        while stack:
+            node = stack.pop()
+            for neighbor in graph[node]:
+                if neighbor not in seen:
+                    seen.add(neighbor)
+                    stack.append(neighbor)
+        reachable[start] = seen
+    matches = all(
+        (membership[left] == membership[right]) == (right in reachable[left] and left in reachable[right])
+        for left in graph
+        for right in graph
+    )
+    return {
+        "partition_covers_each_vertex_once": True,
+        "partition_matches_mutual_reachability": matches,
+        "valid": matches,
+    }
 
 
 def condensation_report(graph: Graph) -> dict[str, object]:

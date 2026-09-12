@@ -150,6 +150,7 @@ const priorityDeepLessons = new Set([
   'discrete-math/sets-relations-orders.md',
   'discrete-math/recurrences.md',
   'discrete-math/breadth-first-search.md',
+  'discrete-math/strongly-connected-components.md',
   'discrete-math/dijkstra.md',
   'discrete-math/deletion-shortest-path.md',
   'discrete-math/ordered-shortest-path-updates.md',

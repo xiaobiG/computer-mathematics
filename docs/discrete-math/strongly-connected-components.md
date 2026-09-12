@@ -34,7 +34,9 @@ Kosaraju 算法先在原图 DFS，按完成时间排序；再在反图中按完�
 ## 可运行实现
 
 ```python
-from projects.algorithm_lab.strongly_connected import condensation_report, strongly_connected_components
+from projects.algorithm_lab.strongly_connected import (
+    condensation_report, scc_partition_review, strongly_connected_components,
+)
 
 graph = {"a": ["b"], "b": ["a", "c"], "c": ["d"], "d": ["c"], "e": []}
 parts = strongly_connected_components(graph)
@@ -43,17 +45,18 @@ assert {frozenset(part) for part in parts} == {frozenset({"a", "b"}), frozenset(
 report = condensation_report(graph)
 assert report["valid"]
 assert len(report["topological_order"]) == len(parts)
+assert scc_partition_review(graph, report["components"])["valid"]
 ```
 
 ```bash
 python -m unittest projects.algorithm_lab.test_strongly_connected
 ```
 
-实现使用显式栈。先遍历原图记录完成顺序，再建立反图并按逆完成顺序收集分量；`condensation_report` 随后把跨组件边映射到组件编号，并用 Kahn 算法给出“每条跨组件边都从拓扑序前面指向后面”的证书。每条边在建反图、两遍 DFS 和凝聚图中只处理常数次，故时间 $O(V+E)$、空间 $O(V+E)$。
+`condensation_report` 用 Kahn 算法检查跨组件边按拓扑序前进；但把单向边 `a→b` 错并为 `{a,b}` 后，凝聚图仍是单点 DAG。小图 `scc_partition_review` 直接检查“同一分块当且仅当双向可达”；它限于 20 个顶点，是独立教学 oracle，不是生产算法。主算法仍为 $O(V+E)$ 时间和空间。
 
 ## 正确性与工程边界
 
-第二次 DFS 只沿反图边走；完成时间顺序保证从一个尚未处理的起点开始时，能到达的未处理顶点正是其互相可达类。测试验证含两个环和孤立点的划分、DAG 中的单例分量、跨组件边的拓扑证书及缺失顶点的拒绝。
+第二次 DFS 只沿反图边走；完成时间顺序保证从一个尚未处理的起点开始时，能到达的未处理顶点正是其互相可达类。测试覆盖分量划分、拓扑证书、缺失顶点，以及“DAG 通过但错误合并仍非 SCC”的反例。
 
 凝聚图不可能有环：若分量间有环，各分量顶点便可沿环互达，应属于同一最大分量，矛盾。算法依赖完整邻接表；漏掉边终点会破坏反图和分量定义。
 
@@ -63,6 +66,7 @@ python -m unittest projects.algorithm_lab.test_strongly_connected
 2. “任何 DFS 顺序都能做第二遍。”错误：必须按第一遍完成时间逆序。
 3. “SCC 内只包含简单环。”错误：它是所有互相可达顶点的最大集合。
 4. “压缩后仍可能有环。”错误：若有环就没有压缩到最大 SCC。
+5. “凝聚图是 DAG 就证明分块正确。”错误：错误合并可消掉跨分块边；还需审查最大互达关系。
 
 ## 练习
 
@@ -75,7 +79,7 @@ python -m unittest projects.algorithm_lab.test_strongly_connected
 
 1. 将每个 SCC 收缩成一个点，原图跨组件边成为凝聚图边；对该 DAG 做拓扑排序，注意孤立组件也要出现。
 2. 自反、对称、传递性分别来自零长度路径、反向可达和路径拼接；因此互达关系确实是等价关系，组件是等价类。
-3. 组件编号需覆盖所有顶点；遍历每条原边，若端点编号不同则加入凝聚边，再用拓扑排序或 DFS 验证没有环。
+3. 组件编号需覆盖所有顶点；拓扑证书只检查跨组件边无环，还应对小图逐对核对“同组件当且仅当双向可达”。
 4. 报告可按组件大小和影响范围排序，但最小循环需要在 SCC 内另找回边/最短环；输出应区分“结构事实”和“业务修复优先级”。
 
 ## 延伸
