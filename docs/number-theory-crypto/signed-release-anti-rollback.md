@@ -3,8 +3,8 @@ title: 已签名更新为何仍可能回滚：版本状态与撤销可用性
 description: 用可重放的虚构发布元数据审计，区分数学验签、身份信任、防回滚状态与撤销信息不可用时的策略。
 courseLevel: "3（密码协议与工程边界）"
 prerequisites: "数字签名、公钥身份与密钥生命周期、比较与状态机"
-estimatedMinutes: 60
-experiment: "signed-release-policy-audit/v1：审计虚构发布版本、身份、用途、撤销状态与受保护的最低版本"
+estimatedMinutes: 70
+experiment: "signed-release-policy-audit/v2：用冻结密钥登记表审计虚构发布版本、身份、用途、撤销状态与受保护的最低版本"
 ---
 
 # 已签名更新为何仍可能回滚：版本状态与撤销可用性
@@ -23,11 +23,18 @@ $$v>v_{\min}.$$
 
 ## 直觉与定义：接受是多条件合取
 
-对教学中的候选发布记录，令 $S$ 表示外部成熟库已给出的“签名声明有效”，$I$ 表示公钥身份可信，$K$ 表示密钥 active，$C$ 表示上下文匹配，$R$ 表示撤销信息可用。一个**仅用于教学审计**的接受条件是
+对教学中的候选发布记录，令 $S$ 表示外部成熟库已给出的“签名声明有效”。不让候选记录自称“身份可信”，而由冻结的可信登记表 $T$ 按 $(\text{issuer},\text{key\_id})$ 查到记录；令 $I$ 表示该绑定存在且算法、用途与记录一致，$K$ 表示登记状态 active，$C$ 表示上下文匹配，$R$ 表示撤销信息可用。一个**仅用于教学审计**的接受条件是
 
 $$A=(v>v_{\min})\land S\land I\land K\land C\land R.$$
 
-这里的 `signature_claim_valid` 只是输入字段，绝不是本文实现的验签结果。它的作用是隔离问题：即使先假设数学验签通过，版本回滚、公钥替换、用途错误和撤销状态仍各自能拒绝候选。
+这里的 `signature_claim_valid` 只是输入字段，绝不是本文实现的验签结果。登记表同样是外部冻结的教学输入，而非真实信任根。它的作用是隔离问题：即使先假设数学验签通过，版本回滚、公钥替换、用途错误和撤销状态仍各自能拒绝候选。
+
+若登记表记录为
+
+$$T[(\text{example-updates},\text{demo-release-key-2026})]
+=(\text{Ed25519},\text{code-signing},\text{active})$$
+
+那么候选即使带有相同 `key_id`，只要 `issuer`、算法、用途或状态有一项不匹配，就不应从名字相同推断出身份相同。`key_id` 是索引，不是信任结论。
 
 ## 可运行实验：重放虚构策略报告
 
@@ -39,32 +46,40 @@ from projects.crypto_toybox.release_policy import (
 
 candidate = {
     "version": 8,
+    "issuer": "example-updates",
     "key_id": "demo-release-key-2026",
     "algorithm": "Ed25519",
+    "purpose": "code-signing",
     "context": "software-update/v1",
     "signature_claim_valid": True,       # 教学输入，不是本代码验签
-    "key_identity_trusted": True,
-    "key_status": "active",
     "revocation_info_available": True,
 }
-report = signed_release_policy_report(7, candidate)
+trusted_key_registry = [{
+    "issuer": "example-updates",
+    "key_id": "demo-release-key-2026",
+    "algorithm": "Ed25519",
+    "purpose": "code-signing",
+    "status": "active",
+}]
+report = signed_release_policy_report(7, candidate, trusted_key_registry)
 assert report["decision"] == "accept_for_policy_only"
 assert report["automatic_install"] is False
 assert signed_release_policy_certificate(report)["valid"]
 ```
 
-运行 `python -m unittest projects.crypto_toybox.test_release_policy`。报告合同是 `signed-release-policy-audit/v1`：字段必须精确匹配；证书从候选记录和策略独立重放检查、失败项和结论。它不访问网络、文件系统、密钥库或软件包。
+运行 `python -m unittest projects.crypto_toybox.test_release_policy`。报告合同是 `signed-release-policy-audit/v2`，登记表字段遵循 `trusted-key-registry/v1`：候选记录与登记表都必须精确匹配；证书从候选记录、登记表和策略独立重放检查、失败项和结论。它不访问网络、文件系统、密钥库或软件包。
 
 ## 正确性与边界
 
-在固定的教学合同内，报告会拒绝 $v\leq v_{\min}$，即使 `signature_claim_valid=True`；也会拒绝未信任身份、非允许算法、错误上下文、非 active 密钥或不可用的撤销信息。若撤销信息不可用，策略只能显式产生 `reject` 或 `manual_review`，不会把它静默变为接受。
+在固定的教学合同内，报告会拒绝 $v\leq v_{\min}$，即使 `signature_claim_valid=True`；也会拒绝登记表外的 issuer/key 标识组合、非允许或不匹配的算法、错误用途/上下文、非 active 密钥或不可用的撤销信息。若撤销信息不可用，策略只能显式产生 `reject` 或 `manual_review`，不会把它静默变为接受。
 
 这并不证明真实更新安全：现实中的版本语义、信任锚更新、时钟、离线设备、镜像攻击、恢复路径、透明日志以及撤销分发都需要独立威胁模型。特别地，`accept_for_policy_only` 不等于可安装，`automatic_install` 始终为 `False`。
 
 ## 失败案例与工程边界
 
 - **有效的旧版本。** 版本 7 的签名未必失效，但 $7\leq7$，所以应拒绝。
-- **公钥替换。** 攻击者可提供自己有效的签名声明；`key_identity_trusted=False` 仍必须拒绝。
+- **公钥替换。** 攻击者可提供自己有效的签名声明；其 issuer/key 组合若不在冻结登记表中仍必须拒绝，不能由候选包自报可信。
+- **同名不同用途。** 相同 `key_id` 不能跨 issuer、算法或 `purpose` 自动复用；登记表的匹配字段必须全部通过。
 - **撤销信息不可用。** `fail-open` 会把未知状态当安全；本合同只允许拒绝或停在人工复核。
 - **本地状态可被覆盖。** 如果攻击者能任意降低 $v_{\min}$，单调检查失去意义；状态本身必须被保护。
 - **把教学报告接入更新器。** 禁止这样做。真实系统应采用成熟的软件更新框架、签名库、信任根和组织风险流程。
@@ -79,14 +94,14 @@ assert signed_release_policy_certificate(report)["valid"]
 ## 练习
 
 1. 为什么 $v\geq v_{\min}$ 不足以阻止同版本替换或重复部署？在何种协议语义下才可能允许相等？
-2. 将例子中的 `context` 改成 `telemetry-config/v1`，说明为何即使签名声明为真也要拒绝。
+2. 将例子中的 `context` 改成 `telemetry-config/v1`，或把候选 `issuer` 改成未登记值；说明为何即使签名声明为真也要拒绝。
 3. 对离线设备比较 `reject` 与 `manual_review` 的可用性和风险；为什么不能默认选其中之一？
 4. 哪些组件必须保护 $v_{\min}$，才能使防回滚检查成立？
 
 ## 练习答案提示
 
 1. 相等版本可能被重放；只有内容哈希、通道与幂等语义都被协议绑定时，才可显式允许。
-2. 上下文是域分离和用途限制；更新签名不能自动授权配置通道。
+2. 上下文是域分离和用途限制；未登记 issuer 也没有可信的身份/公钥绑定。两种拒绝都不需要把签名声明本身判为假。
 3. 拒绝优先保护完整性但会阻断更新；人工复核保留运营决策，两者取决于威胁模型和恢复能力。
 4. 本地持久化、可信硬件或受控恢复流程都可能参与；关键是攻击者不能无授权降低它。
 

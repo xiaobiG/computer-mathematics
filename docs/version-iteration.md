@@ -762,6 +762,16 @@ v2.7–v2.9 的共同增量不是新增术语，而是把“可计算的输出�
 | 差异 | 原报告按当前观察到的组生成行，因此无标签的已声明组会静默消失；现在报告按冻结的声明顺序覆盖所有组，零样本组显式得到 `count=0` 与拒绝结论，未声明的观测组或被改写的组宇宙均无法验证。 |
 | 下一决策 | 固定组宇宙不能解决多重比较、标签偏差或因果归因；下一轮应只在另一条课程主线存在同类“设计前提未进入输入合同”的证据时继续扩展。 |
 
+### v3.5-c：发布身份的冻结密钥登记表（已完成）
+
+| 字段 | 记录 |
+| --- | --- |
+| 目标 | 读者能区分“候选包自称可信”与“预先冻结的 issuer/key 身份绑定”，并看见算法、用途和状态为何必须从可信登记表而非候选元数据读取。 |
+| 范围 | 扩展[已签名更新为何仍可能回滚](/number-theory-crypto/signed-release-anti-rollback)、[公钥身份与密钥生命周期](/number-theory-crypto/public-key-lifecycle)、`release_policy.py`、测试与玩具箱说明；将策略合同升级为 `signed-release-policy-audit/v2`，加入 `trusted-key-registry/v1`。 |
+| 验证 | `python -m unittest projects.crypto_toybox.test_release_policy`、`npm run content:check`；发布前运行全项目测试、生产构建与 GitHub Pages 工作流。 |
+| 差异 | 原候选记录可携带 `key_identity_trusted` 和 `key_status` 声明；现在发布策略以冻结登记表按 `(issuer,key_id)` 查找绑定，拒绝登记表外身份、算法或用途不匹配、以及非 active 状态，并让证书同时重放登记表。 |
+| 下一决策 | 虚构登记表不是证书链、透明日志、真实撤销服务或验签器；后续应回到其他专题寻找同类“输入自己声称关键事实”的断点，而不是把教学元数据误作安全基础设施。 |
+
 ## 读者如何使用
 
 - 先沿专题首页完成当前主线；
