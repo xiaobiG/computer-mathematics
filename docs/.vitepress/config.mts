@@ -297,6 +297,10 @@ export default defineConfig({
               text: "分组校准：总体可信，局部为何失真",
               link: "/probability-ml/subgroup-calibration-uncertainty",
             },
+            {
+              text: "冻结窗口的校准比较：先定义，再看差异",
+              link: "/probability-ml/frozen-window-calibration-comparison",
+            },
           ],
         },
       ],
