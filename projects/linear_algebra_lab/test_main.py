@@ -3,7 +3,7 @@ from math import sqrt
 
 from projects.linear_algebra_lab.main import (
     classify_linear_system, compress_grayscale, dominant_right_singular_vector, frobenius_error, image_cosine_similarity,
-    compressed_image_search, compressed_image_search_certificate, least_squares_comparison_report, least_squares_normal_equations, low_rank_parameter_report,
+    compressed_image_search, compressed_image_search_certificate, least_squares_comparison_report, least_squares_normal_equations, least_squares_report_certificate, low_rank_parameter_report,
     matmul, matrix_composition_certificate, norm, project, least_squares_qr, rank_k_approximation, rank_one_approximation,
     elimination_invariant_certificate, pivot_trace_certificate, solve, solve_with_pivot_trace, truncated_svd_frobenius_error,
     truncated_svd_report, truncated_svd_report_certificate,
@@ -98,6 +98,13 @@ class LinearAlgebraLabTests(unittest.TestCase):
         self.assertLess(report["qr_residual_norm"], 1.0)
         self.assertTrue(all(abs(value) < 1e-12 for value in report["normal_normal_equation_residual"]))
         self.assertTrue(all(abs(value) < 1e-12 for value in report["qr_normal_equation_residual"]))
+        self.assertTrue(least_squares_report_certificate(matrix, [1.0, 2.0, 2.0], report)["valid"])
+        tampered = dict(report)
+        tampered["qr_residual_norm"] = 0.0
+        certificate = least_squares_report_certificate(matrix, [1.0, 2.0, 2.0], tampered)
+        self.assertFalse(certificate["fields_match_recomputed_report"])
+        self.assertFalse(certificate["reported_norms_match_residuals"])
+        self.assertFalse(certificate["valid"])
 
     def test_qr_least_squares_rejects_rank_deficiency_and_wide_matrix(self):
         with self.assertRaises(ValueError):

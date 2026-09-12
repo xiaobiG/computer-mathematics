@@ -330,6 +330,48 @@ def least_squares_comparison_report(matrix, target, epsilon=EPSILON):
     }
 
 
+def least_squares_report_certificate(matrix, target, report, epsilon=EPSILON):
+    """Audit a finite least-squares comparison report.
+
+    The certificate deliberately separates a faithfully replayed report from
+    the mathematical first-order condition ``A^T(b-Ax)=0`` for each path.  It
+    establishes neither that the data model is appropriate nor that normal
+    equations are numerically preferable on an ill-conditioned input.
+    """
+    empty = {
+        "fields_match_recomputed_report": False,
+        "normal_solution_is_stationary": False,
+        "qr_solution_is_stationary": False,
+        "reported_norms_match_residuals": False,
+        "valid": False,
+    }
+    try:
+        _validate_least_squares_input(matrix, target, epsilon)
+        if not isinstance(report, dict):
+            return empty
+        expected = least_squares_comparison_report(matrix, target, epsilon)
+        if set(report) != set(expected):
+            return empty
+        fields_match = report == expected
+        normal_stationary = all(abs(value) <= epsilon for value in report["normal_normal_equation_residual"])
+        qr_stationary = all(abs(value) <= epsilon for value in report["qr_normal_equation_residual"])
+        normal_norm = norm(_least_squares_residual(matrix, target, report["normal_solution"]))
+        qr_norm = norm(_least_squares_residual(matrix, target, report["qr_solution"]))
+        norms_match = (
+            abs(report["normal_residual_norm"] - normal_norm) <= epsilon * max(1.0, normal_norm)
+            and abs(report["qr_residual_norm"] - qr_norm) <= epsilon * max(1.0, qr_norm)
+        )
+        return {
+            "fields_match_recomputed_report": fields_match,
+            "normal_solution_is_stationary": normal_stationary,
+            "qr_solution_is_stationary": qr_stationary,
+            "reported_norms_match_residuals": norms_match,
+            "valid": fields_match and normal_stationary and qr_stationary and norms_match,
+        }
+    except (ArithmeticError, IndexError, TypeError, ValueError):
+        return empty
+
+
 def dominant_right_singular_vector(matrix, iterations=80, epsilon=EPSILON):
     """Approximate the leading right singular vector by power iteration on A^T A.
 

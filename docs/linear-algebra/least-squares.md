@@ -82,7 +82,10 @@ $$
 实验室提供一条用于对照推导的正规方程路径，以及不显式形成 $A^TA$ 的 QR 路径：
 
 ```python
-from projects.linear_algebra_lab.main import least_squares_comparison_report
+from projects.linear_algebra_lab.main import (
+    least_squares_comparison_report,
+    least_squares_report_certificate,
+)
 
 A = [[0.0, 1.0], [1.0, 1.0], [2.0, 1.0]]
 report = least_squares_comparison_report(A, [1.0, 2.0, 2.0])
@@ -90,9 +93,10 @@ report = least_squares_comparison_report(A, [1.0, 2.0, 2.0])
 assert report["solution_distance"] < 1e-12
 assert max(abs(value) for value in report["normal_normal_equation_residual"]) < 1e-12
 assert max(abs(value) for value in report["qr_normal_equation_residual"]) < 1e-12
+assert least_squares_report_certificate(A, [1.0, 2.0, 2.0], report)["valid"]
 ```
 
-报告的两组 `*_normal_equation_residual` 都是 $A^Tr$：它们接近零，才说明相应路径确实达到最小二乘的一阶最优性条件。`least_squares_normal_equations` 有意调用带选主元的方程求解器，便于核对推导；`least_squares_qr` 以改进 Gram–Schmidt 得到 $A=QR$，计算 $Q^Tb$ 后对上三角 $R$ 回代，才是默认应选的数值路径。运行 `python -m unittest projects.linear_algebra_lab.test_main` 可验证小例解、两条路径的一致性、正交残差、秩亏列和宽矩阵边界。
+报告的两组 `*_normal_equation_residual` 都是 $A^Tr$：它们接近零，才说明相应路径确实达到最小二乘的一阶最优性条件。`least_squares_report_certificate` 会独立重算报告，同时分别检查两条路径的驻点条件与“报告的残差范数确由报告中的系数产生”；篡改一项指标即被拒绝。`least_squares_normal_equations` 有意调用带选主元的方程求解器，便于核对推导；`least_squares_qr` 以改进 Gram–Schmidt 得到 $A=QR$，计算 $Q^Tb$ 后对上三角 $R$ 回代，才是默认应选的数值路径。运行 `python -m unittest projects.linear_algebra_lab.test_main` 可验证小例解、两条路径的一致性、正交残差、秩亏列和宽矩阵边界。
 
 构造正规方程或 QR 的密集成本都约为 $O(mn^2)$；随后求解 $n\times n$ 系统为 $O(n^3)$。QR 避免了正规方程将条件数近似平方的额外放大。
 
