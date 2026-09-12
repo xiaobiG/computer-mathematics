@@ -590,6 +590,16 @@ v2.7–v2.9 的共同增量不是新增术语，而是把“可计算的输出�
 | 差异 | 原报告只在生成时写入 `certificate` 字段；现在篡改条件数界、残差或证书字段都会与重新计算的整份报告不一致。 |
 | 下一决策 | 不把 2×2 精确逆的教学重放外推为通用条件数估计；下一轮审计时应优先检查其他报告型实验是否也缺少独立重放入口。 |
 
+### v2.9-e：随机模拟汇总报告重放（已完成）
+
+| 字段 | 记录 |
+| --- | --- |
+| 目标 | 读者能验证固定种子实验的均值、样本标准差和标准误确由声明的样本数与种子组产生。 |
+| 范围 | 新增 `simulation_report_certificate`、均值篡改拒绝测试，并在[随机模拟](/numerical-computing/stochastic-simulation-reproducibility)课程中说明其统计边界。 |
+| 验证 | `python -m unittest projects.floating_point_museum.test_simulation`、`npm run projects:test`、`npm run content:check`、`npm run build` 与 GitHub Pages。 |
+| 差异 | 原报告只展示固定种子汇总；现在外部报告可被独立重算，且课程明确证书不代表这组伪随机种子具有总体代表性。 |
+| 下一决策 | 在新增证书前继续优先审计报告是否真的支撑页面结论；已具备完整证据链的课程不做重复改动。 |
+
 ## 读者如何使用
 
 - 先沿专题首页完成当前主线；
