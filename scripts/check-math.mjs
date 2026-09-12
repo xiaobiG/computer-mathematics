@@ -52,6 +52,12 @@ function formulasIn(source) {
   return formulas
 }
 
+function proseWithoutFormulas(source) {
+  return source
+    .replace(/(?<!\\)\$\$[\s\S]*?(?<!\\)\$\$/g, '')
+    .replace(/(?<!\\)\$[^$\r\n]+?(?<!\\)\$/g, '')
+}
+
 const errors = []
 for (const path of await markdownFiles(docsRoot)) {
   const source = proseOnly(await readFile(path, 'utf8'))
@@ -64,6 +70,14 @@ for (const path of await markdownFiles(docsRoot)) {
     if (index !== -1) {
       errors.push(`${label}:${lineAt(source, index)} 使用当前渲染器不支持的公式定界符 ${delimiter}`)
     }
+  }
+  // A TeX command outside a supported delimiter becomes literal reader text.
+  // Check only high-signal math commands after removing valid formulas and
+  // code examples, so ordinary prose and documented code remain unrestricted.
+  const bareMath = /\\(?:sum|prod|int|frac|sqrt|operatorname)\b/g
+  const outsideFormula = proseWithoutFormulas(source)
+  for (const match of outsideFormula.matchAll(bareMath)) {
+    errors.push(`${label}:${lineAt(outsideFormula, match.index)} 数学命令 ${match[0]} 缺少 $ 定界符`)
   }
   for (const formula of formulasIn(source)) {
     if (!formula.expression.trim()) {
