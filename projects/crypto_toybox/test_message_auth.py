@@ -1,4 +1,6 @@
+import re
 import unittest
+from pathlib import Path
 
 from projects.crypto_toybox.message_auth import (
     encode_sequenced_message,
@@ -10,6 +12,12 @@ from projects.crypto_toybox.message_auth import (
 
 
 class MessageAuthTests(unittest.TestCase):
+    def test_documented_hmac_example_executes_unchanged(self):
+        lesson = (Path(__file__).resolve().parents[2] / "docs" / "number-theory-crypto" / "message-authentication-codes.md").read_text(encoding="utf-8")
+        match = re.search(r"```python\n(from projects\.crypto_toybox\.message_auth import \([\s\S]*?)```", lesson)
+        self.assertIsNotNone(match)
+        exec(match.group(1), {})
+
     def test_valid_message_and_tag_verify(self):
         key, message = b"demo-shared-key", b"amount=100"
         self.assertTrue(verify_hmac(key, message, hmac_tag(key, message)))

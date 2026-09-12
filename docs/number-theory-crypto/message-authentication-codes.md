@@ -29,6 +29,7 @@ $$\mathrm{HMAC}_K(m)=H((K'\oplus opad)\,\|\,H((K'\oplus ipad)\,\|\,m)).$$
 
 ```python
 from projects.crypto_toybox.message_auth import (
+    hmac_tag,
     sequenced_hmac_tag,
     verify_hmac,
     verify_sequenced_hmac,
