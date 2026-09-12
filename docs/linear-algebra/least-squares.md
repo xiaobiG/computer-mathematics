@@ -106,6 +106,29 @@ assert least_squares_report_certificate(A, [1.0, 2.0, 2.0], report)["valid"]
 
 若列秩亏，$A^\mathsf TA$ 不可逆，最小二乘解通常不唯一；但最小残差的投影 $A\hat x$ 仍唯一。教学 QR 代码会显式拒绝这种输入，避免悄悄返回依赖列顺序的结果。SVD 则可通过丢弃零奇异值选择其中范数最小的解；这是一条额外的解选择规则，不能从正规方程本身自动得到。
 
+## 反例：QR 能继续计算，不代表系数已经可信
+
+将第二列写成几乎等于第一列的扰动。下面的数据仍然列满秩，精确系数为 $(1,1)$，但区别只有 $10^{-7}$：
+
+```python
+from projects.linear_algebra_lab.main import least_squares_normal_equations, least_squares_qr
+
+delta = 1e-7
+A = [[1.0, 1.0], [1.0, 1.0 + delta], [1.0, 1.0 - delta]]
+b = [2.0, 2.0 + delta, 2.0 - delta]
+
+try:
+    least_squares_normal_equations(A, b)
+except ValueError:
+    print("A^T A 的主元已落入教学容差")
+
+x_qr, r_qr = least_squares_qr(A, b)
+print(x_qr)  # 在 binary64 教学实现中约为 [1.0555, 0.9445]
+assert max(abs(sum(A[i][j] * r_qr[i] for i in range(3))) for j in range(2)) < 1e-12
+```
+
+正规方程把小奇异方向的尺度平方，因而这个例子在 `1e-12` 的消元容差下先拒绝 $A^TA$；QR 路径仍产生一个满足 $A^Tr\approx0$ 的浮点驻点。然而两条几乎重复的列让系数已偏离精确值：残差小、驻点条件成立，都不能恢复丢失的可辨识性。这个实验不证明 QR 总是更准确，也不将这份改进 Gram–Schmidt 教学代码当作生产实现；它只说明应报告列共线、缩放和系数敏感性，并在需要最小范数或秩判定时交给成熟的 pivoted QR/SVD 库。
+
 ## 失败案例与工程边界
 
 正规方程会近似平方条件数，近似共线的特征可能使小误差被放大。生产数值代码优先用带选主元的 QR 或 SVD；特征尺度相差很大时先标准化。最小二乘最小化平方误差，对离群点敏感，鲁棒回归是另一种目标。

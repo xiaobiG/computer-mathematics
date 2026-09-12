@@ -118,6 +118,17 @@ class LinearAlgebraLabTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             least_squares_normal_equations([[float("nan")]], [1.0])
 
+    def test_nearly_collinear_columns_expose_normal_equation_and_qr_boundaries(self):
+        delta = 1e-7
+        matrix = [[1.0, 1.0], [1.0, 1.0 + delta], [1.0, 1.0 - delta]]
+        target = [2.0, 2.0 + delta, 2.0 - delta]
+        with self.assertRaises(ValueError):
+            least_squares_normal_equations(matrix, target)
+        solution, residual = least_squares_qr(matrix, target)
+        stationarity = [sum(matrix[row][column] * residual[row] for row in range(3)) for column in range(2)]
+        self.assertTrue(all(abs(value) < 1e-12 for value in stationarity))
+        self.assertGreater(abs(solution[0] - 1.0), 1e-2)
+
     def test_rank_one_matrix_is_reconstructed(self):
         matrix = [[3.0, 6.0], [4.0, 8.0]]
         sigma, left, right, approximation = rank_one_approximation(matrix)
