@@ -27,6 +27,8 @@ class MonitoringLearningChainTests(unittest.TestCase):
         joint = joint_evidence_report(reference_snapshot, current_snapshot, psi_threshold=.1, accuracy_drop_threshold=.2)
         self.assertEqual(joint["causal_interpretation"], "not_established")
         self.assertTrue(joint_evidence_certificate(reference_snapshot, current_snapshot, joint))
-        subgroup = subgroup_report(current, ["source-a"] * 4 + ["source-b"] * 2, 3)
+        declared_groups = ["source-a", "source-b", "source-c"]
+        subgroup = subgroup_report(current, ["source-a"] * 4 + ["source-b"] * 2, 3, declared_groups)
         self.assertTrue(subgroup_certificate(current, ["source-a"] * 4 + ["source-b"] * 2, subgroup))
         self.assertFalse(subgroup["subgroups"][1]["sufficient_sample"])
+        self.assertEqual(subgroup["subgroups"][2]["count"], 0)
