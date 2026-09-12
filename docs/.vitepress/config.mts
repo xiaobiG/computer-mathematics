@@ -310,6 +310,7 @@ export default defineConfig({
               link: "/probability-ml/frozen-window-calibration-comparison",
             },
             { text: "冻结窗口差异的 Bootstrap", link: "/probability-ml/frozen-window-bootstrap" },
+            { text: "时间块 Bootstrap：相关观测不能逐条重抽", link: "/probability-ml/block-bootstrap-calibration" },
           ],
         },
       ],

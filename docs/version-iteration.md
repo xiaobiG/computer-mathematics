@@ -544,6 +544,18 @@ npm run build
 | 差异 | 既有单边插入合同仅能下降松弛并明确拒绝删除；现在删除一条旧路径边后，旧/新图由独立 Dijkstra 重放，目标距离上升、替代路径和旧路径端点关系均可审计。 |
 | 下一决策 | 当前合同仍不解决批量更新、平行边稳定身份或替换路径数据结构；下一轮优先进行跨专题成熟度审计，不把删除重算扩张为未经证明的动态算法。 |
 
+## 正在推进：v2.9「相关观测的重采样单位」
+
+### v2.9-a：冻结时间块的 Bootstrap 合同（已完成）
+
+| 字段 | 记录 |
+| --- | --- |
+| 目标 | 读者能把观测级重采样与时间块重采样区分开，并把块边界和块间可交换假设视为报告前提。 |
+| 范围 | 新增[时间块 Bootstrap](/probability-ml/block-bootstrap-calibration)课程、`block-window-calibration-bootstrap/v1` 报告/证书和篡改测试；同步概率路线、导航与成熟度看板。 |
+| 验证 | `python -m unittest projects.naive_bayes_spam.test_block_window_calibration_bootstrap`、`npm run projects:test`、`npm run content:check`、`npm run build` 与 GitHub Pages。 |
+| 差异 | 原 bootstrap 仅重抽独立标签观测；现在完整重抽预定义时间块、保留块内记录顺序与样本量，并拒绝单块输入和被篡改报告。 |
+| 下一决策 | 时间块不是用户簇或非平稳趋势的通用替身；下一轮应重新审计成熟度缺口，避免仅扩展相邻统计方法。 |
+
 ## 读者如何使用
 
 - 先沿专题首页完成当前主线；

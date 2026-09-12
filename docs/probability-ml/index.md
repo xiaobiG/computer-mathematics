@@ -49,6 +49,7 @@
 - [分组校准：总体可信，为什么局部仍可能失真](/probability-ml/subgroup-calibration-uncertainty)：用固定分箱和 ECE 识别总体平均掩盖的局部概率偏差；
 - [冻结窗口的校准比较：先定义，再看差异](/probability-ml/frozen-window-calibration-comparison)：用预先命名窗口和固定政策比较校准差异，只产生复核信号；
 - [冻结窗口差异的 Bootstrap](/probability-ml/frozen-window-bootstrap)：固定重采样设计下的 ECE 差百分位区间；
+- [时间块 Bootstrap：相关观测不能逐条重抽](/probability-ml/block-bootstrap-calibration)：按预定义完整时间块重采样，并公开块间可交换的假设边界；
 - [概率论深度版路线](/probability-ml/rewrite-plan)：分层学习和垃圾邮件分类项目。
 
 贯穿主线：模型给出的概率，究竟代表什么？
