@@ -3,12 +3,49 @@ from math import sqrt
 
 from projects.floating_point_museum.root_finding import (
     NewtonEvent, safeguarded_newton_trace, safeguarded_newton_trace_certificate,
+    diagnose_root_task,
     secant_convergence_certificate, secant_convergence_report,
     secant_root, secant_solution_certificate, secant_trace, secant_trace_certificate,
 )
 
 
 class SecantRootTests(unittest.TestCase):
+    def test_reader_root_contract_selects_safeguarded_newton_for_a_bracket_guarantee(self):
+        task = {
+            "strategy": "preserve_sign_change_bracket",
+            "derivative_availability": "available",
+            "acceptance_invariant": "finite_residual_and_retained_sign_change_bracket",
+            "left": 0.0, "right": 2.0, "initial": 1.0,
+            "residual_tol": 1e-12, "step_tol": 1e-12, "max_steps": 80,
+        }
+        diagnosis = diagnose_root_task(lambda x: x * x - 2.0, task, derivative=lambda x: 2.0 * x)
+        self.assertEqual(diagnosis["recommended_method"], "safeguarded_newton")
+        self.assertTrue(diagnosis["invariant_holds"])
+        self.assertLess(diagnosis["residual"], 1e-12)
+
+    def test_reader_root_contract_selects_secant_when_only_local_residual_is_declared(self):
+        task = {
+            "strategy": "local_residual_search",
+            "derivative_availability": "unavailable",
+            "acceptance_invariant": "finite_residual_without_global_bracket_claim",
+            "left": 1.0, "right": 2.0,
+            "residual_tol": 1e-12, "step_tol": 1e-12, "max_steps": 80,
+        }
+        diagnosis = diagnose_root_task(lambda x: x * x - 2.0, task)
+        self.assertEqual(diagnosis["recommended_method"], "secant")
+        self.assertTrue(diagnosis["invariant_holds"])
+        self.assertIn("no sign-change bracket", diagnosis["first_missing_premise"])
+
+    def test_reader_root_contract_rejects_misaligned_guarantee_or_derivative_claim(self):
+        task = {
+            "strategy": "preserve_sign_change_bracket",
+            "derivative_availability": "unavailable",
+            "acceptance_invariant": "finite_residual_without_global_bracket_claim",
+            "left": 0.0, "right": 2.0, "initial": 1.0,
+            "residual_tol": 1e-12, "step_tol": 1e-12, "max_steps": 80,
+        }
+        with self.assertRaises(ValueError):
+            diagnose_root_task(lambda x: x * x - 2.0, task)
     def test_finds_square_root_without_derivative(self):
         root = secant_root(lambda value: value * value - 2, 1.0, 2.0)
         self.assertAlmostEqual(root, sqrt(2), places=10)

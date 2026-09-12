@@ -30,8 +30,8 @@
 - [算法稳定性：二次公式](/numerical-computing/algorithmic-stability)：从 Vieta 关系推导避免消去的小根公式，并以高精度参考值审计前向误差；
 - [直接法与选主元](/numerical-computing/direct-methods-pivoting)：重放两条消元轨迹，区分算法稳定性、残差与前向误差；
 - [浮点比较、容差与属性测试](/numerical-computing/tolerances-property-testing)：尺度相关契约、残差与可复现实验；
-- [牛顿法](/numerical-computing/newton-method)：二次收敛、停止准则与区间保护；
-- [割线法](/numerical-computing/secant-method)：用两点函数值替代导数的快速求根；
+- [牛顿法](/numerical-computing/newton-method)：从保留区间的任务合同构造二次收敛、停止准则与回退；
+- [割线法](/numerical-computing/secant-method)：从局部残差合同用两点函数值替代导数，并明确没有全局区间保证；
 - [迭代解线性方程组](/numerical-computing/iterative-linear-systems)：Jacobi、Gauss–Seidel、残差与收敛/发散证据；
 - [预条件共轭梯度法](/numerical-computing/preconditioned-conjugate-gradient)：SPD 系统、Krylov 方向、对角预条件与可重放残差轨迹；
 - [数值微分](/numerical-computing/numerical-differentiation)：截断误差、舍入误差与步长选择；

@@ -177,6 +177,118 @@ def secant_root(
     return root
 
 
+def _finite_scalar(value: object) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and isfinite(value)
+
+
+def _parse_reader_root_task(task: object, derivative: Callable[[float], float] | None) -> dict[str, object]:
+    """Validate a reader-authored root-finding contract before selecting a method."""
+    common_fields = {
+        "strategy", "derivative_availability", "acceptance_invariant",
+        "left", "right", "residual_tol", "step_tol", "max_steps",
+    }
+    if not isinstance(task, dict):
+        raise ValueError("root task must be a mapping")
+    strategy = task["strategy"]
+    availability = task["derivative_availability"]
+    expected_invariant = {
+        "preserve_sign_change_bracket": "finite_residual_and_retained_sign_change_bracket",
+        "local_residual_search": "finite_residual_without_global_bracket_claim",
+    }
+    if strategy not in expected_invariant:
+        raise ValueError("strategy must preserve a sign-change bracket or request a local residual search")
+    required = common_fields | ({"initial"} if strategy == "preserve_sign_change_bracket" else set())
+    if set(task) != required:
+        raise ValueError("the bracketed Newton contract requires initial; the secant contract must not include it")
+    if task["acceptance_invariant"] != expected_invariant[strategy]:
+        raise ValueError("acceptance_invariant does not match the requested root-finding guarantee")
+    if availability not in {"available", "unavailable"}:
+        raise ValueError("derivative_availability must be available or unavailable")
+    if (availability == "available") != (derivative is not None):
+        raise ValueError("declared derivative availability must match the supplied derivative")
+    if strategy == "preserve_sign_change_bracket" and derivative is None:
+        raise ValueError("a safeguarded Newton task requires a derivative")
+    if strategy == "local_residual_search" and derivative is not None:
+        raise ValueError("a local secant task must not silently discard an available derivative")
+    left, right = task["left"], task["right"]
+    if not all(_finite_scalar(value) for value in (left, right)) or left >= right:
+        raise ValueError("left and right must be finite with left < right")
+    initial = task.get("initial")
+    if strategy == "preserve_sign_change_bracket" and (
+        not _finite_scalar(initial) or not left <= initial <= right
+    ):
+        raise ValueError("a bracketed Newton task needs a finite initial point inside its bracket")
+    if not all(_finite_scalar(task[key]) for key in ("residual_tol", "step_tol")):
+        raise ValueError("tolerances must be finite scalars")
+    if task["residual_tol"] <= 0 or task["step_tol"] <= 0:
+        raise ValueError("tolerances must be positive")
+    max_steps = task["max_steps"]
+    if not isinstance(max_steps, int) or isinstance(max_steps, bool) or max_steps <= 0:
+        raise ValueError("max_steps must be a positive integer")
+    return {
+        "strategy": strategy,
+        "left": float(left), "right": float(right),
+        "initial": float(initial) if initial is not None else None,
+        "residual_tol": float(task["residual_tol"]), "step_tol": float(task["step_tol"]),
+        "max_steps": max_steps,
+    }
+
+
+def diagnose_root_task(
+    function: Callable[[float], float], task: object, *, derivative: Callable[[float], float] | None = None,
+) -> dict[str, object]:
+    """Run the method warranted by a reader-declared root-finding contract.
+
+    A sign change is finite evidence only after continuity is supplied from the
+    mathematical model; this diagnostic cannot infer continuity or uniqueness.
+    It does make the difference between a retained bracket and a merely local
+    residual explicit before calling Newton or secant.
+    """
+    if not callable(function) or (derivative is not None and not callable(derivative)):
+        raise ValueError("function and supplied derivative must be callable")
+    parsed = _parse_reader_root_task(task, derivative)
+    left, right = parsed["left"], parsed["right"]
+    residual_tol, step_tol, max_steps = parsed["residual_tol"], parsed["step_tol"], parsed["max_steps"]
+    if parsed["strategy"] == "preserve_sign_change_bracket":
+        left_value, right_value = function(left), function(right)
+        if not isfinite(left_value) or not isfinite(right_value) or left_value * right_value > 0:
+            raise ValueError("a bracket guarantee requires finite endpoint values with opposite signs or an endpoint root")
+        root, events = safeguarded_newton_trace(
+            function, derivative, left, right, parsed["initial"],
+            residual_tol=residual_tol, step_tol=step_tol, max_steps=max_steps,
+        )
+        root_value = function(root)
+        retained = (not events and left_value * right_value <= 0) or all(
+            event.left_value * event.right_value <= 0 for event in events
+        )
+        return {
+            "recommended_method": "safeguarded_newton",
+            "root": root,
+            "residual": abs(root_value),
+            "steps": len(events),
+            "reader_invariant": "finite residual and a sign-change bracket retained at every accepted step",
+            "invariant_holds": isfinite(root_value) and abs(root_value) <= residual_tol and retained,
+            "first_missing_premise": "continuity is still an external model assumption behind a sign-change root claim",
+            "fallback_steps": sum(event.method == "bisection" for event in events),
+        }
+
+    root, events = secant_trace(
+        function, left, right,
+        residual_tol=residual_tol, step_tol=step_tol, max_steps=max_steps,
+    )
+    root_value = function(root)
+    return {
+        "recommended_method": "secant",
+        "root": root,
+        "residual": abs(root_value),
+        "steps": len(events),
+        "reader_invariant": "finite residual only; no global bracket guarantee is claimed",
+        "invariant_holds": isfinite(root_value) and abs(root_value) <= residual_tol,
+        "first_missing_premise": "no sign-change bracket is retained, so global root containment is not established",
+        "fallback_steps": None,
+    }
+
+
 @dataclass(frozen=True)
 class NewtonEvent:
     """One accepted hybrid step and the bracket retained after that step."""

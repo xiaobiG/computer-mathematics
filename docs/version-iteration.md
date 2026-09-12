@@ -937,3 +937,13 @@ v2.7–v2.9 的共同增量不是新增术语，而是把“可计算的输出�
 | 验证 | `python -m unittest projects.algorithm_lab.test_weighted_activity`、`npm run content:check`；发布前运行全项目测试、生产构建与 GitHub Pages 工作流。 |
 | 差异 | 原课程让读者对固定无权/加权表执行两条路径；现在同一时间窗在 `maximize_count` 下得到最早结束与最大基数不变量，在 `maximize_value` 下得到前缀 DAG、最大总价值不变量和最早结束的实际差距。目标与验收量错配、闭区间语义或不匹配字段会在选择算法前被拒绝。 |
 | 下一决策 | 这不是自然语言提取、真实排班器、多资源调度或大规模 oracle；下一轮应审计其他主线是否也仍把“任务目标/验收条件”留在文字中，而不是机械复制活动合同。 |
+
+### v5.2-a：求根的保证等级合同（已完成）
+
+| 字段 | 记录 |
+| --- | --- |
+| 目标 | 读者能在调用求根器前声明需保留的数学保证、导数可用性、容差和预算，并据此区分受保护 Newton 与只给局部残差证据的割线。 |
+| 范围 | 扩展[牛顿法](/numerical-computing/newton-method)、[割线法](/numerical-computing/secant-method)、浮点数错误博物馆、成熟度看板与路线图；在 `root_finding.py` 新增 `diagnose_root_task` 和测试，不新增轨迹证书。 |
+| 验证 | `python -m unittest projects.floating_point_museum.test_root_finding`、`npm run content:check`；发布前运行全项目测试、生产构建与 GitHub Pages 工作流。 |
+| 差异 | 原实验的区间、导数、容差和停止量由示例调用隐含；现在“残差加保留变号区间”合同必须提供导数与区间内初值，得到受保护 Newton；“只要局部残差”合同不得夹带未使用初值，得到割线并明确没有全局区间结论。 |
+| 下一决策 | 此工具不能证明连续性、唯一根或物理模型正确，也不实现 Brent、多维根或真实停止政策；下一轮应审计另一主线是否存在同样的“保证等级只写在文字中”的断点。 |

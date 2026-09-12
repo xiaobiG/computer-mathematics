@@ -32,8 +32,7 @@ description: 用可复现实验观察舍入、累计误差、消去误差与蒙�
 - [迭代解线性方程组](/numerical-computing/iterative-linear-systems)：用残差和步长一起审查 Jacobi/Gauss–Seidel 的收敛。
 - [数值插值](/numerical-computing/interpolation)：用差商构造多项式，并观察外推与高阶节点的误差边界。
 - [随机模拟的误差与可复现性](/numerical-computing/stochastic-simulation-reproducibility)：抽样误差、固定种子与重复报告。
-- [牛顿法](/numerical-computing/newton-method)：重放每步 Newton/二分决策与符号变化区间，审查混合求根的收敛证据。
-- [割线法](/numerical-computing/secant-method)：以两点插值公式、事件连接和残差审计无导数迭代。
+- [牛顿法](/numerical-computing/newton-method) 与 [割线法](/numerical-computing/secant-method)：从读者声明的根任务合同选择“残差加保留区间”的受保护牛顿，或“不声称全局保证”的无导数割线。
 - [数值微分](/numerical-computing/numerical-differentiation)：扫描中心差分步长，并以同一步长比较中心/前向模板在平滑内部与定义域边界的可用性。
 - [数值积分](/numerical-computing/numerical-integration)：用自适应 Simpson 的叶区间、误差预算与函数调用上限审查何时真正停止。
 - [多维积分的结构化采样](/numerical-computing/multidimensional-integration)：在同一二维积分基准中比较规则网格、固定种子蒙特卡洛与样本预算。
@@ -71,6 +70,7 @@ python -m unittest projects.floating_point_museum.test_conditioning
 11. 算法稳定性：对二次方程的小根比较直接公式与 Vieta 改写，使用高精度参考值检查消去如何放大前向误差。
 12. 驻定迭代：重放 Jacobi/Gauss–Seidel 的每一步向量、更新量与残差，确认停止不是由被篡改的轨迹标签触发。
 13. 直接法：比较不选主元和部分选主元的增广矩阵轨迹，分别报告前向和后向误差，确认行交换不是条件数的修复。
+14. 为同一个方程写两份 `diagnose_root_task` 合同：一份要求保留符号变号区间且提供导数，另一份声明无导数、只验收局部残差；解释为何后者不能继承前者的全局保证。
 
 ## 工程边界
 

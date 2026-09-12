@@ -3,8 +3,8 @@ title: 割线法：不用导数也能快速求根
 description: 从牛顿法的有限差分近似推导割线迭代，解释超线性收敛、分母消失与无区间保证，并实现可验证求根器。
 courseLevel: "2–3（数值算法、收敛与工程边界）"
 prerequisites: "函数、导数、牛顿法、绝对与相对误差"
-estimatedMinutes: 50
-experiment: "用割线法求解平方根，比较无需导数的迭代与分母消失边界"
+estimatedMinutes: 60
+experiment: "从局部残差合同选择割线法，比较无需导数的迭代与分母消失边界"
 ---
 
 # 割线法：不用导数也能快速求根
@@ -68,6 +68,28 @@ $$
 
 `secant_convergence_report` 记录候选点误差和这些估计，平方根例最后一轮约为 $1.607$，接近 $\varphi$；`secant_convergence_certificate` 会重算该报告，避免图表或结论与轨迹脱节。这个量只是在已知根、进入局部渐近区后对单个运行的观测，不是一般收敛证明，也不应用于未知真根的生产求解。
 
+## 构造实验：局部残差不是区间保证
+
+当导数不可用，并且任务只要求有限残差而**不声称**每一步仍包住根时，合同应明确写成局部搜索。它没有 `initial` 字段：割线真正使用的是两次函数评估点；强行保留一个未使用初值只会混淆模型。
+
+```python
+from projects.floating_point_museum.root_finding import diagnose_root_task
+
+task = {
+    "strategy": "local_residual_search",
+    "derivative_availability": "unavailable",
+    "acceptance_invariant": "finite_residual_without_global_bracket_claim",
+    "left": 1.0, "right": 2.0,
+    "residual_tol": 1e-12, "step_tol": 1e-12, "max_steps": 80,
+}
+diagnosis = diagnose_root_task(lambda x: x * x - 2.0, task)
+assert diagnosis["recommended_method"] == "secant"
+assert diagnosis["invariant_holds"]
+assert "no sign-change bracket" in diagnosis["first_missing_premise"]
+```
+
+即使这两个初始点恰好异号，割线的后续点也不会维护该区间；因此该合同不能拿来验收“根始终被包住”。若这一保证是需求，应回到[受保护牛顿法](/numerical-computing/newton-method)，提供导数和连续性语义，而不是给割线结果补一句“看来很稳定”。
+
 ## 收敛与正确性边界
 
 在简单根附近、函数足够光滑且初值足够好时，割线法收敛阶约为黄金比例 $\varphi\approx1.618$：快于线性二分、慢于二次牛顿。没有导数并非免费午餐：它需要两个历史点，且没有“始终留在含根区间”的保证。
@@ -85,7 +107,7 @@ $$
 
 1. **基础题**：对 $x^2-2$ 从 1 和 2 手算一次割线更新。
 2. **推导题**：从两点直线方程推导割线公式。
-3. **编码题**：用 `secant_solution_certificate` 篡改返回根、首轮输入或一条轨迹，确认拒绝；再篡改 `secant_convergence_report` 的末轮阶估计，确认其证书拒绝，并构造一个分母接近零的失败输入。
+3. **编码题**：先为无导数任务写 `local_residual_search` 合同，再用 `secant_solution_certificate` 篡改返回根、首轮输入或一条轨迹，确认拒绝；再篡改 `secant_convergence_report` 的末轮阶估计，确认其证书拒绝，并构造一个分母接近零的失败输入。
 4. **开放题**：设计一个“二分保底 + 割线加速”策略，写出何时接受候选步、何时回退。
 
 ## 练习答案提示
