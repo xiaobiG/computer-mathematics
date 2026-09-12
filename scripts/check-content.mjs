@@ -138,6 +138,7 @@ const priorityDeepLessons = new Set([
   'linear-algebra/gaussian-elimination.md',
   'linear-algebra/least-squares.md',
   'discrete-math/loop-invariants.md',
+  'discrete-math/breadth-first-search.md',
   'discrete-math/dijkstra.md',
   'probability-ml/bayes.md',
   'probability-ml/maximum-likelihood.md',
