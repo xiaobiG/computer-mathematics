@@ -401,6 +401,7 @@ export default defineConfig({
               link: "/number-theory-crypto/digital-signatures",
             },
             { text: "公钥身份与密钥生命周期", link: "/number-theory-crypto/public-key-lifecycle" },
+            { text: "已签名更新与防回滚", link: "/number-theory-crypto/signed-release-anti-rollback" },
             {
               text: "中国剩余定理：拆分模运算",
               link: "/number-theory-crypto/chinese-remainder-theorem",
