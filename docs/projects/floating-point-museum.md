@@ -37,6 +37,7 @@ description: 用可复现实验观察舍入、累计误差、消去误差与蒙�
 - [数值微分](/numerical-computing/numerical-differentiation)：扫描中心差分步长，审查二阶截断趋势与极小步长的误差反弹。
 - [数值积分](/numerical-computing/numerical-integration)：用自适应 Simpson 的叶区间、误差预算与函数调用上限审查何时真正停止。
 - [多维积分的结构化采样](/numerical-computing/multidimensional-integration)：在同一二维积分基准中比较规则网格、固定种子蒙特卡洛与样本预算。
+- [重要性采样诊断](/numerical-computing/importance-sampling-diagnostics)：以有真值基准审计权重退化与有效样本量。
 
 ## 运行
 

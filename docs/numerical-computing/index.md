@@ -38,6 +38,7 @@
 - [数值插值](/numerical-computing/interpolation)：差商、牛顿形式、Runge 现象与外推边界；
 - [数值积分](/numerical-computing/numerical-integration)：梯形法、Simpson 法与自适应切分边界；
 - [多维积分的结构化采样](/numerical-computing/multidimensional-integration)：在二维基准中比较张量网格、固定种子蒙特卡洛与样本预算；
+- [重要性采样诊断](/numerical-computing/importance-sampling-diagnostics)：比较提议分布、权重、标准误与 ESS；
 - [随机模拟的误差与可复现性](/numerical-computing/stochastic-simulation-reproducibility)：抽样波动、固定种子与可复核报告；
 - [数值计算深度版路线](/numerical-computing/rewrite-plan)：稳定求和、数值线性代数与工程实验。
 
