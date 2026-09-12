@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from math import sqrt
 from typing import Iterable
 
@@ -11,15 +12,51 @@ def nearly_equal(left: float, right: float, tolerance: float = 1e-12) -> bool:
     return abs(left - right) <= tolerance * max(1.0, abs(left), abs(right))
 
 
-def kahan_sum(values: Iterable[float]) -> float:
-    """使用补偿变量降低连续相加带来的累计舍入误差。"""
+@dataclass(frozen=True)
+class KahanEvent:
+    """One public Kahan state transition for classroom inspection."""
+
+    iteration: int
+    value: float
+    total_before: float
+    compensation_before: float
+    corrected: float
+    total_after: float
+    compensation_after: float
+
+
+def kahan_sum_trace(values: Iterable[float]) -> tuple[float, list[KahanEvent]]:
+    """Return the sum and every compensation transition for public examples.
+
+    A trace exposes values and intermediate rounding behavior, so it is for
+    teaching inputs only rather than private production data.
+    """
     total = 0.0
     compensation = 0.0
-    for value in values:
+    events: list[KahanEvent] = []
+    for iteration, value in enumerate(values, start=1):
         corrected = value - compensation
         next_total = total + corrected
-        compensation = (next_total - total) - corrected
+        next_compensation = (next_total - total) - corrected
+        events.append(KahanEvent(
+            iteration, value, total, compensation, corrected, next_total, next_compensation,
+        ))
         total = next_total
+        compensation = next_compensation
+    return total, events
+
+
+def kahan_sum_trace_certificate(
+    values: Iterable[float], result: float, events: list[KahanEvent],
+) -> bool:
+    """Replay the exact public state transitions, including compensation signs."""
+    expected_result, expected_events = kahan_sum_trace(values)
+    return result == expected_result and events == expected_events
+
+
+def kahan_sum(values: Iterable[float]) -> float:
+    """使用补偿变量降低连续相加带来的累计舍入误差。"""
+    total, _ = kahan_sum_trace(values)
     return total
 
 
