@@ -161,6 +161,7 @@ const priorityDeepLessons = new Set([
   'numerical-computing/condition-number.md',
   'numerical-computing/numerical-integration.md',
   'numerical-computing/kahan-summation.md',
+  'numerical-computing/preconditioned-conjugate-gradient.md',
   'numerical-computing/importance-sampling-diagnostics.md',
   'number-theory-crypto/rsa.md',
   'number-theory-crypto/modular-arithmetic.md',

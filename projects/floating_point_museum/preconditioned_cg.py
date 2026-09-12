@@ -44,10 +44,19 @@ def _norm(vector: list[float]) -> float:
     return sqrt(_dot(vector, vector))
 
 
+def _apply_preconditioner(matrix: list[list[float]], residual: list[float], preconditioner: str) -> list[float]:
+    if preconditioner == "identity":
+        return residual[:]
+    if preconditioner == "jacobi":
+        return [residual[index] / matrix[index][index] for index in range(len(residual))]
+    raise ValueError("preconditioner must be 'identity' or 'jacobi'")
+
+
 def preconditioned_conjugate_gradient(
     matrix: list[list[float]], right_side: list[float], tolerance: float = 1e-10, max_steps: int | None = None,
+    *, preconditioner: str = "jacobi",
 ) -> tuple[list[float], list[CgEvent]]:
-    """Solve a small SPD system with diagonal-preconditioned CG.
+    """Solve a small SPD system with identity or diagonal-Jacobi CG.
 
     Symmetry and positive diagonal are checked directly.  Positive definiteness
     is additionally witnessed at runtime by positive search-direction
@@ -61,11 +70,13 @@ def preconditioned_conjugate_gradient(
         max_steps = 4 * dimension
     if not isinstance(max_steps, int) or isinstance(max_steps, bool) or max_steps <= 0:
         raise ValueError("max_steps must be a positive integer")
+    if preconditioner not in {"identity", "jacobi"}:
+        raise ValueError("preconditioner must be 'identity' or 'jacobi'")
     solution = [0.0] * dimension
     residual = [float(value) for value in right_side]
     if _norm(residual) <= tolerance:
         return solution, []
-    preconditioned = [residual[index] / matrix[index][index] for index in range(dimension)]
+    preconditioned = _apply_preconditioner(matrix, residual, preconditioner)
     direction = preconditioned[:]
     residual_dot = _dot(residual, preconditioned)
     events: list[CgEvent] = []
@@ -78,7 +89,7 @@ def preconditioned_conjugate_gradient(
         solution = [solution[index] + alpha * direction[index] for index in range(dimension)]
         residual = [residual[index] - alpha * matrix_direction[index] for index in range(dimension)]
         residual_norm = _norm(residual)
-        next_preconditioned = [residual[index] / matrix[index][index] for index in range(dimension)]
+        next_preconditioned = _apply_preconditioner(matrix, residual, preconditioner)
         next_residual_dot = _dot(residual, next_preconditioned)
         beta = 0.0 if residual_norm <= tolerance else next_residual_dot / residual_dot
         events.append(CgEvent(iteration, alpha, beta, tuple(solution), residual_norm, next_residual_dot))
@@ -91,14 +102,16 @@ def preconditioned_conjugate_gradient(
 
 def pcg_trace_certificate(
     matrix: list[list[float]], right_side: list[float], solution: list[float], events: list[CgEvent],
-    tolerance: float = 1e-10, max_steps: int | None = None,
+    tolerance: float = 1e-10, max_steps: int | None = None, *, preconditioner: str = "jacobi",
 ) -> dict[str, bool]:
     """Replay the public PCG trace and its stopping residual."""
     empty = {"trace_matches_recomputation": False, "terminal_residual_is_small": False, "valid": False}
     if not isinstance(events, list) or not isinstance(solution, list):
         return empty
     try:
-        expected_solution, expected_events = preconditioned_conjugate_gradient(matrix, right_side, tolerance, max_steps)
+        expected_solution, expected_events = preconditioned_conjugate_gradient(
+            matrix, right_side, tolerance, max_steps, preconditioner=preconditioner,
+        )
     except (ValueError, RuntimeError, TypeError):
         return empty
     trace_matches = events == expected_events and solution == expected_solution

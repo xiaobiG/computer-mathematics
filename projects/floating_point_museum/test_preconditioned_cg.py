@@ -24,11 +24,33 @@ class PreconditionedCgTests(unittest.TestCase):
         self.assertFalse(certificate["trace_matches_recomputation"])
         self.assertFalse(certificate["valid"])
 
+    def test_jacobi_can_remove_diagonal_scale_spread_on_the_same_system(self):
+        matrix = [[1.0, 0.0, 0.0], [0.0, 100.0, 0.0], [0.0, 0.0, 10_000.0]]
+        right_side = [1.0, 1.0, 1.0]
+        identity_solution, identity_trace = preconditioned_conjugate_gradient(
+            matrix, right_side, preconditioner="identity",
+        )
+        jacobi_solution, jacobi_trace = preconditioned_conjugate_gradient(
+            matrix, right_side, preconditioner="jacobi",
+        )
+        self.assertEqual(len(identity_trace), 3)
+        self.assertEqual(len(jacobi_trace), 1)
+        for identity_value, jacobi_value in zip(identity_solution, jacobi_solution):
+            self.assertAlmostEqual(identity_value, jacobi_value, places=10)
+        self.assertTrue(pcg_trace_certificate(
+            matrix, right_side, jacobi_solution, jacobi_trace, preconditioner="jacobi",
+        )["valid"])
+        self.assertTrue(pcg_trace_certificate(
+            matrix, right_side, identity_solution, identity_trace, preconditioner="identity",
+        )["valid"])
+
     def test_rejects_non_symmetric_system_and_exhausted_budget(self):
         with self.assertRaises(ValueError):
             preconditioned_conjugate_gradient([[2.0, 1.0], [0.0, 2.0]], [1.0, 1.0])
         with self.assertRaises(RuntimeError):
             preconditioned_conjugate_gradient(MATRIX, RIGHT_SIDE, tolerance=1e-15, max_steps=1)
+        with self.assertRaises(ValueError):
+            preconditioned_conjugate_gradient(MATRIX, RIGHT_SIDE, preconditioner="unknown")
 
 
 if __name__ == "__main__":
