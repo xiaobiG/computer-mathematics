@@ -11,6 +11,7 @@ from projects.linear_algebra_lab.image_metrics import (
     cielab_delta_e76, srgb_to_cielab_d65,
     srgb_cielab_delta_e76_comparison, srgb_cielab_delta_e76_comparison_certificate,
     srgb_linear_luminance_comparison, srgb_linear_luminance_comparison_certificate, srgb_to_linear,
+    display_condition_review, display_condition_review_certificate,
 )
 from projects.linear_algebra_lab.randomized_svd import randomized_svd_report
 
@@ -156,6 +157,54 @@ class ImageMetricsTests(unittest.TestCase):
             srgb_to_cielab_d65((1.1, 0.0, 0.0))
         with self.assertRaisesRegex(ValueError, "three finite"):
             cielab_delta_e76((0.0, 0.0), (0.0, 0.0, 0.0))
+
+    def test_display_conditions_only_prepare_a_separate_human_task_review(self):
+        reference = [[[0.0, 0.0, 0.0]]]
+        approximation = [[[0.01, 0.0, 0.0]]]
+        color_report = srgb_cielab_delta_e76_comparison(reference, approximation, delta_e76_budget=2.0)
+        incomplete = display_condition_review(color_report)
+        complete = display_condition_review(
+            color_report,
+            display_profile_id="teaching-display-profile-v1",
+            ambient_illuminance_lux=120.0,
+            peak_luminance_cd_m2=160.0,
+            task_name="small-text readability review",
+        )
+        self.assertEqual(incomplete.condition_status, "display_or_task_conditions_missing")
+        self.assertEqual(incomplete.disposition, "numeric_model_only")
+        self.assertEqual(complete.condition_status, "declared_conditions_complete")
+        self.assertEqual(complete.disposition, "ready_for_separate_human_task_review")
+        self.assertEqual(complete.automatic_action, "none")
+        self.assertTrue(display_condition_review_certificate(
+            reference, approximation, 2.0, complete,
+            display_profile_id="teaching-display-profile-v1",
+            ambient_illuminance_lux=120.0,
+            peak_luminance_cd_m2=160.0,
+            task_name="small-text readability review",
+        ))
+        self.assertFalse(display_condition_review_certificate(
+            reference, approximation, 2.0, replace(complete, disposition="numeric_model_only"),
+            display_profile_id="teaching-display-profile-v1",
+            ambient_illuminance_lux=120.0,
+            peak_luminance_cd_m2=160.0,
+            task_name="small-text readability review",
+        ))
+        with self.assertRaisesRegex(ValueError, "finite positive"):
+            display_condition_review(color_report, ambient_illuminance_lux=0.0)
+
+    def test_exceeding_color_budget_never_becomes_review_ready(self):
+        reference = [[[0.0, 0.0, 0.0]]]
+        approximation = [[[0.5, 0.0, 0.0]]]
+        color_report = srgb_cielab_delta_e76_comparison(reference, approximation, delta_e76_budget=1.0)
+        review = display_condition_review(
+            color_report,
+            display_profile_id="teaching-display-profile-v1",
+            ambient_illuminance_lux=120.0,
+            peak_luminance_cd_m2=160.0,
+            task_name="small-text readability review",
+        )
+        self.assertEqual(review.numeric_evidence_status, "exceeds_delta_e76_budget")
+        self.assertEqual(review.disposition, "numeric_model_only")
 
     def test_randomized_svd_artifact_drives_a_numeric_quality_budget_review(self):
         pixels = [[5.0, 0.0], [0.0, 1.0]]

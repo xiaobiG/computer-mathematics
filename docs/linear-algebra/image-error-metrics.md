@@ -124,10 +124,59 @@ $$
 
 的均值、最大值与预算。读者可用 `srgb_to_cielab_d65((1,1,1))` 核对约为 $(100,0,0)$，再用 `cielab_delta_e76` 手算距离；证书绑定编码、白点与结论。模型来源为 [CIE 15:2018](https://cie.co.at/publications/colorimetry-4th-edition) 与 [ICC sRGB 登记](https://registry.color.org/rgb-registry/srgb)。它不是 ICC profile、色域映射、色适应、显示条件、CIEDE2000、视觉偏好或自动验收。
 
+## 显示条件审计：度量通过也还不是“看起来合格”
+
+到这里，报告已固定编码、D65 白点和 $\Delta E_{76}$ 预算；但它仍只是在一个坐标模型中做有限算术。显示器 profile、环境照度、峰值亮度和读者真正要完成的任务，都会改变“是否可用”的含义。因此将结论分成三层：
+
+$$
+\begin{gathered}
+\text{数值报告}\\
+\downarrow\\
+\text{条件已声明，进行人工任务复核}\\
+\downarrow\\
+\text{人工任务实测结论}
+\end{gathered}
+$$
+
+第一条箭头不是逻辑蕴含；它只是复核工作的输入契约。`display_condition_review` 接收已验证的色差报告，并要求记录 profile 标识、环境照度（lux）、峰值亮度（cd/m$^2$）和任务名称：
+
+```python
+from projects.linear_algebra_lab.image_metrics import (
+    display_condition_review,
+    display_condition_review_certificate,
+    srgb_cielab_delta_e76_comparison,
+)
+
+reference = [[[0.0, 0.0, 0.0]]]
+approximation = [[[0.01, 0.0, 0.0]]]
+color = srgb_cielab_delta_e76_comparison(reference, approximation, delta_e76_budget=2.0)
+review = display_condition_review(
+    color,
+    display_profile_id="teaching-display-profile-v1",
+    ambient_illuminance_lux=120.0,
+    peak_luminance_cd_m2=160.0,
+    task_name="small-text readability review",
+)
+
+assert review.condition_status == "declared_conditions_complete"
+assert review.disposition == "ready_for_separate_human_task_review"
+assert review.automatic_action == "none"
+assert display_condition_review_certificate(
+    reference, approximation, 2.0, review,
+    display_profile_id="teaching-display-profile-v1",
+    ambient_illuminance_lux=120.0,
+    peak_luminance_cd_m2=160.0,
+    task_name="small-text readability review",
+)
+```
+
+若任何条件缺失，结论固定为 `numeric_model_only`；若色差预算未通过，即使条件齐全也同样如此。条件齐全时的 `ready_for_separate_human_task_review` **不是**“视觉已经合格”：这些值只是待核验的声明，实验不会测量屏幕、验证 profile、模拟适应过程，或替你完成可读性、识别率与无障碍测试。证书重放颜色算术和每一个声明，因而不能把“等待人工复核”篡改为自动放行。
+
 ## 失败案例与工程边界
 
 - 相同 MSE 的孤立错误与噪声仍可能不同；窗口只定位。
 - 峰值、量化、D65 与任务目标都会改变解释；PSNR、SSIM、$\Delta E_{76}$ 均不保证识别或视觉偏好。
+- 条件字段是记录，不是测量：带有 profile 名称和照度数字也不能证明真实设备、环境或人类任务结果。
 
 ## 常见误区
 
@@ -142,6 +191,7 @@ $$
 2. **推导题**：从 $\|A-\hat A\|_F$ 推导 RMSE 的归一化式，并说明为何面积变成四倍时不能只比较原始范数。
 3. **编码题**：为 `image_quality_report` 增加逐行 MSE 报告，并为篡改的一行结果写一个拒绝测试。
 4. **开放题**：设计同时报告 PSNR、$\Delta E$、文件大小、主观评审与检索指标的压缩实验。
+5. **审计题**：为何 `ready_for_separate_human_task_review` 不应改名为“显示合格”？列出一个数值指标没有覆盖的显示风险与一个任务风险。
 
 ## 练习答案提示
 
@@ -149,6 +199,7 @@ $$
 2. Frobenius 平方是误差平方和；面积四倍时，相同像素误差的范数变两倍。
 3. 行报告须重算每行与聚合值，不能只信最终均值。
 4. 它们分别回答数值、色差、存储、感知与任务问题。
+5. 前者只说明声明齐全且数值预算通过；例如 profile 实际未加载属于显示风险，读者能否辨认小字属于任务风险。
 
 ## 延伸
 

@@ -94,6 +94,7 @@ class LinearRgbErrorReport:
 
 SRGB_LINEAR_LUMINANCE_CONTRACT = "srgb-linear-luminance-comparison/v1"
 SRGB_CIELAB_DELTA_E76_CONTRACT = "srgb-cielab-delta-e76-comparison/v1"
+DISPLAY_CONDITION_REVIEW_CONTRACT = "srgb-delta-e76-display-condition-review/v1"
 
 
 @dataclass(frozen=True)
@@ -125,6 +126,29 @@ class SrgbCieLabDeltaE76Comparison:
     max_delta_e76: float
     delta_e76_budget: float
     budget_status: str
+    automatic_action: str
+
+
+@dataclass(frozen=True)
+class DisplayConditionReview:
+    """Bind a numeric color report to declared, but not verified, viewing inputs.
+
+    This is deliberately a gate for *human review*, never a model of a monitor
+    or a visual-acceptance decision.  The scalar values are supplied claims;
+    this small laboratory can validate their presence and units, not measure a
+    device, its profile, adaptation, or a person's task performance.
+    """
+
+    contract: str
+    numeric_evidence_status: str
+    source_encoding: str
+    reference_white_xyz: tuple[float, float, float]
+    display_profile_id: str | None
+    ambient_illuminance_lux: float | None
+    peak_luminance_cd_m2: float | None
+    task_name: str | None
+    condition_status: str
+    disposition: str
     automatic_action: str
 
 
@@ -478,6 +502,83 @@ def srgb_cielab_delta_e76_comparison_certificate(reference, approximation, repor
         return False
     try:
         return report == srgb_cielab_delta_e76_comparison(reference, approximation, report.delta_e76_budget)
+    except ValueError:
+        return False
+
+
+def _optional_positive_measurement(value, name):
+    if value is None:
+        return None
+    if (not isinstance(value, (int, float)) or isinstance(value, bool)
+            or not isfinite(value) or value <= 0.0):
+        raise ValueError(f"{name} must be a finite positive number or None")
+    return float(value)
+
+
+def _optional_nonempty_text(value, name):
+    if value is None:
+        return None
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{name} must be a non-empty string or None")
+    return value.strip()
+
+
+def display_condition_review(
+    color_report, *, display_profile_id=None, ambient_illuminance_lux=None,
+    peak_luminance_cd_m2=None, task_name=None,
+):
+    """Classify whether a color metric is ready for a separately run human review.
+
+    A report within its declared Delta-E budget is only numeric evidence in a
+    fixed sRGB/D65/Lab coordinate model.  Supplying a display profile label,
+    ambient illuminance, peak luminance, and task name makes the next review
+    reproducible; it does not prove those declarations or accept the image.
+    """
+    if not isinstance(color_report, SrgbCieLabDeltaE76Comparison):
+        raise ValueError("color_report must be an sRGB CIE Lab comparison artifact")
+    profile = _optional_nonempty_text(display_profile_id, "display_profile_id")
+    illuminance = _optional_positive_measurement(ambient_illuminance_lux, "ambient_illuminance_lux")
+    peak = _optional_positive_measurement(peak_luminance_cd_m2, "peak_luminance_cd_m2")
+    task = _optional_nonempty_text(task_name, "task_name")
+    numeric_status = color_report.budget_status
+    complete = all(value is not None for value in (profile, illuminance, peak, task))
+    conditions = "declared_conditions_complete" if complete else "display_or_task_conditions_missing"
+    disposition = (
+        "ready_for_separate_human_task_review"
+        if numeric_status == "within_delta_e76_budget" and complete
+        else "numeric_model_only"
+    )
+    return DisplayConditionReview(
+        DISPLAY_CONDITION_REVIEW_CONTRACT,
+        numeric_status,
+        color_report.source_encoding,
+        color_report.reference_white_xyz,
+        profile,
+        illuminance,
+        peak,
+        task,
+        conditions,
+        disposition,
+        "none",
+    )
+
+
+def display_condition_review_certificate(
+    reference, approximation, delta_e76_budget, review, *, display_profile_id=None,
+    ambient_illuminance_lux=None, peak_luminance_cd_m2=None, task_name=None,
+):
+    """Rebuild both color arithmetic and condition declarations from inputs."""
+    if not isinstance(review, DisplayConditionReview):
+        return False
+    try:
+        color_report = srgb_cielab_delta_e76_comparison(reference, approximation, delta_e76_budget)
+        return review == display_condition_review(
+            color_report,
+            display_profile_id=display_profile_id,
+            ambient_illuminance_lux=ambient_illuminance_lux,
+            peak_luminance_cd_m2=peak_luminance_cd_m2,
+            task_name=task_name,
+        )
     except ValueError:
         return False
 
