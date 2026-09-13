@@ -12,6 +12,7 @@ from math import isfinite
 
 
 CONTRACT = "finite-complete-randomization/v1"
+INTERFERENCE_CONTRACT = "two-unit-interference-randomization/v1"
 
 
 def _potential_outcomes(value: object) -> list[tuple[float, float]]:
@@ -78,5 +79,77 @@ def complete_randomization_certificate(potential_outcomes: object, treated_count
         return False
     try:
         return report == complete_randomization_report(potential_outcomes, treated_count)
+    except ValueError:
+        return False
+
+
+def _two_unit_interference_outcomes(value: object) -> list[tuple[float, float, float, float]]:
+    """Normalize Y_i(0,0), Y_i(0,1), Y_i(1,0), Y_i(1,1) for two units."""
+    if not isinstance(value, list) or len(value) != 2:
+        raise ValueError("interference_potential_outcomes must contain exactly two units")
+    normalized = []
+    for row in value:
+        if (not isinstance(row, (list, tuple)) or len(row) != 4
+                or any(not isinstance(outcome, (int, float)) or isinstance(outcome, bool)
+                       or not isfinite(outcome) for outcome in row)):
+            raise ValueError("each interference row must contain four finite numeric outcomes")
+        normalized.append(tuple(float(outcome) for outcome in row))
+    return normalized
+
+
+def two_unit_interference_report(interference_potential_outcomes: object) -> dict[str, object]:
+    """Enumerate one-treated assignments when each unit can affect its peer.
+
+    The report deliberately uses exactly two units and a fixed one-treated
+    design so that every observable assignment can be enumerated.  It does
+    not estimate interference from data or validate a real randomization.
+    """
+    outcomes = _two_unit_interference_outcomes(interference_potential_outcomes)
+    # Index order is (own treatment, peer treatment): 00, 01, 10, 11.
+    assignment_differences = []
+    for treated in range(2):
+        control = 1 - treated
+        treated_outcome = outcomes[treated][2]
+        control_outcome = outcomes[control][1]
+        assignment_differences.append({
+            "treated_unit": treated,
+            "control_unit": control,
+            "treated_outcome_y_10": treated_outcome,
+            "control_outcome_y_01": control_outcome,
+            "treated_minus_control": treated_outcome - control_outcome,
+        })
+    direct_effects = [row[2] - row[0] for row in outcomes]
+    peer_effects_when_control = [row[1] - row[0] for row in outcomes]
+    expected_difference = sum(item["treated_minus_control"] for item in assignment_differences) / 2
+    average_direct_effect = sum(direct_effects) / 2
+    no_interference = all(row[0] == row[1] and row[2] == row[3] for row in outcomes)
+    return {
+        "contract": INTERFERENCE_CONTRACT,
+        "units": 2,
+        "assignment_mechanism": "uniform_complete_randomization_with_exactly_one_treated_unit",
+        "potential_outcome_order": ["Y_i(0,0)", "Y_i(0,1)", "Y_i(1,0)", "Y_i(1,1)"],
+        "assignment_differences": assignment_differences,
+        "average_direct_effect_when_peer_control": average_direct_effect,
+        "average_peer_effect_when_self_control": sum(peer_effects_when_control) / 2,
+        "expected_treated_minus_control": expected_difference,
+        "expectation_minus_direct_effect": expected_difference - average_direct_effect,
+        "no_interference_condition_holds": no_interference,
+        "interpretation": (
+            "finite_interference_counterexample; random_assignment_alone_does_not_make_treated_control_difference "
+            "equal_a_direct_effect_when_peer_outcomes_change"
+        ),
+        "boundary": (
+            "not_an_interference_estimator_or_real_causal_claim; no_missing_outcomes, network, spillover_model, "
+            "attrition, noncompliance_or_external_validity_are_established"
+        ),
+    }
+
+
+def two_unit_interference_certificate(interference_potential_outcomes: object, report: object) -> bool:
+    """Replay finite assignment outcomes and reject altered interference claims."""
+    if not isinstance(report, dict):
+        return False
+    try:
+        return report == two_unit_interference_report(interference_potential_outcomes)
     except ValueError:
         return False

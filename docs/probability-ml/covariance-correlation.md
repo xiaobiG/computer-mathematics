@@ -182,7 +182,25 @@ assert report["expected_difference_in_means"] == 1.25
 assert report["finite_population_average_treatment_effect"] == 1.25
 ```
 
-这只在给定潜在结果和均匀完全随机化下成立；现实中的失访、不依从、干扰、非随机分配与外推仍需单独设计和证据。相关分析可以提出假设，却不能替代这些条件。
+## 无干扰为何也是随机化恒等式的前提
+
+上一节每个单位只有 $Y_i(0),Y_i(1)$，隐含别人的处理不改变它的结果。两单位时改写为 $Y_i(z_i,z_j)$；令它们都满足 $2z_i+3z_j$。自身处理、邻居未处理时的直接效应为 2；但固定恰好一人处理时，处理者看到 $Y(1,0)=2$，对照者看到 $Y(0,1)=3$，均值差的两个分配期望都是 $-1$：
+
+```python
+from projects.naive_bayes_spam.randomized_experiment import (
+    two_unit_interference_certificate,
+    two_unit_interference_report,
+)
+
+outcomes = [(0.0, 3.0, 2.0, 5.0), (0.0, 3.0, 2.0, 5.0)]  # 00, 01, 10, 11
+report = two_unit_interference_report(outcomes)
+assert report["average_direct_effect_when_peer_control"] == 2.0
+assert report["expected_treated_minus_control"] == -1.0
+assert not report["no_interference_condition_holds"]
+assert two_unit_interference_certificate(outcomes, report)
+```
+
+这不是干扰估计器：它只用完整已知的小表证明，随机分配本身不足以把处理—对照差解释为某个直接效应；网络、失访、不依从和外推仍需独立设计。
 
 ## 常见误区
 

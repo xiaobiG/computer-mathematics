@@ -5,6 +5,8 @@ from projects.naive_bayes_spam.randomized_experiment import (
     assignment_mean_difference,
     complete_randomization_certificate,
     complete_randomization_report,
+    two_unit_interference_certificate,
+    two_unit_interference_report,
 )
 
 
@@ -36,6 +38,24 @@ class RandomizedExperimentTests(unittest.TestCase):
             complete_randomization_report(self.outcomes, 0)
         with self.assertRaises(ValueError):
             assignment_mean_difference(self.outcomes, [0, 0])
+
+    def test_interference_breaks_the_complete_randomization_direct_effect_identity(self):
+        # Y_i(z_i, z_peer) = 2*z_i + 3*z_peer for both units.
+        outcomes = [(0.0, 3.0, 2.0, 5.0), (0.0, 3.0, 2.0, 5.0)]
+        report = two_unit_interference_report(outcomes)
+        self.assertFalse(report["no_interference_condition_holds"])
+        self.assertEqual(report["average_direct_effect_when_peer_control"], 2.0)
+        self.assertEqual(report["expected_treated_minus_control"], -1.0)
+        self.assertEqual(report["expectation_minus_direct_effect"], -3.0)
+        self.assertTrue(two_unit_interference_certificate(outcomes, report))
+
+    def test_interference_certificate_rejects_tampering_and_contract_rejects_wrong_shape(self):
+        outcomes = [(0.0, 3.0, 2.0, 5.0), (0.0, 3.0, 2.0, 5.0)]
+        report = two_unit_interference_report(outcomes)
+        report["expected_treated_minus_control"] = 2.0
+        self.assertFalse(two_unit_interference_certificate(outcomes, report))
+        with self.assertRaises(ValueError):
+            two_unit_interference_report([(0.0, 1.0, 2.0, 3.0)])
 
 
 if __name__ == "__main__":
