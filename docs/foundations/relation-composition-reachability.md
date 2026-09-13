@@ -1,6 +1,6 @@
 ---
 title: 关系复合与可达闭包：两步路径如何成为矩阵中的 1
-description: 用关系复合与逐中间点闭包，将有序对、布尔矩阵和图的可达性连成可重放不变量。
+description: 用关系复合、布尔矩阵乘法与逐中间点闭包，将有序对、路径长度和图的可达性连成可重放不变量。
 courseLevel: "1（关系、矩阵与图遍历前置）"
 prerequisites: "有限关系与邻接矩阵、集合与数组形状"
 estimatedMinutes: 60
@@ -11,7 +11,7 @@ experiment: "relation-reachability/v1：记录逐中间点的传递闭包新增�
 
 ## 学习目标
 
-你将能写出关系复合的定义；解释长度两步路径为何产生新关系对；用逐中间点不变量计算传递闭包；并将其对应到图可达性和布尔邻接矩阵。
+你将能写出关系复合的定义；用布尔矩阵乘法解释长度两步路径；用逐中间点不变量计算传递闭包；并将路径长度归纳对应到图可达性和邻接矩阵。
 
 ## 从一个计算问题开始
 
@@ -20,6 +20,14 @@ experiment: "relation-reachability/v1：记录逐中间点的传递闭包新增�
 ## 定义与不变量
 
 $$R\circ R=\{(x,z):\exists y,(x,y)\in R\land(y,z)\in R\}.$$ 
+
+若 $A_R,A_S$ 是按同一域顺序编码的 0/1 邻接矩阵，则关系复合不是普通数值矩阵乘法，而是布尔半环乘法：
+
+$$
+(A_R\odot A_S)_{ij}=\bigvee_{k=1}^{n}\left((A_R)_{ik}\land(A_S)_{kj}\right).
+$$
+
+这个格为 1 当且仅当存在中间点 $d_k$，使 $(d_i,d_k)\in R$ 且 $(d_k,d_j)\in S$，所以它恰好编码 $R\circ S$。特别地，$A_R^{\odot 2}$ 编码长度恰为两条边的路径；用归纳可得 $A_R^{\odot \ell}$ 编码长度恰为 $\ell$ 的路径。闭包问的是“存在某个正长度”，因此不能把单个普通幂或普通加法当成答案。
 
 固定域顺序 $d_1,\ldots,d_n$。第 $k$ 轮后维护：当前集合恰好包含所有内部中间点属于 $\{d_1,\ldots,d_k\}$ 的路径端点对。第 $k+1$ 轮仅用 $d_{k+1}$ 拼接已有对；这就是 Floyd–Warshall 可达性版本的核心不变量。
 
@@ -35,11 +43,19 @@ assert ["a", "c"] in report["closure_pairs"]
 assert relation_reachability_certificate(domain, pairs, report)
 ```
 
+```python
+from projects.foundations_lab.relations import boolean_relation_composition_report
+
+two_hop = boolean_relation_composition_report(domain, pairs, pairs)
+assert two_hop["composition_pairs"] == [["a", "c"]]
+assert two_hop["verification"]["dense_and_sparse_pairs_match"]
+```
+
 运行 `python -m unittest projects.foundations_lab.test_relations`。报告保留每个允许中间点和当轮新增对；证书重放全部层次，篡改闭包格或某层新增对都会失败。
 
 ## 正确性与复杂度
 
-归纳基是没有中间点时仅有原始关系。归纳步将每条允许经过新点的路径拆成两段已被前一层允许的路径，故加入且只加入需要的新对。每层枚举端点对，直接实现为 $O(n^3)$ 时间、$O(n^2)$ 存储。
+归纳基是没有中间点时仅有原始关系。归纳步将每条允许经过新点的路径拆成两段已被前一层允许的路径，故加入且只加入需要的新对。矩阵视角的长度归纳与此一致：长度 $\ell+1$ 的路径先走一条边，再接一条长度 $\ell$ 的路径，正对应一次布尔复合。每层枚举端点对，直接实现为 $O(n^3)$ 时间、$O(n^2)$ 存储。
 
 ## 失败案例与工程边界
 
