@@ -46,6 +46,13 @@ class CryptoToyboxTests(unittest.TestCase):
     def test_modular_inverse(self):
         inverse = modular_inverse(17, 3120)
         self.assertEqual((17 * inverse) % 3120, 1)
+        self.assertEqual(modular_inverse(-3, 11), 7)
+        with self.assertRaises(ValueError):
+            modular_inverse(1, 1)
+        with self.assertRaises(ValueError):
+            modular_inverse(True, 5)
+        with self.assertRaises(ValueError):
+            modular_inverse(2, 8)
 
     def test_extended_gcd_trace_certifies_remainders_and_bezout_identity(self):
         result, events = extended_gcd_trace(240, 46)

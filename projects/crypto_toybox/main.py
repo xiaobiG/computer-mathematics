@@ -171,6 +171,12 @@ def extended_gcd_trace_certificate(
 
 
 def modular_inverse(value: int, modulus: int) -> int:
+    """Return ``value``'s inverse only in a nontrivial integer residue ring."""
+    if (not isinstance(value, int) or isinstance(value, bool)
+            or not isinstance(modulus, int) or isinstance(modulus, bool)
+            or modulus <= 1):
+        raise ValueError("模逆元要求整数底数和大于 1 的模数")
+    value %= modulus
     divisor, inverse, _ = extended_gcd(value, modulus)
     if divisor != 1:
         raise ValueError("模逆元不存在")

@@ -34,6 +34,31 @@ $$a\equiv b\pmod n\Rightarrow ac\equiv bc\pmod n.$$
 
 因此 $((a\bmod n)(b\bmod n))\bmod n=(ab)\bmod n$。将指数写为二进制，$e=\sum_i e_i2^i$；依次平方得到 $a^{2^i}$，只有 $e_i=1$ 时乘入结果。指数每轮右移一位，循环次数为位数而非指数值。
 
+## 同余中的“除法”：只有单位元才可消去
+
+在实数中，$bx=c$ 常写成 $x=c/b$；模 $n$ 中这一步实际要求存在 $b^{-1}$，使
+
+$$bb^{-1}\equiv1\pmod n.$$
+
+由 Bézout 等式，$b$ 在模 $n$ 下可逆当且仅当 $\gcd(b,n)=1$。所以 $b$ 是**单位元**时才能把方程两边乘 $b^{-1}$；不互素时不能“约掉”它。模 8 给出两个互补反例：
+
+$$3^{-1}\equiv3\pmod8,\qquad 2x\equiv1\pmod8\text{ 无解},\qquad 2x\equiv2\pmod8\text{ 有 }x\equiv1,5\pmod8.$$
+
+第二个方程有两个解，正说明不能从 $2x\equiv2$ 直接消去 2 并断言 $x\equiv1$。教学函数在调用扩展欧几里得算法前先拒绝模数 1、布尔值和非单位元：
+
+```python
+from projects.crypto_toybox.main import modular_inverse
+
+assert modular_inverse(3, 8) == 3
+assert modular_inverse(-3, 11) == 7
+try:
+    modular_inverse(2, 8)
+except ValueError:
+    print("gcd(2, 8) != 1：不能在模 8 下除以 2")
+```
+
+这只计算一个明确整数模数下的逆元；方程有无解、是否有多个解还要按 $\gcd(b,n)$ 是否整除右端分别分析。后续的[扩展欧几里得](/number-theory-crypto/extended-euclid)给出构造逆元的系数链。
+
 ## 手算轨迹：每一位到底保存了什么
 
 以 $3^{13}\bmod7$ 为例，$13=(1101)_2$。算法从最低位开始读取，因此位序是 $1,0,1,1$。令原指数为 $E$，每一轮开始时维护
