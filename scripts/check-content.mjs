@@ -152,6 +152,7 @@ const priorityDeepLessons = new Set([
   'linear-algebra/power-iteration.md',
   'linear-algebra/svd.md',
   'linear-algebra/low-rank-recommendation.md',
+  'linear-algebra/structural-similarity.md',
   'discrete-math/loop-invariants.md',
   'discrete-math/logic-induction-proofs.md',
   'discrete-math/asymptotic-complexity.md',
@@ -192,6 +193,7 @@ const priorityDeepLessons = new Set([
   'number-theory-crypto/digital-signatures.md',
   'number-theory-crypto/hashing-passwords.md',
   'number-theory-crypto/trust-root-rotation.md',
+  'number-theory-crypto/primality-testing.md',
 ])
 const priorityStagePatterns = [
   ['问题场景', /^##\s+.*(?:问题|开始|场景|案例).*$/m],

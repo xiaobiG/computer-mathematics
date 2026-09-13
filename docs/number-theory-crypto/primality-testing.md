@@ -25,7 +25,7 @@ $$a^{p-1}\equiv1\pmod p.$$
 
 因此若 $a^{n-1}\not\equiv1\pmod n$，$n$ 必为合数。但逆命题错误：Carmichael 数如 $561$ 会对所有与它互素的 $a$ 通过费马测试。只检查最终等于 1 忽略了中间平方链中的异常。
 
-## Miller–Rabin 的平方链
+## 算法推导：Miller–Rabin 的平方链
 
 对奇数 $n>2$，写
 
