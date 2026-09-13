@@ -13,7 +13,7 @@ description: 用可测试的教学实现串起矩阵计算、消元、投影、�
 
 - [矩阵乘法](/linear-algebra/matrix-multiplication)：复合线性变换；
 - [线性组合、基与维度](/linear-algebra/linear-combinations-basis)：以逐列残差识别冗余方向，并验证非标准基坐标重构。
-- [Jacobian、Hessian 与自动微分](/linear-algebra/jacobian-hessian-autodiff)：用双数前向模式核对 JVP 与梯度点积。
+- [Jacobian、Hessian 与自动微分](/linear-algebra/jacobian-hessian-autodiff)：用双数 JVP 与反向 VJP 对照标量损失梯度。
 - [高斯消元](/linear-algebra/gaussian-elimination)：保持解集的行变换；
 - [最小二乘](/linear-algebra/least-squares)：以正规方程和 QR 的同题比较验证投影残差。
 - [幂迭代](/linear-algebra/power-iteration)：以 Rayleigh 商和残差审查主特征方向。
@@ -136,7 +136,7 @@ python -m unittest projects.linear_algebra_lab.test_randomized_svd
 python -m unittest projects.linear_algebra_lab.test_recommendation
 ```
 
-测试覆盖矩阵形状错误、非交换变换、列独立性与基坐标重构、选主元、奇异系统、正规方程与 QR 的最小二乘一致性及 $A^Tr$ 证书、双数 JVP 与梯度点积、二维 PCA 的中心化/正交/舍弃方差证书、正交投影、幂迭代残差与失败边界、秩一矩阵重建、精确谱尾误差、低秩参数节省、更高保留秩不增加小例重构误差、压缩—检索联合报告及其篡改拒绝、同形图像的余弦检索、MSE/RMSE/PSNR 报告与篡改拒绝、固定种子的随机范围发现及其轨迹篡改拒绝、随机 SVD 对来源范围产物的重放与篡改拒绝，以及 ALS 观测误差与轨迹篡改/冷启动边界。完整项目测试仍可通过 `npm run projects:test` 运行。
+测试覆盖矩阵形状错误、非交换变换、列独立性与基坐标重构、选主元、奇异系统、正规方程与 QR 的最小二乘一致性及 $A^Tr$ 证书、双数 JVP 与受限反向 VJP 的梯度对照、二维 PCA 的中心化/正交/舍弃方差证书、正交投影、幂迭代残差与失败边界、秩一矩阵重建、精确谱尾误差、低秩参数节省、更高保留秩不增加小例重构误差、压缩—检索联合报告及其篡改拒绝、同形图像的余弦检索、MSE/RMSE/PSNR 报告与篡改拒绝、固定种子的随机范围发现及其轨迹篡改拒绝、随机 SVD 对来源范围产物的重放与篡改拒绝，以及 ALS 观测误差与轨迹篡改/冷启动边界。完整项目测试仍可通过 `npm run projects:test` 运行。
 
 ## 挑战
 

@@ -1,4 +1,4 @@
-"""Minimal forward-mode automatic differentiation with dual numbers."""
+"""Minimal forward- and reverse-mode automatic differentiation for teaching."""
 
 from __future__ import annotations
 
