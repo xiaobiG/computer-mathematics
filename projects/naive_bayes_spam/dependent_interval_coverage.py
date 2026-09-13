@@ -8,6 +8,7 @@ from random import Random
 
 CONTRACT = "stationary-ar1-mean-interval-coverage/v1"
 HAC_CONTRACT = "stationary-ar1-bartlett-hac-interval-coverage/v1"
+HAC_SENSITIVITY_CONTRACT = "stationary-ar1-bartlett-hac-bandwidth-sensitivity/v1"
 
 
 def _finite_number(value: object, name: str) -> float:
@@ -220,6 +221,72 @@ def ar1_bartlett_hac_interval_coverage_certificate(
     try:
         expected = ar1_bartlett_hac_interval_coverage_report(
             phi, innovation_variance, window_length, bandwidth, replications, seed, z_value,
+        )
+    except (TypeError, ValueError):
+        return False
+    return report == expected
+
+
+def _declared_bandwidths(value: object, window_length: object) -> list[int]:
+    if not isinstance(value, list) or len(value) < 2:
+        raise ValueError("bandwidths must be a list with at least two declared candidates")
+    length = _positive_integer(window_length, "window_length", 3)
+    bandwidths = [_positive_integer(candidate, "bandwidth", 0) for candidate in value]
+    if len(set(bandwidths)) != len(bandwidths):
+        raise ValueError("bandwidths must not contain duplicates")
+    if any(candidate >= length for candidate in bandwidths):
+        raise ValueError("every bandwidth must be smaller than window_length")
+    return bandwidths
+
+
+def ar1_bartlett_hac_bandwidth_sensitivity_report(
+    phi: object, innovation_variance: object, window_length: object, bandwidths: object,
+    replications: object = 2000, seed: object = 0, z_value: object = 1.96,
+) -> dict[str, object]:
+    """Compare predeclared HAC bandwidths without selecting a winner.
+
+    Every candidate receives the same model, seed and repeated AR(1) draws.
+    The report deliberately retains all candidates and has no best-bandwidth
+    field: choosing after looking at simulated or production coverage would be
+    a separate policy problem, not evidence supplied by this experiment.
+    """
+    widths = _declared_bandwidths(bandwidths, window_length)
+    candidate_reports = [
+        ar1_bartlett_hac_interval_coverage_report(
+            phi, innovation_variance, window_length, width, replications, seed, z_value,
+        )
+        for width in widths
+    ]
+    first = candidate_reports[0]
+    return {
+        "contract": HAC_SENSITIVITY_CONTRACT,
+        "declared_model": first["declared_model"],
+        "window_length": first["window_length"],
+        "candidate_bandwidths": widths,
+        "replications": first["replications"],
+        "seed": first["seed"],
+        "z_value": first["z_value"],
+        "candidate_reports": candidate_reports,
+        "selection": "not_performed",
+        "automatic_action": "none",
+        "interpretation": "compare_predeclared_bartlett_bandwidth_sensitivity_only",
+        "boundary": (
+            "does not tune a bandwidth from these results, prove stationarity, establish nominal coverage, "
+            "or validate a HAC approximation for a real data-generating process"
+        ),
+    }
+
+
+def ar1_bartlett_hac_bandwidth_sensitivity_certificate(
+    phi: object, innovation_variance: object, window_length: object, bandwidths: object,
+    replications: object, seed: object, z_value: object, report: object,
+) -> bool:
+    """Replay every predeclared candidate and reject post-hoc selection fields."""
+    if not isinstance(report, dict) or report.get("contract") != HAC_SENSITIVITY_CONTRACT:
+        return False
+    try:
+        expected = ar1_bartlett_hac_bandwidth_sensitivity_report(
+            phi, innovation_variance, window_length, bandwidths, replications, seed, z_value,
         )
     except (TypeError, ValueError):
         return False

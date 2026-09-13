@@ -44,6 +44,8 @@ $$
 
 ```python
 from projects.naive_bayes_spam.dependent_interval_coverage import (
+    ar1_bartlett_hac_bandwidth_sensitivity_certificate,
+    ar1_bartlett_hac_bandwidth_sensitivity_report,
     ar1_mean_interval_coverage_certificate,
     ar1_mean_interval_coverage_report,
 )
@@ -53,6 +55,11 @@ assert report["naive_iid_interval_coverage"] < .80
 assert report["exact_finite_window_interval_coverage"] > .90
 assert report["effective_independent_sample_size"] < 40
 assert ar1_mean_interval_coverage_certificate(.8, 1.0, 40, 2000, 17, 1.96, report)
+
+sensitivity = ar1_bartlett_hac_bandwidth_sensitivity_report(.8, 1.0, 80, [0, 4, 8], 400, 29)
+assert sensitivity["selection"] == "not_performed"
+assert sensitivity["automatic_action"] == "none"
+assert ar1_bartlett_hac_bandwidth_sensitivity_certificate(.8, 1.0, 80, [0, 4, 8], 400, 29, 1.96, sensitivity)
 ```
 
 运行 `python -m unittest projects.naive_bayes_spam.test_dependent_interval_coverage`。两种区间都知道正确边际方差；差别仅是朴素版本删掉了 lag 协方差。
@@ -68,6 +75,12 @@ $$
 
 `ar1_bartlett_hac_interval_coverage_report(.8, 1, 80, 8, 2000, 29)` 会并列重放：样本方差 i.i.d. 区间、Bartlett HAC 区间与知道真模型的 Oracle 区间。此有限样本设置里 HAC 明显改善欠覆盖，却仍低于 Oracle；带宽是报告输入，不是脚本偷偷挑出的“最佳答案”。若估计为非正，报告会计数而不会伪造区间。
 
+## 带宽敏感性：比较不是挑选
+
+单个 $m=8$ 的报告只能说明**这个预先声明的带宽**在该模拟下发生了什么，不能证明它比 $m=4$ 或 $m=12$ 更适合未来数据。`ar1_bartlett_hac_bandwidth_sensitivity_report` 接受至少两个互异、均小于窗口长度的候选带宽，例如 $[0,4,8]$；它以相同模型、随机种子和重复样本重放每一个候选，完整保留所有子报告。
+
+返回值固定 `selection="not_performed"` 与 `automatic_action="none"`。这使“先看覆盖率，再把最好的一档当作默认值”的事后选择无法伪装成输出的一部分；篡改为某个获胜带宽会使证书失败。敏感性表仍是教学模拟，不提供真实时间序列的带宽选择规则、标称覆盖保证或自动部署结论。
+
 ## 正确性与工程边界
 
 平稳 AR(1) 的 $k$ 步协方差为 $\gamma_0\phi^k$，代入双重求和即得上式。重复模拟的真均值是零，故可审计覆盖率。真实日志还须检查趋势、结构突变、簇与失访，并审查 HAC、块 bootstrap 或时间序列模型。
@@ -77,6 +90,7 @@ $$
 - “观测很多，区间自然可靠。”错：正态近似不补回协方差。
 - “ESS 是记录条数。”错：它是指定方差模型下的等价量。
 - “HAC 自动解决时间序列推断。”错：带宽和适用模型仍要声明、诊断。
+- “敏感性表中覆盖率最高的带宽就是默认值。”错：那是事后选择；候选集合与选择政策要在看结果前另行治理。
 - “代码校准了真实指标。”错：它没有从数据拟合 $\phi$。
 
 ## 练习
@@ -85,6 +99,7 @@ $$
 2. **推导**：为何 lag $k$ 有 $n-k$ 对？
 3. **编码**：改为 $\phi=-.4$，比较方差与 ESS。
 4. **工程**：列出用户监控区间前需冻结的时间窗、簇与失访假设。
+5. **审计**：为什么 $[0,4,8]$ 的并列报告不应返回“最佳带宽”？给出一个不基于本次覆盖率挑选的治理信息来源。
 
 ## 练习答案提示
 
@@ -92,6 +107,7 @@ $$
 2. 更大的起点会越出窗口。
 3. 负协方差抵消波动，仍需检查模型。
 4. 不能把按日行数当独立用户，也不能忽略失访。
+5. 有限模拟的最高值可能只是随机波动；可在分析前由领域知识、外部验证设计或预先注册规则声明候选与选择政策。
 
 ## 延伸
 

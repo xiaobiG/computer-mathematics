@@ -2,6 +2,8 @@ import copy
 import unittest
 
 from projects.naive_bayes_spam.dependent_interval_coverage import (
+    ar1_bartlett_hac_bandwidth_sensitivity_certificate,
+    ar1_bartlett_hac_bandwidth_sensitivity_report,
     ar1_bartlett_hac_interval_coverage_certificate,
     ar1_bartlett_hac_interval_coverage_report,
     ar1_mean_interval_coverage_certificate,
@@ -50,6 +52,24 @@ class DependentIntervalCoverageTests(unittest.TestCase):
         self.assertTrue(
             ar1_bartlett_hac_interval_coverage_certificate(.8, 1.0, 80, 8, 2000, 29, 1.96, report),
         )
+
+    def test_bandwidth_sensitivity_keeps_all_predeclared_candidates_without_selecting_one(self):
+        report = ar1_bartlett_hac_bandwidth_sensitivity_report(.8, 1.0, 80, [0, 4, 8], 400, 29)
+        self.assertEqual(report["candidate_bandwidths"], [0, 4, 8])
+        self.assertEqual(report["selection"], "not_performed")
+        self.assertEqual(report["automatic_action"], "none")
+        self.assertEqual(len(report["candidate_reports"]), 3)
+        self.assertTrue(all(candidate["seed"] == 29 for candidate in report["candidate_reports"]))
+        self.assertTrue(ar1_bartlett_hac_bandwidth_sensitivity_certificate(.8, 1.0, 80, [0, 4, 8], 400, 29, 1.96, report))
+        altered = copy.deepcopy(report)
+        altered["selection"] = "bandwidth_8"
+        self.assertFalse(ar1_bartlett_hac_bandwidth_sensitivity_certificate(.8, 1.0, 80, [0, 4, 8], 400, 29, 1.96, altered))
+
+    def test_bandwidth_sensitivity_rejects_duplicate_or_out_of_range_candidates(self):
+        with self.assertRaisesRegex(ValueError, "duplicates"):
+            ar1_bartlett_hac_bandwidth_sensitivity_report(.8, 1.0, 20, [2, 2])
+        with self.assertRaisesRegex(ValueError, "smaller"):
+            ar1_bartlett_hac_bandwidth_sensitivity_report(.8, 1.0, 20, [0, 20])
 
     def test_bartlett_certificate_rejects_tampering_and_invalid_bandwidth(self):
         report = ar1_bartlett_hac_interval_coverage_report(0.0, 1.0, 20, 0, 400, 5)
