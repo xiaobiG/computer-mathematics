@@ -15,6 +15,18 @@ class DeterminantEvent:
     upper: tuple[tuple[Fraction, ...], ...]
 
 
+@dataclass(frozen=True)
+class SquareMatrixClassification:
+    """Exact consequences of elimination for one small square matrix."""
+
+    determinant: Fraction
+    rank: int
+    nullity: int
+    invertible: bool
+    unique_solution_for_every_rhs: bool
+    events: tuple[DeterminantEvent, ...]
+
+
 def _validate(matrix: object) -> list[list[int]]:
     if (not isinstance(matrix, list) or not 1 <= len(matrix) <= 6
             or any(not isinstance(row, list) or len(row) != len(matrix) for row in matrix)
@@ -47,10 +59,69 @@ def determinant_trace(matrix: object) -> tuple[Fraction, tuple[DeterminantEvent,
     return sign * diagonal, tuple(events)
 
 
+def _exact_rank(matrix: list[list[int]]) -> int:
+    """Return rank by exact row reduction, skipping non-pivot columns.
+
+    A determinant trace may stop at the first missing diagonal pivot because
+    the determinant is already zero.  Rank cannot: ``[[0, 1], [0, 0]]`` has
+    a missing first-column pivot but still has rank one.
+    """
+    upper = [[Fraction(value) for value in row] for row in matrix]
+    pivot_row = 0
+    for column in range(len(matrix)):
+        candidate = next((row for row in range(pivot_row, len(matrix))
+                          if upper[row][column] != 0), None)
+        if candidate is None:
+            continue
+        upper[pivot_row], upper[candidate] = upper[candidate], upper[pivot_row]
+        pivot = upper[pivot_row][column]
+        for row in range(pivot_row + 1, len(matrix)):
+            factor = upper[row][column] / pivot
+            upper[row] = [value - factor * base for value, base in zip(upper[row], upper[pivot_row])]
+        pivot_row += 1
+        if pivot_row == len(matrix):
+            break
+    return pivot_row
+
+
+def classify_square_matrix(matrix: object) -> SquareMatrixClassification:
+    """Connect exact elimination to rank, nullity, and the square-system claim.
+
+    The determinant trace can stop at its first missing *diagonal* pivot: that
+    already proves its determinant is zero.  Rank needs a separate exact
+    reducer which also skips non-pivot columns, so an independent direction in
+    a later column is not discarded.  This deliberately reports the *universal* claim
+    about ``Ax=b`` rather than pretending every individual right-hand side is
+    inconsistent when ``A`` is singular.
+    """
+    source = _validate(matrix)
+    determinant, events = determinant_trace(source)
+    rank = _exact_rank(source)
+    invertible = rank == len(source)
+    return SquareMatrixClassification(
+        determinant=determinant,
+        rank=rank,
+        nullity=len(source) - rank,
+        invertible=invertible,
+        unique_solution_for_every_rhs=invertible,
+        events=events,
+    )
+
+
 def determinant_trace_certificate(matrix: object, determinant: object, events: object) -> bool:
     if not isinstance(determinant, Fraction) or not isinstance(events, tuple):
         return False
     try:
         return (determinant, events) == determinant_trace(matrix)
+    except (TypeError, ValueError):
+        return False
+
+
+def square_matrix_classification_certificate(matrix: object, report: object) -> bool:
+    """Replay all displayed equivalence fields instead of trusting a flag."""
+    if not isinstance(report, SquareMatrixClassification):
+        return False
+    try:
+        return report == classify_square_matrix(matrix)
     except (TypeError, ValueError):
         return False

@@ -48,7 +48,12 @@ $$\det(A)\ne0\Longleftrightarrow A\text{ 可逆}\Longleftrightarrow Ax=b\text{ �
 
 ```python
 from fractions import Fraction
-from projects.linear_algebra_lab.determinant_trace import determinant_trace, determinant_trace_certificate
+from projects.linear_algebra_lab.determinant_trace import (
+    classify_square_matrix,
+    determinant_trace,
+    determinant_trace_certificate,
+    square_matrix_classification_certificate,
+)
 
 matrix = [[0, 2], [3, 4]]
 determinant, events = determinant_trace(matrix)
@@ -59,9 +64,22 @@ assert determinant_trace_certificate(matrix, determinant, events)
 singular, singular_events = determinant_trace([[1, 2], [2, 4]])
 assert singular == 0
 assert singular_events[-1].pivot_row is None
+
+report = classify_square_matrix([[1, 2], [2, 4]])
+assert (report.rank, report.nullity, report.invertible) == (1, 1, False)
+assert not report.unique_solution_for_every_rhs
+assert square_matrix_classification_certificate([[1, 2], [2, 4]], report)
 ```
 
-实验用 `Fraction` 保存消元，明确记录每列的主元行、是否交换和当前上三角形态。证书从原矩阵重放，篡改交换标志或主元轨迹都会失败。它只接受最多 $6\times6$ 的整数教学矩阵，不是高性能行列式库；真实浮点问题应报告条件数和缩放，不能把一个接近零的浮点行列式当作精确的不可逆证明。
+实验用 `Fraction` 保存消元，明确记录每列的主元行、是否交换和当前上三角形态。`classify_square_matrix` 不把 `determinant != 0` 当成孤立的布尔判断：它以同一份精确输入另行做“允许跳过零列”的秩消元，再给出秩、零空间维数、可逆性，以及“对每个 $b$ 都唯一可解”这个**全称**结论。这个区别很重要：$\begin{bmatrix}0&1\\0&0\end{bmatrix}$ 的第一列没有主元、行列式为零，但秩仍为 1；判定行列式为零可以停止，计算秩却不能把后列一并丢掉。对奇异矩阵，这不等于“每个 $b$ 都无解”：有些右端会有无穷多解，有些没有解；报告只拒绝“每个右端恰有一个解”的更强说法。两个证书都从原矩阵重放，篡改交换标志、主元轨迹或分类字段都会失败。它只接受最多 $6\times6$ 的整数教学矩阵，不是高性能行列式库；真实浮点问题应报告条件数和缩放，不能把一个接近零的浮点行列式当作精确的不可逆证明。
+
+## 同一个零主元，四种等价语言
+
+对 $n\times n$ 方阵，消元中每一列都有主元，等价于秩为 $n$；此时零空间只有零向量、行列式不为零，并且 $Ax=b$ 对每个 $b$ 都唯一可解。若行列式消元在对角位置缺主元，行列式立即为零；秩消元仍会检查后续列。它最终给出
+
+$$\operatorname{rank}(A)<n,\qquad \operatorname{nullity}(A)=n-\operatorname{rank}(A)>0,\qquad \det(A)=0.$$
+
+非零的零空间向量 $z$ 满足 $Az=0$。因此只要某个右端有解 $Ax=b$，那么 $x+tz$（任意实数 $t$）也是解；这正是唯一性失败的原因。另一方面，右端不在列空间时根本无解。行列式、秩、零空间和方程解的说法不是四条松散口诀，而是同一条消元证据在几何、线性空间和方程三个视角下的读法。
 
 ## 与特征值、秩和复杂度的连接
 
@@ -86,14 +104,16 @@ assert singular_events[-1].pivot_row is None
 1. **基础**：计算 $\det\begin{bmatrix}2&1\\3&4\end{bmatrix}$，解释符号。
 2. **推导**：证明一行加另一行倍数不改变二维公式 $ad-bc$。
 3. **编码**：篡改一次 `determinant_trace` 的交换字段，确认重放拒绝；再构造一个秩亏矩阵。
-4. **建模**：说明为何把长度从米换成厘米会改变行列式大小却不改变可逆性。
+4. **推导**：若 $Az=0$ 且 $z\ne0$，证明任何一个已知解 $x$ 都不能是唯一解；说明这并不保证每个 $b$ 都有解。
+5. **建模**：说明为何把长度从米换成厘米会改变行列式大小却不改变可逆性。
 
 ## 练习答案提示
 
 1. 得到 $8-3=5$；正号表示未翻转定向。
 2. 将一行替换后的两项展开，新增交叉项相消。
 3. 使用成比例的两行，并检查证书不信任展示字段。
-4. 每个坐标轴缩放都会乘入行列式，零/非零状态不变。
+4. 比较 $A(x+tz)$ 与 $Ax$；只有先知道某个解存在，才能构造整条解直线。
+5. 每个坐标轴缩放都会乘入行列式，零/非零状态不变。
 
 ## 下一步
 
