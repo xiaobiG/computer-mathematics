@@ -47,6 +47,16 @@ def _matrix_shape(value: object, name: str) -> tuple[list[list[int | float]], li
     return rows, [len(rows), len(rows[0])]
 
 
+def _sample_labels(value: object, expected_count: int) -> list[str]:
+    if not isinstance(value, list) or len(value) != expected_count:
+        raise ValueError("sample_labels must have one non-empty label per batch row")
+    if any(not isinstance(label, str) or not label for label in value):
+        raise ValueError("sample_labels must contain non-empty strings")
+    if len(set(value)) != len(value):
+        raise ValueError("sample_labels must be unique")
+    return value
+
+
 def elementwise_add_report(left: object, right: object) -> dict[str, object]:
     """Add equal-length vectors and bind the preserved one-dimensional shape."""
     left_values, right_values = _vector(left, "left"), _vector(right, "right")
@@ -86,6 +96,30 @@ def batch_linear_report(batch: object, weights: object, bias: object) -> dict[st
     }
 
 
+def square_batch_transpose_counterexample_report(
+    batch: object, weights: object, bias: object, sample_labels: object
+) -> dict[str, object]:
+    """Show why a square X and X.T can share a shape but not axis semantics."""
+    batch_rows, batch_shape = _matrix_shape(batch, "batch")
+    if batch_shape[0] != batch_shape[1]:
+        raise ValueError("counterexample requires a square [batch, features] matrix")
+    labels = _sample_labels(sample_labels, batch_shape[0])
+    normal = batch_linear_report(batch_rows, weights, bias)
+    transposed_batch = [list(column) for column in zip(*batch_rows)]
+    transposed = batch_linear_report(transposed_batch, weights, bias)
+    feature_labels = [f"feature_{index}" for index in range(batch_shape[1])]
+    return {
+        "contract_version": TENSOR_SHAPES_CONTRACT_VERSION,
+        "operation": "square_batch_transpose_counterexample",
+        "original_axis_roles": ["sample", "feature"],
+        "transposed_axis_roles": ["feature", "sample"],
+        "normal": {**normal, "row_labels": labels},
+        "transposed": {**transposed, "row_labels": feature_labels},
+        "same_numeric_shape": normal["output"]["shape"] == transposed["output"]["shape"],
+        "axis_semantics_changed": True,
+    }
+
+
 def tensor_shapes_certificate(operation: str, inputs: object, report: object) -> bool:
     """Recompute a supported shape report so altered dimensions or values fail."""
     if not isinstance(inputs, dict) or not isinstance(report, dict):
@@ -95,6 +129,13 @@ def tensor_shapes_certificate(operation: str, inputs: object, report: object) ->
             expected = elementwise_add_report(inputs.get("left"), inputs.get("right"))
         elif operation == "batch_linear":
             expected = batch_linear_report(inputs.get("batch"), inputs.get("weights"), inputs.get("bias"))
+        elif operation == "square_batch_transpose_counterexample":
+            expected = square_batch_transpose_counterexample_report(
+                inputs.get("batch"),
+                inputs.get("weights"),
+                inputs.get("bias"),
+                inputs.get("sample_labels"),
+            )
         else:
             return False
         return report == expected

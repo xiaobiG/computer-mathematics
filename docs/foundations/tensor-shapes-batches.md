@@ -13,7 +13,7 @@ experiment: "重放逐元素向量加法与行批次线性层的形状和值"
 
 你将能从具体值读出标量、向量、矩阵和批次的形状；区分一维向量 `(n,)` 与列矩阵 `(n,1)`；按行批次约定推导线性层 `X @ W + b` 的输入输出形状；并用可重放报告拒绝不兼容的维度。
 
-## 从“能跑”到“接口正确”
+## 直觉与严格定义：从“能跑”到“接口正确”
 
 同样包含 3 个数字的 `[2,5,7]` 与 `[[2],[5],[7]]` 并不是同一个对象。前者有一个轴，形状为 `(3,)`；后者有两个轴，形状为 `(3,1)`。它们可能在某些数组库的广播规则下得到结果，但这不等于它们表达相同的数学对象。
 
@@ -35,6 +35,7 @@ $$Y=XW+c,\qquad (b,d)@(d,o)+(o,)\longrightarrow(b,o).$$
 from projects.foundations_lab.tensor_shapes import (
     batch_linear_report,
     elementwise_add_report,
+    square_batch_transpose_counterexample_report,
     tensor_shape,
     tensor_shapes_certificate,
 )
@@ -65,6 +66,36 @@ python -m unittest projects.foundations_lab.test_tensor_shapes
 
 教学合同只接受有限数字、非空一维向量和非空矩形二维矩阵。它拒绝锯齿行、逐元素加法的不同长度、`X` 与 `W` 的内层不相等，以及偏置宽度不等于输出宽度。证书每次重算数值和形状；篡改输出为 `[3,1]` 即使值仍是 `[3,6,8]` 也会失败。
 
+## 形状仍相同的反例：方阵转置会交换轴的含义
+
+仅检查形状还不够。若批次刚好是方阵，`X` 与 $X^\mathsf T$ 都是 `(2,2)`；后者甚至仍能和 `(2,2)` 权重相乘。此时“没有报错”不能说明样本轴仍是样本轴。
+
+设两行分别是 Alice 和 Bob 的两个特征，取恒等权重和零偏置：
+
+$$
+X=\begin{bmatrix}1&2\\3&4\end{bmatrix},\qquad
+X^\mathsf T=\begin{bmatrix}1&3\\2&4\end{bmatrix}.
+$$
+
+两种计算的输出形状都是 `(2,2)`，但前者的两行仍对应 `alice, bob`，后者的两行已经对应 `feature_0, feature_1`：每一行把原先来自不同样本的同一特征拼在了一起。数学上转置完全合法；错误发生在把它仍标成“样本批次”这一接口声明。
+
+```python
+counterexample_inputs = {
+    "batch": [[1, 2], [3, 4]],
+    "weights": [[1, 0], [0, 1]],
+    "bias": [0, 0],
+    "sample_labels": ["alice", "bob"],
+}
+counterexample = square_batch_transpose_counterexample_report(**counterexample_inputs)
+assert counterexample["same_numeric_shape"]
+assert counterexample["axis_semantics_changed"]
+assert counterexample["normal"]["row_labels"] == ["alice", "bob"]
+assert counterexample["transposed"]["row_labels"] == ["feature_0", "feature_1"]
+assert tensor_shapes_certificate("square_batch_transpose_counterexample", counterexample_inputs, counterexample)
+```
+
+反例只接受方阵，因为只有在那里形状检查无法暴露转置；它强制每个原样本行有唯一标签，并把转置后的行标为特征。证书重放两个矩阵乘法、标签和轴角色，因而把转置结果伪称为 `["sample", "feature"]` 会失败。
+
 ## 推导：每个轴去哪了
 
 对矩阵乘法，$X$ 的第 $i$ 行是第 $i$ 个样本，$W$ 的第 $j$ 列通向第 $j$ 个输出。输出元素是
@@ -85,6 +116,7 @@ $$Y_{ij}=\sum_{k=0}^{d-1}X_{ik}W_{kj}+c_j.$$
 
 - **把列向量当一维向量。** `(3,1)` 不是 `(3,)`；先写清调用方需要的维数，再决定 `reshape` 或转置是否有数学理由。
 - **只靠报错后转置。** `X.T @ W` 可能临时让内层相等，却会把样本轴变成特征轴；先标注每个轴的语义。
+- **方阵让错误隐形。** 当批次数恰好等于特征数时，`X` 和 `X.T` 的形状相同；必须借助样本标签和轴角色判断转置是否仍符合接口。
 - **把广播当修复工具。** 偏置 `(o,)` 在此约定中只沿批次轴扩展。更复杂的广播必须逐轴说明，不能默默接受。
 - **把本合同当张量库。** 本页只到二维矩阵与行批次；dtype、步幅、自动微分、三维图像张量与生产性能属于后续主题。
 
@@ -99,14 +131,14 @@ $$Y_{ij}=\sum_{k=0}^{d-1}X_{ik}W_{kj}+c_j.$$
 
 1. 若 `X` 的形状为 `(8, 4)`、`W` 为 `(4, 3)`、`c` 为 `(3,)`，写出 `X @ W + c` 的形状，并解释每条轴来源。
 2. 比较 `(4,)`、`(4,1)`、`(1,4)` 的轴数、合法坐标和矩阵乘法角色。
-3. 给出一组 `X:(2,3)` 和 `W:(4,2)`，说明为什么本合同拒绝它，而不是计算一个近似结果。
+3. 给出一组 `X:(2,3)` 和 `W:(4,2)`，说明为什么本合同拒绝它，而不是计算一个近似结果；再解释为何 `X:(2,2)` 的转置不能仅凭形状判断为安全。
 4. 将一批 `b` 个 28×28 灰度图扁平为特征行，写出展平前后形状；说明此操作会丢失什么空间邻接语义。
 
 ## 练习答案提示
 
 1. 输出为 `(8,3)`：8 保留样本，4 是被求和的特征轴，3 来自权重输出轴；偏置沿 8 行扩展。
 2. 一维向量只有索引 `i`；列矩阵用 `(i,0)`；行矩阵用 `(0,j)`。后两者可参与矩阵乘法的位置不同。
-3. 左末轴为 3、右倒数第二轴为 4；没有同一个求和索引集合，故 $XW$ 未定义。
+3. 左末轴为 3、右倒数第二轴为 4；没有同一个求和索引集合，故 $XW$ 未定义。若都是 2，`X.T` 的乘法虽有定义，但行已经从样本变为特征，仍需检查轴角色。
 4. 形状从 `(b,28,28)` 到 `(b,784)`；像素仍在，但二维邻接关系不再由形状表达。
 
 ## 延伸

@@ -141,6 +141,7 @@ const priorityDeepLessons = new Set([
   'linear-algebra/four-fundamental-subspaces.md',
   'foundations/finite-relations-matrices.md',
   'foundations/functions-summation-python.md',
+  'foundations/tensor-shapes-batches.md',
   'foundations/boolean-matrix-sparse-queries.md',
   'linear-algebra/gaussian-elimination.md',
   'linear-algebra/least-squares.md',

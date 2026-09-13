@@ -4,6 +4,7 @@ import unittest
 from projects.foundations_lab.tensor_shapes import (
     batch_linear_report,
     elementwise_add_report,
+    square_batch_transpose_counterexample_report,
     tensor_shape,
     tensor_shapes_certificate,
 )
@@ -40,3 +41,32 @@ class TensorShapeTests(unittest.TestCase):
             batch_linear_report([[1, 2]], [[1], [2], [3]], [0])
         with self.assertRaisesRegex(ValueError, "bias width"):
             batch_linear_report([[1, 2]], [[1], [2]], [0, 0])
+
+    def test_square_transpose_can_preserve_shape_while_swapping_axis_roles(self):
+        inputs = {
+            "batch": [[1, 2], [3, 4]],
+            "weights": [[1, 0], [0, 1]],
+            "bias": [0, 0],
+            "sample_labels": ["alice", "bob"],
+        }
+        report = square_batch_transpose_counterexample_report(**inputs)
+        self.assertEqual(report["normal"]["output"], {"values": [[1, 2], [3, 4]], "shape": [2, 2]})
+        self.assertEqual(report["transposed"]["output"], {"values": [[1, 3], [2, 4]], "shape": [2, 2]})
+        self.assertEqual(report["normal"]["row_labels"], ["alice", "bob"])
+        self.assertEqual(report["transposed"]["row_labels"], ["feature_0", "feature_1"])
+        self.assertTrue(report["same_numeric_shape"])
+        self.assertTrue(report["axis_semantics_changed"])
+        self.assertTrue(tensor_shapes_certificate("square_batch_transpose_counterexample", inputs, report))
+        altered = copy.deepcopy(report)
+        altered["transposed_axis_roles"] = ["sample", "feature"]
+        self.assertFalse(tensor_shapes_certificate("square_batch_transpose_counterexample", inputs, altered))
+
+    def test_transpose_counterexample_requires_square_batch_and_valid_labels(self):
+        with self.assertRaisesRegex(ValueError, "square"):
+            square_batch_transpose_counterexample_report(
+                [[1, 2, 3], [4, 5, 6]], [[1], [1], [1]], [0], ["alice", "bob"]
+            )
+        with self.assertRaisesRegex(ValueError, "unique"):
+            square_batch_transpose_counterexample_report(
+                [[1, 2], [3, 4]], [[1, 0], [0, 1]], [0, 0], ["same", "same"]
+            )
