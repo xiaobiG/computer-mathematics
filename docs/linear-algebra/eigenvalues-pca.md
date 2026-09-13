@@ -28,14 +28,14 @@ $$C=\frac{1}{m-1}X^TX$$
 
 沿单位方向 $w$ 的投影方差为 $w^TCw$。在 $\lVert w\rVert=1$ 下最大化它，得到最大特征值对应的特征向量；前 $k$ 个正交方向就是主成分。
 
-这里有两个容易被省略的事实。第一，协方差矩阵是对称半正定矩阵：
+协方差矩阵对称半正定：
 
 $$
 C^T=C,\qquad
 w^TCw=\frac{1}{m-1}w^TX^TXw=\frac{\lVert Xw\rVert_2^2}{m-1}\ge0.
 $$
 
-因此它的特征值均为非负实数，并且可选一组正交单位特征向量。第二，$w^TCw$ 不是任意“投影分数”：对中心化样本的投影 $z=Xw$，它恰好是
+故特征值非负且可取正交特征向量；对 $z=Xw$，$w^TCw$ 恰是投影样本方差：
 
 $$
 \frac{1}{m-1}\sum_{i=1}^m z_i^2
@@ -43,7 +43,7 @@ $$
 =w^TCw.
 $$
 
-所以 PCA 最大化的是明确的样本方差，而不是坐标数值看上去变化最大的方向。
+PCA 最大化样本方差，不是坐标数值的表面变化。
 
 ## 分步推导：Rayleigh 商为何选出主特征向量
 
@@ -134,9 +134,29 @@ assert report.certificate["valid"]
 assert pca_2d_report_certificate([[0.0, 0.0], [1.0, 1.0], [2.0, 2.0]], report)
 ```
 
-实验只处理二维数据，以便把每个量都直接观察到：它调用幂迭代获得协方差的最大特征对，并检查四个证书：中心化列和为零、主方向单位长度、每个重构残差与主方向正交，以及重构平方误差等于被舍弃方差乘以 $m-1$。最后一个恒等式是 PCA “最大方差等于最小一维重构误差”的小样例证据，而不是只看散点图的直觉。
+二维实验以幂迭代检查中心化、单位方向、残差正交及“重构误差 = 舍弃方差 $\times(m-1)$”，将最大方差与最小重构误差绑定。
 
-报告内的 `certificate` 字段只是这次计算留下的声明，不能单独用来信任一个从外部拿来的 JSON。`pca_2d_report_certificate(rows, report)` 会从声明的二维行重新计算均值、协方差、主方向、投影、重构误差和全部证书字段；篡改误差数值或将 `valid` 改为 `False` 都会被拒绝。它只验证这个固定容差、二维教学实验的可重放性，不证明真实高维 PCA 的统计代表性、特征方向唯一性或业务价值。
+报告字段本身不足为证。重放器从二维行重算均值、协方差、方向、投影与误差；篡改数值或标记会失败。它不验证高维统计代表性或业务价值。
+
+## 同一数据的反例：不中心化会追随偏移量
+
+对 `[[100,-1],[100,0],[100,1]]`，中心化后的变化只沿 $y$ 轴；原始二阶矩却被 $x=100$ 的均值偏移主导：
+
+```python
+from projects.linear_algebra_lab.pca import (
+    pca_2d_centering_comparison_certificate,
+    pca_2d_centering_comparison_report,
+)
+
+rows = [[100.0, -1.0], [100.0, 0.0], [100.0, 1.0]]
+report = pca_2d_centering_comparison_report(rows)
+assert abs(report["centered_component"][1]) > .999
+assert abs(report["uncentered_component"][0]) > .999
+assert report["uncentered_is_more_aligned_to_mean"]
+assert pca_2d_centering_comparison_certificate(rows, report)
+```
+
+证书重放两条路径；它说明原始 $X^TX/m$ 的方向可追均值，而非“未中心化算法错误”。
 
 中心化为 $O(md)$，形成密集协方差为 $O(md^2)$；二维幂迭代每轮为常数成本。高维数据常直接使用截断 SVD，避免显式形成 $d\times d$ 协方差矩阵。
 

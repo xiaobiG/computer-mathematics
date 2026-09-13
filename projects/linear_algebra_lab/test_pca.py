@@ -2,7 +2,12 @@ import unittest
 from dataclasses import replace
 from math import sqrt
 
-from projects.linear_algebra_lab.pca import pca_2d_report, pca_2d_report_certificate
+from projects.linear_algebra_lab.pca import (
+    pca_2d_centering_comparison_certificate,
+    pca_2d_centering_comparison_report,
+    pca_2d_report,
+    pca_2d_report_certificate,
+)
 
 
 class Pca2DTests(unittest.TestCase):
@@ -42,6 +47,22 @@ class Pca2DTests(unittest.TestCase):
             pca_2d_report([[1.0], [2.0]])
         with self.assertRaises(ValueError):
             pca_2d_report([[1.0, float("nan")], [2.0, 3.0]])
+
+    def test_centering_comparison_separates_mean_offset_from_variation(self):
+        rows = [[100.0, -1.0], [100.0, 0.0], [100.0, 1.0]]
+        report = pca_2d_centering_comparison_report(rows)
+        self.assertGreater(abs(report["centered_component"][1]), .999)
+        self.assertGreater(abs(report["uncentered_component"][0]), .999)
+        self.assertTrue(report["uncentered_is_more_aligned_to_mean"])
+        self.assertTrue(report["components_are_different_directions"])
+        self.assertTrue(pca_2d_centering_comparison_certificate(rows, report))
+        altered = dict(report)
+        altered["uncentered_is_more_aligned_to_mean"] = False
+        self.assertFalse(pca_2d_centering_comparison_certificate(rows, altered))
+
+    def test_centering_comparison_requires_a_mean_direction(self):
+        with self.assertRaises(ValueError):
+            pca_2d_centering_comparison_report([[-1.0, 0.0], [1.0, 0.0]])
 
 
 if __name__ == "__main__":

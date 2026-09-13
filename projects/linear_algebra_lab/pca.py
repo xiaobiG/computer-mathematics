@@ -138,3 +138,61 @@ def pca_2d_report_certificate(
         )
         and report.certificate == expected.certificate
     )
+
+
+def pca_2d_centering_comparison_report(
+    rows: list[list[float]], *, residual_tol: float = 1e-10,
+) -> dict[str, object]:
+    """Contrast centered PCA with the uncentered second-moment direction.
+
+    The two paths consume exactly the same rows.  The uncentered path is a
+    valid eigendecomposition of ``X^T X / m`` but is not PCA about the sample
+    mean; this report makes that distinction observable on a finite 2-D case.
+    """
+    _validate_rows(rows)
+    if residual_tol <= 0 or not isfinite(residual_tol):
+        raise ValueError("residual_tol must be finite and positive")
+    centered = pca_2d_report(rows, residual_tol=residual_tol)
+    sample_count = len(rows)
+    mean = centered.mean
+    mean_norm = sum(value * value for value in mean) ** .5
+    if mean_norm <= residual_tol:
+        raise ValueError("centering comparison requires a non-zero sample mean")
+    second_moment = tuple(
+        tuple(sum(row[left] * row[right] for row in rows) / sample_count for right in range(2))
+        for left in range(2)
+    )
+    uncentered_eigenvalue, uncentered_component, _ = dominant_eigenpair(
+        [list(row) for row in second_moment], residual_tol=residual_tol,
+    )
+    centered_alignment = abs(sum(direction * average for direction, average in zip(centered.component, mean)) / mean_norm)
+    uncentered_alignment = abs(sum(direction * average for direction, average in zip(uncentered_component, mean)) / mean_norm)
+    component_alignment = abs(sum(left * right for left, right in zip(centered.component, uncentered_component)))
+    return {
+        "rows": tuple(tuple(float(value) for value in row) for row in rows),
+        "mean": mean,
+        "centered_covariance": centered.covariance,
+        "uncentered_second_moment": second_moment,
+        "centered_component": centered.component,
+        "uncentered_component": tuple(uncentered_component),
+        "centered_eigenvalue": centered.eigenvalue,
+        "uncentered_eigenvalue": uncentered_eigenvalue,
+        "centered_alignment_to_mean": centered_alignment,
+        "uncentered_alignment_to_mean": uncentered_alignment,
+        "component_absolute_alignment": component_alignment,
+        "uncentered_is_more_aligned_to_mean": uncentered_alignment > centered_alignment + residual_tol,
+        "components_are_different_directions": component_alignment < 1.0 - residual_tol,
+        "interpretation": "uncentered_second_moment_can_follow_mean_offset_not_centered_variation",
+    }
+
+
+def pca_2d_centering_comparison_certificate(
+    rows: object, report: object, *, residual_tol: float = 1e-10,
+) -> bool:
+    """Rebuild both paths, rejecting changed direction or centering claims."""
+    if not isinstance(report, dict):
+        return False
+    try:
+        return report == pca_2d_centering_comparison_report(rows, residual_tol=residual_tol)
+    except (TypeError, ValueError):
+        return False
