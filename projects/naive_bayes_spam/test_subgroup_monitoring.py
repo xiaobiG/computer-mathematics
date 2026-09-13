@@ -42,11 +42,11 @@ class SubgroupMonitoringTests(unittest.TestCase):
         self.assertFalse(subgroup_certificate(self.window, groups, tampered))
 
     def test_predeclared_pair_uses_a_family_adjusted_difference_interval(self):
-        # Accuracy is 18/20 in a and 12/20 in b.  This is a normal
+        # Accuracy is 15/20 in a and 8/20 in b.  This is a normal
         # approximation for independent finite groups, not a causal claim.
         window = {
             "contract_version": LABELED_WINDOW_CONTRACT_VERSION,
-            "probabilities": [.9] * 18 + [.1] * 2 + [.9] * 12 + [.1] * 8,
+            "probabilities": [.9] * 15 + [.1] * 5 + [.9] * 8 + [.1] * 12,
             "labels": [1] * 40,
         }
         groups = ["a"] * 20 + ["b"] * 20
@@ -54,13 +54,25 @@ class SubgroupMonitoringTests(unittest.TestCase):
         observed, refused = report["comparisons"]
         self.assertEqual(observed["groups"], ["a", "b"])
         self.assertEqual(observed["status"], "difference_interval_excludes_zero")
-        self.assertAlmostEqual(observed["accuracy_difference_left_minus_right"], .3)
+        self.assertAlmostEqual(observed["accuracy_difference_left_minus_right"], .35)
         self.assertLess(observed["interval"][0], observed["accuracy_difference_left_minus_right"])
         self.assertEqual(refused["status"], "insufficient_sample_for_pairwise_comparison")
         self.assertTrue(subgroup_certificate(window, groups, report))
         altered = copy.deepcopy(report)
         altered["policy"]["comparison_pairs"] = [["a", "c"]]
         self.assertFalse(subgroup_certificate(window, groups, altered))
+
+    def test_sparse_success_or_failure_cells_refuse_normal_difference_interval(self):
+        window = {
+            "contract_version": LABELED_WINDOW_CONTRACT_VERSION,
+            "probabilities": [.9] * 20 + [.1] * 20,
+            "labels": [1] * 40,
+        }
+        report = subgroup_report(window, ["a"] * 20 + ["b"] * 20, 20, ["a", "b"], [["a", "b"]])
+        comparison = report["comparisons"][0]
+        self.assertEqual(comparison["status"], "normal_approximation_inapplicable")
+        self.assertEqual(comparison["interval"], None)
+        self.assertEqual(comparison["observed_success_and_failure_counts"], [20.0, 0.0, 0.0, 20.0])
 
     def test_comparison_pairs_must_be_frozen_and_nonduplicated(self):
         groups = ["a", "a", "a", "a", "b", "b"]

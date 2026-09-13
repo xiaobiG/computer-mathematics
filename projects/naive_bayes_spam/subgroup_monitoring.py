@@ -8,8 +8,9 @@ from statistics import NormalDist
 from projects.naive_bayes_spam.labeled_window_monitoring import _window_metrics, normalize_labeled_window
 
 
-SUBGROUP_CONTRACT_VERSION = "subgroup-monitoring/v2"
+SUBGROUP_CONTRACT_VERSION = "subgroup-monitoring/v3"
 FAMILY_CONFIDENCE_LEVEL = 0.95
+MINIMUM_BINOMIAL_CELL_COUNT = 5
 
 
 def _declared_groups(value: object) -> list[str]:
@@ -50,6 +51,18 @@ def _accuracy_comparison(left: dict[str, object], right: dict[str, object], pair
     right_accuracy = right["metrics"]["accuracy"]  # type: ignore[index]
     left_count, right_count = left["count"], right["count"]
     difference = left_accuracy - right_accuracy  # type: ignore[operator]
+    cells = [
+        left_accuracy * left_count, left_count * (1.0 - left_accuracy),
+        right_accuracy * right_count, right_count * (1.0 - right_accuracy),
+    ]  # type: ignore[operator]
+    if min(cells) < MINIMUM_BINOMIAL_CELL_COUNT:
+        return {
+            "groups": [left["group"], right["group"]],
+            "status": "normal_approximation_inapplicable",
+            "accuracy_difference_left_minus_right": difference,
+            "interval": None,
+            "observed_success_and_failure_counts": cells,
+        }
     standard_error = sqrt(left_accuracy * (1.0 - left_accuracy) / left_count + right_accuracy * (1.0 - right_accuracy) / right_count)  # type: ignore[operator]
     alpha_per_comparison = (1.0 - FAMILY_CONFIDENCE_LEVEL) / pair_count
     critical_value = NormalDist().inv_cdf(1.0 - alpha_per_comparison / 2.0)
@@ -107,6 +120,7 @@ def subgroup_report(
             "minimum_group_size": minimum_group_size,
             "comparison_pairs": pairs,
             "family_confidence_level": FAMILY_CONFIDENCE_LEVEL,
+            "minimum_binomial_cell_count": MINIMUM_BINOMIAL_CELL_COUNT,
             "multiplicity_adjustment": "bonferroni_over_predeclared_pairs",
             "automatic_action": "none",
         },

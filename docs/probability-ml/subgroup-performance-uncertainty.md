@@ -39,6 +39,8 @@ $$
 
 第二步正是“各自的区间”无法自动变成“差的区间”的原因：后者需要同一比较对象、两组样本量和两组估计值。若组之间共享用户、时间序列或同一条样本被重复计入，协方差不再自动为零，本页的独立标准误不能照搬。
 
+在本教学合同中，两组各自的观察正确数和观察错误数都必须至少为 5，才会输出这个正态差值区间。它不是普适阈值，而是防止 $20/20$ 对 $0/20$ 这类稀有格把插入方差算成零、进而伪造“无限精确”的最小拒绝边界。未通过时，报告仍保留描述性准确率差，却标记 \`normal_approximation_inapplicable\`；应收集更多数据或改用与设计匹配的精确/稳健方法，而不是把零标准误当证据。
+
 ## 为什么“当前出现过的组”不能代替预先声明
 
 假定审计设计阶段声明了 $G=\{\text{A},\text{B},\text{C}\}$，但本窗口只收到了 A、B 的标签。若程序从观测到的标签生成组列表，C 会完全消失；读者既看不到 $n_C=0$，也无法分辨它是未被覆盖、数据管道遗漏，还是事后被排除。正确报告应保留 C，并把它标为证据不足。
@@ -65,7 +67,7 @@ $$
 
 其中 $k$ 是**预先声明**的比较对数。这里采用 Bonferroni：让每一对用 $\alpha/k$，从而把整个冻结比较族的错误率预算保守地放在 5% 以内。它不是在看到 $|G|(|G|-1)/2$ 个结果之后，才把最显眼的一对拎出来解释的许可证。
 
-例如 $n_A=n_B=20$、$\hat a_A=18/20$、$\hat a_B=12/20$ 时，差是 $0.30$。一对或两对比较都会给出跨不过零的近似区间；但这只是在声明的窗口、指标与独立近似下的“值得复核的差异证据”。区间包含零也不是“两个组相同”，而是当前数据不足以按这一口径排除零差。
+例如 $n_A=n_B=20$、$\hat a_A=15/20$、$\hat a_B=8/20$ 时，差是 $0.35$，四个成功/失败格均不小于 5。一对或两对比较都会给出跨不过零的近似区间；但这只是在声明的窗口、指标与独立近似下的“值得复核的差异证据”。区间包含零也不是“两个组相同”，而是当前数据不足以按这一口径排除零差。
 
 ## 可运行实验
 
@@ -94,7 +96,7 @@ python -m unittest \
   projects.naive_bayes_spam.test_subgroup_monitoring
 ```
 
-输出按 `declared_groups` 的顺序包含三行；即使 C 没有一条观测，也会得到 `count=0`、`metrics=None` 和 `insufficient_sample_for_group_conclusion`。完整反例在 [`test_subgroup_monitoring.py`](https://github.com/xiaobiG/computer-mathematics/blob/main/projects/naive_bayes_spam/test_subgroup_monitoring.py)。证书会拒绝将不足样本的小组改写为“样本充足”，也会拒绝更改声明的组宇宙、比较对或差异区间。若某一端样本不足，比较被明确标成 `insufficient_sample_for_pairwise_comparison`，而不会以另一组的充足样本来掩盖它。
+输出按 `declared_groups` 的顺序包含三行；即使 C 没有一条观测，也会得到 `count=0`、`metrics=None` 和 `insufficient_sample_for_group_conclusion`。完整反例在 [`test_subgroup_monitoring.py`](https://github.com/xiaobiG/computer-mathematics/blob/main/projects/naive_bayes_spam/test_subgroup_monitoring.py)。证书会拒绝将不足样本的小组改写为“样本充足”，也会拒绝更改声明的组宇宙、比较对或差异区间。若某一端样本不足，比较被明确标成 `insufficient_sample_for_pairwise_comparison`；若成功或失败格稀有，则标成 `normal_approximation_inapplicable`，两者都不会以另一组的充足样本来掩盖它。
 
 算法先验证所有观测组属于 $G$，单次扫描把索引分桶，再对每个声明组执行最低样本量检查。令窗口大小为 $n$、声明组数为 $|G|$、冻结比较对数为 $k$，索引与指标合计为 $O(n+|G|)$，比较为 $O(k)$，输出也至少需要 $O(|G|+k)$；空间除报告外为 $O(n+|G|)$。这不是许可去枚举大量候选组：$G$ 与比较对的冻结时点和治理理由本身也是实验前提。
 
