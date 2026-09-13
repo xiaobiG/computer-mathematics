@@ -272,6 +272,10 @@ export default defineConfig({
               link: "/probability-ml/markov-dependent-sample-mean",
             },
             {
+              text: "相关样本的置信区间：AR(1) 下为什么会欠覆盖",
+              link: "/probability-ml/dependent-interval-coverage",
+            },
+            {
               text: "抽样误差与置信区间",
               link: "/probability-ml/confidence-intervals-sampling",
             },
