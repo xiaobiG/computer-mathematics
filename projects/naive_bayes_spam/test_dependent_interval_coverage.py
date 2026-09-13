@@ -2,6 +2,8 @@ import copy
 import unittest
 
 from projects.naive_bayes_spam.dependent_interval_coverage import (
+    ar1_bartlett_hac_interval_coverage_certificate,
+    ar1_bartlett_hac_interval_coverage_report,
     ar1_mean_interval_coverage_certificate,
     ar1_mean_interval_coverage_report,
 )
@@ -38,6 +40,28 @@ class DependentIntervalCoverageTests(unittest.TestCase):
             ar1_mean_interval_coverage_report(.2, 0.0, 20)
         with self.assertRaises(ValueError):
             ar1_mean_interval_coverage_report(.2, 1.0, 1)
+
+    def test_declared_bartlett_hac_recovers_some_coverage_without_oracle_parameters(self):
+        report = ar1_bartlett_hac_interval_coverage_report(.8, 1.0, 80, 8, 2000, 29)
+        self.assertLess(report["naive_sample_variance_interval_coverage"], .80)
+        self.assertGreater(report["bartlett_hac_interval_coverage"], .70)
+        self.assertGreater(report["coverage_gain_hac_minus_naive"], .20)
+        self.assertEqual(report["nonpositive_bartlett_estimate_count"], 0)
+        self.assertTrue(
+            ar1_bartlett_hac_interval_coverage_certificate(.8, 1.0, 80, 8, 2000, 29, 1.96, report),
+        )
+
+    def test_bartlett_certificate_rejects_tampering_and_invalid_bandwidth(self):
+        report = ar1_bartlett_hac_interval_coverage_report(0.0, 1.0, 20, 0, 400, 5)
+        self.assertLess(
+            abs(report["naive_sample_variance_interval_coverage"] - report["bartlett_hac_interval_coverage"]),
+            .02,
+        )
+        altered = copy.deepcopy(report)
+        altered["bartlett_bandwidth"] = 1
+        self.assertFalse(ar1_bartlett_hac_interval_coverage_certificate(0.0, 1.0, 20, 0, 400, 5, 1.96, altered))
+        with self.assertRaises(ValueError):
+            ar1_bartlett_hac_interval_coverage_report(.2, 1.0, 20, 20)
 
 
 if __name__ == "__main__":
