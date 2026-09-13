@@ -25,6 +25,20 @@ class MultidimensionalIntegrationTests(unittest.TestCase):
         altered["monte_carlo"]["estimated_standard_error"] = 0.0
         self.assertFalse(unit_square_integration_certificate(4, 40, 123, altered))
 
+    def test_known_integrand_variance_exposes_theoretical_and_sample_uncertainty(self):
+        report = unit_square_integration_report(2, 8, 17)
+        monte_carlo = report["monte_carlo"]
+        self.assertAlmostEqual(monte_carlo["theoretical_integrand_variance"], 31 / 180)
+        self.assertAlmostEqual(monte_carlo["theoretical_standard_error"], (31 / (180 * 8)) ** 0.5)
+        self.assertAlmostEqual(
+            monte_carlo["error_in_theoretical_standard_errors"],
+            monte_carlo["signed_error"] / monte_carlo["theoretical_standard_error"],
+        )
+        one_draw = unit_square_integration_report(2, 1, 17)["monte_carlo"]
+        self.assertIsNone(one_draw["unbiased_sample_variance"])
+        self.assertIsNone(one_draw["estimated_standard_error"])
+        self.assertGreater(one_draw["theoretical_standard_error"], 0.0)
+
     def test_grid_refinement_improves_this_smooth_benchmark(self):
         coarse = unit_square_integration_report(2, 12, 1)
         fine = unit_square_integration_report(8, 12, 1)

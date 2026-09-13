@@ -6,8 +6,10 @@ from math import isfinite, sqrt
 from random import Random
 
 
-UNIT_SQUARE_INTEGRATION_CONTRACT_VERSION = "unit-square-integration/v1"
+UNIT_SQUARE_INTEGRATION_CONTRACT_VERSION = "unit-square-integration/v2"
 EXACT_INTEGRAL = 5.0 / 6.0
+# Var(X^2 + Y) = Var(X^2) + Var(Y) = (1/5 - 1/9) + 1/12.
+EXACT_INTEGRAND_VARIANCE = 31.0 / 180.0
 
 
 def _positive_int(value: object, name: str, maximum: int) -> int:
@@ -38,19 +40,26 @@ def _grid_midpoint(subdivisions: int) -> dict[str, float | int]:
     return {"subdivisions_per_axis": subdivisions, "sample_count": subdivisions * subdivisions, "estimate": estimate, "absolute_error": abs(estimate - EXACT_INTEGRAL)}
 
 
-def _monte_carlo(sample_count: int, seed: int) -> dict[str, float | int]:
+def _monte_carlo(sample_count: int, seed: int) -> dict[str, float | int | None]:
     generator = Random(seed)
     values = [_integrand(generator.random(), generator.random()) for _ in range(sample_count)]
     estimate = sum(values) / sample_count
-    mean_square = sum(value * value for value in values) / sample_count
-    variance = max(0.0, mean_square - estimate * estimate)
+    squared_deviations = sum((value - estimate) ** 2 for value in values)
+    unbiased_sample_variance = None if sample_count == 1 else squared_deviations / (sample_count - 1)
+    estimated_standard_error = None if unbiased_sample_variance is None else sqrt(unbiased_sample_variance / sample_count)
+    theoretical_standard_error = sqrt(EXACT_INTEGRAND_VARIANCE / sample_count)
+    signed_error = estimate - EXACT_INTEGRAL
     return {
         "sample_count": sample_count,
         "seed": seed,
         "estimate": estimate,
-        "absolute_error": abs(estimate - EXACT_INTEGRAL),
-        "population_variance": variance,
-        "estimated_standard_error": sqrt(variance / sample_count),
+        "signed_error": signed_error,
+        "absolute_error": abs(signed_error),
+        "unbiased_sample_variance": unbiased_sample_variance,
+        "estimated_standard_error": estimated_standard_error,
+        "theoretical_integrand_variance": EXACT_INTEGRAND_VARIANCE,
+        "theoretical_standard_error": theoretical_standard_error,
+        "error_in_theoretical_standard_errors": signed_error / theoretical_standard_error,
     }
 
 
@@ -66,7 +75,7 @@ def unit_square_integration_report(grid_subdivisions: object, monte_carlo_sample
         "exact_integral": EXACT_INTEGRAL,
         "grid_midpoint": _grid_midpoint(subdivisions),
         "monte_carlo": _monte_carlo(samples, random_seed),
-        "interpretation": "fixed benchmark only; grid uses a tensor product and Monte Carlo uncertainty is an estimated standard error, not a guaranteed error bound",
+        "interpretation": "fixed benchmark only; grid uses a tensor product, the sample standard error is unavailable for one draw, and neither sample nor theoretical standard error is a guaranteed error bound",
     }
 
 
