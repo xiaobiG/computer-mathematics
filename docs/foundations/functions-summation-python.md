@@ -35,7 +35,20 @@ $$\sum_{i=a}^{b-1}t(i)=t(a)+t(a+1)+\cdots+t(b-1)$$
 
 $$S_n=\frac{n(n+1)(2n+1)}6.$$ 
 
-本课不把这个公式当作神谕：一条路径按定义逐项累加，另一条使用闭式；在小整数上二者相等是代码与符号是否对齐的可检查证据。形式证明可由归纳法完成：验证 $n=0$，再比较 $S_{n+1}=S_n+(n+1)^2$ 与闭式的差。
+本课不把这个公式当作神谕：一条路径按定义逐项累加，另一条使用闭式；在小整数上二者相等是代码与符号是否对齐的可检查证据。但这还不是闭式为何正确的理由；归纳步必须验证“闭式的新增量”恰好是新加的平方项。
+
+令 $P(n)=\frac{n(n+1)(2n+1)}6$。基例 $P(0)=0=S_0$。假设 $S_{n-1}=P(n-1)$，则
+
+$$
+\begin{aligned}
+P(n)-P(n-1)
+&=\frac{n(n+1)(2n+1)-(n-1)n(2n-1)}6\\
+&=\frac{n\big[(2n^2+3n+1)-(2n^2-3n+1)\big]}6\\
+&=n^2.
+\end{aligned}
+$$
+
+因此 $S_n=S_{n-1}+n^2=P(n-1)+n^2=P(n)$。这个等式同时指出了调试口径：若报告中的 `closed_form_increment` 不等于 `added_square`，即使最终值恰好相同，也不能把归纳步当作已验证。
 
 ## 算法实现：把索引约定写成 API
 
@@ -51,9 +64,15 @@ report = sum_of_squares_report(10)
 assert report["certificate"]["enumeration_matches_closed_form"]
 assert sum_of_squares_certificate(10, report)["valid"]
 assert sum_of_squares_report(0)["certificate"]["empty_sum_is_zero"]
+
+step = sum_of_squares_report(4)["induction"]
+assert step["previous_closed_form"] == 14.0  # P(3)
+assert step["added_square"] == 16.0         # 4^2
+assert step["closed_form_increment"] == 16.0
+assert step["recursive_sum"] == 30.0        # P(3) + 4^2 = P(4)
 ```
 
-运行 `python -m unittest projects.foundations_lab.test_summation`。`finite_sum` 明确采用半开区间 `[start, stop)` 并拒绝倒置区间、非有限项；报告把枚举和闭式放在一起。`sum_of_squares_certificate` 会重新运行两条路径并检查 `n=0` 的空和边界，因此篡改枚举和或闭式不能通过。枚举时间为 $O(n)$、额外空间为 $O(1)$，闭式为 $O(1)$；大数组中应先理解这一语义，再使用 NumPy 的向量化归约，而不是把索引错误加速。
+运行 `python -m unittest projects.foundations_lab.test_summation`。`finite_sum` 明确采用半开区间 `[start, stop)` 并拒绝倒置区间、非有限项；报告把枚举、闭式和相邻两项的归纳轨迹放在一起。`sum_of_squares_certificate` 会重新运行两条路径、检查 `n=0` 的空和边界，并重建归纳轨迹，因此篡改枚举、闭式或闭式新增量都不能通过。枚举时间为 $O(n)$、额外空间为 $O(1)$，闭式与单步轨迹为 $O(1)$；大数组中应先理解这一语义，再使用 NumPy 的向量化归约，而不是把索引错误加速。
 
 ## 正确性、边界与常见误区
 
@@ -66,15 +85,15 @@ assert sum_of_squares_report(0)["certificate"]["empty_sum_is_zero"]
 ## 练习
 
 1. **基础**：写出 `range(2, 5)` 对应的求和下标与结果 $\sum i$。
-2. **推导**：用归纳法证明平方和闭式从 $n$ 到 $n+1$ 的步骤。
-3. **编码**：篡改平方和报告中的枚举值或闭式，确认 `sum_of_squares_certificate` 拒绝；再实现 $\sum_{i=0}^{n-1}(2i+1)$ 并用 $n^2$ 验证。
+2. **推导**：将 $P(n)-P(n-1)$ 完整展开，证明它等于 $n^2$；指出这个等式在归纳步骤中的位置。
+3. **编码**：篡改平方和报告中的枚举值、闭式或 `closed_form_increment`，确认 `sum_of_squares_certificate` 拒绝；再实现 $\sum_{i=0}^{n-1}(2i+1)$ 并用 $n^2$ 验证。
 4. **开放**：比较 Python 循环与 NumPy `sum` 的语义、浮点累加顺序和性能边界。
 
 ## 练习答案提示
 
 1. `range(2, 5)` 给出 $2,3,4$；先写清半开区间，再做求和，避免把 5 误算进去。
-2. 基例代入 $n=0$（或题目约定的起点）；归纳步将 $S_{n+1}$ 写成 $S_n+(n+1)^2$，代入假设后通分化简。
-3. 先让证书重算 `[1,n+1)` 与闭式，再用 `range(n)` 枚举 $0$ 到 $n-1$，并覆盖 $n=0$；比较枚举值与 $n*n$，不要只测试一个正整数。
+2. 先提取公因子 $n/6$，再分别展开两个二次式；中间的 $2n^2+1$ 抵消，留下 $6n$，从而得到 $n^2$。它正是从 $S_{n-1}$ 走到 $S_n$ 时新增的一项。
+3. 先让证书重算 `[1,n+1)`、闭式和相邻闭式之差，再用 `range(n)` 枚举 $0$ 到 $n-1$，并覆盖 $n=0$；比较枚举值与 $n*n$，不要只测试一个正整数。
 4. 先确认两者处理的轴、空数组和数据类型是否相同；性能比较要包含数组创建成本，数值比较要注意归约顺序可能不同。
 
 ## 延伸
