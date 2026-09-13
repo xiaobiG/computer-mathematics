@@ -83,3 +83,18 @@ def quadratic_stability_report(a: float, b: float, c: float) -> dict[str, object
             "direct_formula_exposes_cancellation": direct_error >= 1e-6,
         },
     }
+
+
+def quadratic_stability_report_certificate(a: float, b: float, c: float, report: object) -> bool:
+    """Rebuild both binary64 paths and the decimal classroom reference.
+
+    This checks that a displayed cancellation comparison follows the declared
+    coefficients.  It does not make the fixed high-precision reference a
+    general production-root oracle.
+    """
+    if not isinstance(report, dict):
+        return False
+    try:
+        return report == quadratic_stability_report(a, b, c)
+    except (TypeError, ValueError):
+        return False

@@ -56,16 +56,20 @@ $$r_2=\frac{c}{q}.$$
 ## 算法实现：与高精度参考值并排审计
 
 ```python
-from projects.floating_point_museum.stability import quadratic_stability_report
+from projects.floating_point_museum.stability import (
+    quadratic_stability_report,
+    quadratic_stability_report_certificate,
+)
 
 report = quadratic_stability_report(1.0, 1e8, 1.0)
 assert report["certificate"]["direct_formula_exposes_cancellation"]
 assert report["certificate"]["stable_small_root_has_high_accuracy"]
+assert quadratic_stability_report_certificate(1.0, 1e8, 1.0, report)
 print(report["direct_small_root_relative_error"])
 print(report["stable_small_root_relative_error"])
 ```
 
-运行 `python -m unittest projects.floating_point_museum.test_stability`。实验以高精度十进制计算作为课堂参考，不把同一段 binary64 代码的输出当作真值。它分别报告两种公式的小根相对误差，并验证稳定公式在此例中不劣且达到 $10^{-12}$ 量级。直接与稳定公式都只进行常数次算术，时间和额外空间均为 $O(1)$。
+运行 `python -m unittest projects.floating_point_museum.test_stability`。实验以高精度十进制计算作为课堂参考，不把同一段 binary64 代码的输出当作真值。它分别报告两种公式的小根相对误差；重放器绑定系数、两条路径、参考根与结论，篡改误差或“存在消去”都会失败。稳定公式在此例达到 $10^{-12}$ 量级；两式都只做常数次算术。
 
 ## 正确性、稳定性与适用边界
 
