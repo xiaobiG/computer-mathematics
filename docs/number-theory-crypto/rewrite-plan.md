@@ -16,11 +16,11 @@ description: 从同余和模逆元走向安全协议、攻击面与教学实验�
 | 0 | 整除、贝祖等式、最大公约数、模运算 | 既有文章待深化 |
 | 1 | 模逆元、快速幂、CRT、素数与群论直觉 | 素性测试、模逆元、快速幂、CRT 与[有限域、群与离散对数](/number-theory-crypto/finite-fields-groups)已深化 |
 | 2 | RSA 正确性、数字签名、Diffie–Hellman、概率性素性测试 | RSA、[数字签名与公开验证](/number-theory-crypto/digital-signatures)、Diffie–Hellman 与概率性素性测试已深化 |
-| 3 | 填充、侧信道、哈希/MAC、密码存储、椭圆曲线预备 | 密码存储、[消息认证码](/number-theory-crypto/message-authentication-codes)、[椭圆曲线预备](/number-theory-crypto/elliptic-curve-prelude)、快速幂的公开控制流泄露模型与数字签名的裸 RSA 可乘反例已深化；标准签名填充仍由后续文章补齐 |
+| 3 | 协议编码边界、侧信道、哈希/MAC、密码存储、椭圆曲线预备 | 密码存储、[消息认证码](/number-theory-crypto/message-authentication-codes)、[椭圆曲线预备](/number-theory-crypto/elliptic-curve-prelude)、快速幂的公开控制流泄露模型、裸 RSA 可乘反例及[公钥身份与生命周期](/number-theory-crypto/public-key-lifecycle)已深化；标准签名填充、私钥操作与现实身份验证必须交给成熟库和协议环境，而非由本站补写 |
 
 ## 项目连接
 
-[密码学玩具箱](/projects/crypto-toybox)验证模幂、模逆元、小参数 RSA、教学签名验签等式与有限域椭圆曲线点群的数学连接。后续扩展包括：演示裸 RSA 的确定性、比较错误密码存储与慢哈希、记录攻击前提；不实现或发布任何真实加密替代品。
+[密码学玩具箱](/projects/crypto-toybox)验证模幂、模逆元、小参数 RSA、教学签名验签等式与有限域椭圆曲线点群的数学连接。后续优先审计课程中的身份、设备和网络状态前提；不将填充、密钥生成或现实验签改写为本站的“生产替代品”。
 
 ## 练习
 
