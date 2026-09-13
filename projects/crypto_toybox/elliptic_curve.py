@@ -8,6 +8,7 @@ from projects.crypto_toybox.main import modular_inverse
 
 
 Point = tuple[int, int] | None  # None 表示无穷远点 O。
+MAX_ENUMERATED_FIELD = 101
 
 
 @dataclass(frozen=True)
@@ -146,6 +147,57 @@ class ToyCurve:
             ):
                 return False
         return remaining == 0 and result == accumulator
+
+    def finite_points(self) -> tuple[Point, ...]:
+        """Enumerate a tiny curve only to expose its finite subgroup structure."""
+        if self.p > MAX_ENUMERATED_FIELD:
+            raise ValueError("教学点枚举仅支持很小的素域")
+        return (None,) + tuple(
+            (x, y)
+            for x in range(self.p)
+            for y in range(self.p)
+            if self.contains((x, y))
+        )
+
+    def point_order(self, point: Point) -> int:
+        """Return the additive order by bounded enumeration on a tiny curve."""
+        self.require_point(point)
+        if point is None:
+            return 1
+        for order in range(1, len(self.finite_points()) + 1):
+            if self.scalar_multiply(order, point) is None:
+                return order
+        raise AssertionError("a finite curve point must return to the identity")
+
+    def subgroup_membership_report(self, base: Point, candidate: Point) -> dict[str, object]:
+        """Distinguish curve membership from membership in a declared <base>."""
+        self.require_point(base)
+        self.require_point(candidate)
+        base_order = self.point_order(base)
+        elements = tuple(self.scalar_multiply(scalar, base) for scalar in range(base_order))
+        curve_order = len(self.finite_points())
+        candidate_order = self.point_order(candidate)
+        return {
+            "curve": {"p": self.p, "a": self.a % self.p, "b": self.b % self.p},
+            "base": base,
+            "base_order": base_order,
+            "curve_order": curve_order,
+            "subgroup_elements": elements,
+            "candidate": candidate,
+            "candidate_on_curve": True,
+            "candidate_order": candidate_order,
+            "candidate_in_declared_subgroup": candidate in elements,
+            "base_order_divides_curve_order": curve_order % base_order == 0,
+        }
+
+    def subgroup_membership_certificate(self, base: Point, candidate: Point, report: object) -> bool:
+        """Rebuild the finite report; it is not a production point validator."""
+        if not isinstance(report, dict):
+            return False
+        try:
+            return report == self.subgroup_membership_report(base, candidate)
+        except (TypeError, ValueError):
+            return False
 
 
 if __name__ == "__main__":

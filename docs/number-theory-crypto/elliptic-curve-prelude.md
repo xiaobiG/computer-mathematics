@@ -73,6 +73,35 @@ python -m unittest projects.crypto_toybox.test_elliptic_curve
 
 `scalar_multiply(k, P)` 与快速幂同构：扫描 $k$ 的二进制位，当前点倍增，位为 1 则累加。`scalar_multiply_trace` 记录每轮的低位、累计点、倍点和剩余标量；独立证书会重放每一步，并拒绝被篡改的轨迹。若 $k$ 有 $\lfloor\log_2 k\rfloor+1$ 位，点加次数为 $O(\log k)$。测试验证单位元、逆元、倍点、重复加法与 double-and-add 的一致性，并拒绝奇点、合数模数、曲线外点和负标量。
 
+## 曲线上不等于在声明子群中
+
+点满足曲线方程只说明它属于整个 $E(\mathbb F_p)$；协议常要求它还属于由基点 $G$ 声明的子群 $\langle G\rangle$。在曲线群阶为合数时，这两个问题不同。考虑极小曲线
+
+$$
+E: y^2=x^3+1\pmod 5.
+$$
+
+它恰有 6 个点（含 $\mathcal O$）。取 $G=(0,1)$，则
+
+$$
+\langle G\rangle=\{\mathcal O,(0,1),(0,4)\},\qquad \operatorname{ord}(G)=3.
+$$
+
+而 $Q=(4,0)$ 也在曲线上，且 $\operatorname{ord}(Q)=2$，但 $Q\notin\langle G\rangle$。所以曲线成员检查为真不能替代预期子群检查。
+
+```python
+small_curve = ToyCurve(p=5, a=0, b=1)
+membership = small_curve.subgroup_membership_report((0, 1), (4, 0))
+assert membership["curve_order"] == 6
+assert membership["base_order"] == 3
+assert membership["candidate_on_curve"]
+assert membership["candidate_order"] == 2
+assert not membership["candidate_in_declared_subgroup"]
+assert small_curve.subgroup_membership_certificate((0, 1), (4, 0), membership)
+```
+
+报告只在 $p\le101$ 的玩具域穷举全曲线：它列出基点子群、群阶和候选点阶，再由证书独立重建。这个有限例用于分清两种谓词，不是现实协议的点验证器，也不意味着“逐点枚举”可用于真实曲线。
+
 ## 从标量乘法到离散对数假设
 
 给定基点 $G$ 和标量 $k$，计算 $Q=kG$ 很快。ECDLP 反过来问：给定 $G,Q$，求 $k$。在标准选择的曲线和大子群中，没有已知的通用高效算法；ECDH、ECDSA 等依赖这一类假设和额外协议细节。
@@ -83,7 +112,7 @@ python -m unittest projects.crypto_toybox.test_elliptic_curve
 
 非奇异曲线上的群律是代数定理；实现的每次 `add` 先验证曲线成员，保证公式输入满足前提。double-and-add 的循环不变量是：已处理低位的累加结果与当前倍点共同表示原 $kP$；每次位移和倍增保持该关系，因此结束时得到 $kP$。轨迹证书逐轮重放这一更新，因此能发现一次有限运行中篡改的位、累计点、倍点或剩余标量；它仍不是群律证明，也不会把教学代码变成安全实现。
 
-但 Python 大整数、分支和模逆元的运行时间可能泄漏秘密标量。实现没有协因子/子群检查、标准点编码、安全随机数或恒定时间保证；不可用于 ECDH、签名、加密、钱包或任何真实秘密。
+但 Python 大整数、分支和模逆元的运行时间可能泄漏秘密标量。实现没有协议级协因子/子群检查、标准点编码、安全随机数或恒定时间保证；上面的穷举报告只演示为什么这些检查不能省略。不可用于 ECDH、签名、加密、钱包或任何真实秘密。
 
 ## 失败案例与常见误区
 
@@ -97,14 +126,14 @@ python -m unittest projects.crypto_toybox.test_elliptic_curve
 
 1. **基础题**：在模 $17$ 下验证 $(5,1)$ 与 $(5,16)$ 都在曲线上，并计算它们的和。
 2. **推导题**：从直线与三次方程的根和，推导 $x_3=\lambda^2-x_1-x_2$。
-3. **编码题**：列举小曲线全部点，验证每次 `add(P, Q)` 的结果仍在曲线上或为 `None`。
+3. **编码题**：重放 $E(\mathbb F_5)$ 中 $G=(0,1)$ 与 $Q=(4,0)$ 的子群报告；篡改候选成员结论，确认其证书拒绝，并解释为什么曲线成员检查仍会通过。
 4. **开放题**：为一个真实 ECDH 集成列出必须交给成熟库处理的项目，并说明各自防范什么攻击。
 
 ## 练习答案提示
 
 1. 代入曲线方程验证两点；它们纵坐标互为相反数，所以同 $x$ 的两点相加为无穷远点 `None`。
 2. 将直线代入曲线得到三次多项式，利用三根之和与二次项系数关系，再对第三交点取关于 $x$ 轴的反射。
-3. 枚举所有 $(x,y)$ 并验证闭包，同时覆盖相反点、倍点、无穷远点和分母不可逆等边界；小曲线枚举只是教学检查。
+3. 报告中 $G$ 的三项是 $\mathcal O,(0,1),(0,4)$，而 $Q=(4,0)$ 虽满足方程却不在其中；证书会重建点、阶和成员关系。小曲线枚举只是教学检查。
 4. 真实集成必须交给库处理标准参数/编码、点与子群验证、恒定时间标量乘、安全随机数、KDF/认证和密钥生命周期，以防无效点、侧信道和协议攻击。
 
 ## 延伸

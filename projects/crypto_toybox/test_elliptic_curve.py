@@ -46,6 +46,26 @@ class ToyCurveTests(unittest.TestCase):
         self.assertEqual(trace, [])
         self.assertTrue(self.curve.scalar_multiply_trace_certificate(0, self.generator, result, trace))
 
+    def test_curve_membership_does_not_imply_declared_subgroup_membership(self):
+        curve = ToyCurve(p=5, a=0, b=1)
+        base, outsider = (0, 1), (4, 0)
+        report = curve.subgroup_membership_report(base, outsider)
+        self.assertEqual(report["curve_order"], 6)
+        self.assertEqual(report["base_order"], 3)
+        self.assertEqual(report["subgroup_elements"], (None, (0, 1), (0, 4)))
+        self.assertTrue(report["candidate_on_curve"])
+        self.assertEqual(report["candidate_order"], 2)
+        self.assertFalse(report["candidate_in_declared_subgroup"])
+        self.assertTrue(curve.subgroup_membership_certificate(base, outsider, report))
+        altered = dict(report)
+        altered["candidate_in_declared_subgroup"] = True
+        self.assertFalse(curve.subgroup_membership_certificate(base, outsider, altered))
+
+    def test_subgroup_enumeration_is_bounded_to_tiny_fields(self):
+        curve = ToyCurve(p=103, a=1, b=1)
+        with self.assertRaisesRegex(ValueError, "很小"):
+            curve.finite_points()
+
     def test_rejects_singular_curve_off_curve_point_and_negative_scalar(self):
         with self.assertRaises(ValueError):
             ToyCurve(p=17, a=0, b=0)

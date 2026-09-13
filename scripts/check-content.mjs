@@ -142,6 +142,7 @@ const priorityDeepLessons = new Set([
   'foundations/finite-relations-matrices.md',
   'foundations/functions-summation-python.md',
   'foundations/tensor-shapes-batches.md',
+  'number-theory-crypto/elliptic-curve-prelude.md',
   'foundations/boolean-matrix-sparse-queries.md',
   'linear-algebra/gaussian-elimination.md',
   'linear-algebra/least-squares.md',
