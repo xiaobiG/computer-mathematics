@@ -3,15 +3,15 @@ title: Jacobian、Hessian 与自动微分：梯度如何成为可计算的线性
 description: 从局部线性化推导 Jacobian 与 Hessian，区分前向/反向自动微分，并用有限差分验证梯度实现。
 courseLevel: "2–3（推导、算法与机器学习工程）"
 prerequisites: "矩阵乘法、导数、链式法则与向量化"
-estimatedMinutes: 65
-experiment: "实现双变量函数梯度并用中心差分进行梯度检查"
+estimatedMinutes: 70
+experiment: "比较双变量标量损失的前向 JVP、反向 VJP 与中心差分梯度检查"
 ---
 
 # Jacobian、Hessian 与自动微分：梯度如何成为可计算的线性代数
 
 ## 学习目标
 
-读完后，你能把标量导数推广为 Jacobian 与 Hessian；从局部线性模型解释 Jacobian-vector product；区分符号求导、数值微分与自动微分；并实现一个梯度检查器来验证优化代码。
+读完后，你能把标量导数推广为 Jacobian 与 Hessian；从局部线性模型解释 JVP 与 VJP；区分符号求导、数值微分、前向与反向自动微分；并实现一个梯度检查器来验证优化代码。
 
 ## 从一个计算问题开始
 
@@ -52,7 +52,9 @@ $$J_h(x)=J_g(f(x))J_f(x).$$
 $$\frac{\partial L}{\partial x}=2z(y+\cos x),\qquad\frac{\partial L}{\partial y}=2zx.$$
 
 ```python
-from projects.linear_algebra_lab.forward_autodiff import demo_hvp_certificate, demo_jvp_certificate
+from projects.linear_algebra_lab.forward_autodiff import (
+    demo_hvp_certificate, demo_jvp_certificate, demo_reverse_vjp_certificate,
+)
 from projects.linear_algebra_lab.gradient_check import demo_loss, demo_loss_gradient, gradient_check
 
 point = [0.4, -1.2]
@@ -60,6 +62,11 @@ direction = [0.3, -0.4]
 
 # 前向模式在一次计算图遍历中给出 JVP；它应等于 grad(L)^T v。
 assert demo_jvp_certificate(point, direction)["matches"]
+
+# 同一标量损失只需一遍反向图遍历，就得到两个输入分量的 VJP（梯度）。
+reverse = demo_reverse_vjp_certificate(point)
+assert reverse["matches"]
+assert len(reverse["reverse_vjp"]) == 2
 
 # Hessian 不必显式用于优化；本例将 H @ v 与梯度的方向差分核对。
 hvp = demo_hvp_certificate(point, direction)
@@ -71,11 +78,11 @@ report = gradient_check(demo_loss, demo_loss_gradient, point)
 assert all(item.absolute_error < 1e-6 for item in report)
 ```
 
-`Dual(value, tangent)` 将一个数与沿指定方向的导数一起传播；加法与乘法分别执行链式法则和乘积法则。`demo_jvp_certificate` 将前向模式的结果与解析梯度点积比较，直接验证 $Jv=\nabla L^Tv$（标量损失时）。`demo_hvp_certificate` 再以中心差分 $(\nabla L(x+hv)-\nabla L(x-hv))/(2h)$ 核对解析 $H(x)v$，并检查 Hessian 的对称非对角元；这把二阶泰勒模型与可运行的曲率方向连接起来。报告逐坐标记录解析值、数值值、绝对误差和尺度相关相对误差；测试还故意把第一个解析导数取反，确认只有该坐标的检查失败。中心差分用于**测试**而非训练：计算 $n$ 维梯度需约 $2n$ 次前向调用，步长还会遭受截断/舍入权衡。应只在小网络、小批量和固定随机种子下抽样检查若干参数。
+`Dual(value, tangent)` 将一个数与沿指定方向的导数一起传播；加法与乘法分别执行链式法则和乘积法则。`demo_jvp_certificate` 将前向模式的结果与解析梯度点积比较，直接验证 $Jv=\nabla L^Tv$（标量损失时）。`ReverseNode` 则为每个原子操作保留局部导数；从输出种子 1 逆拓扑累加 $\bar x\mathrel{+}=\bar y\,\partial y/\partial x$。`demo_reverse_vjp_certificate` 用一次反向遍历重建两个梯度分量，再与解析梯度逐项比较；要用前向模式取得同样两个分量，则需要两个坐标方向的 JVP。`demo_hvp_certificate` 再以中心差分 $(\nabla L(x+hv)-\nabla L(x-hv))/(2h)$ 核对解析 $H(x)v$，并检查 Hessian 的对称非对角元；这把二阶泰勒模型与可运行的曲率方向连接起来。报告逐坐标记录解析值、数值值、绝对误差和尺度相关相对误差；测试还故意把第一个解析导数取反，确认只有该坐标的检查失败。中心差分用于**测试**而非训练：计算 $n$ 维梯度需约 $2n$ 次前向调用，步长还会遭受截断/舍入权衡。应只在小网络、小批量和固定随机种子下抽样检查若干参数。
 
 ## 算法与复杂度
 
-完整 Jacobian 有 $mn$ 个元素，显式构造常常浪费。前向模式一次 JVP 的成本通常与一次前向计算同阶；反向模式一次 VJP 同样如此。训练标量损失时反向模式可在约常数倍前向成本内获得所有参数梯度，但需保存或重算中间值，形成时间—内存取舍。
+完整 Jacobian 有 $mn$ 个元素，显式构造常常浪费。前向模式一次 JVP 的成本通常与一次前向计算同阶；反向模式一次 VJP 同样如此。训练标量损失时反向模式可在约常数倍前向成本内获得所有参数梯度，但需保存或重算中间值，形成时间—内存取舍。这里的微型实现只支持加法、乘法、整数幂与正弦，且只对标量输出播种 1；真实系统应交给成熟框架处理广播、张量、控制流、原地操作和内存检查点。
 
 二阶方法通常不显式形成 $n\times n$ Hessian；Hessian-vector product 可由两次自动微分得到，用于共轭梯度、曲率诊断或信赖域方法。
 

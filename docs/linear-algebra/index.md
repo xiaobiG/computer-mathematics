@@ -37,7 +37,7 @@
 | 13 | [随机范围发现](/linear-algebra/randomized-range-finder) | 大矩阵如何用随机草图近似主子空间？ | 深度正文 · 70 分钟 |
 | 14 | [随机 SVD](/linear-algebra/randomized-svd) | 如何把随机子空间变成可审计的低秩分解？ | 深度正文 · 60 分钟 |
 | 14 | [低秩推荐](/linear-algebra/low-rank-recommendation) | 缺失评分如何变成可学习的预测？ | 深度正文 · 70 分钟 |
-| 15 | [Jacobian、Hessian 与自动微分](/linear-algebra/jacobian-hessian-autodiff) | 梯度如何成为可计算的线性代数？ | 深度正文 · 65 分钟 |
+| 15 | [Jacobian、Hessian 与自动微分](/linear-algebra/jacobian-hessian-autodiff) | 梯度如何成为可计算的线性代数？ | 深度正文 · 70 分钟 |
 
 ## 版本资源
 
