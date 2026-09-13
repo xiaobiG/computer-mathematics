@@ -4,14 +4,14 @@ description: 用路径边数不变量推导 Bellman–Ford，证明其负边正�
 courseLevel: "2–3（算法证明与工程边界）"
 prerequisites: "图、最短路、松弛操作与循环不变量"
 estimatedMinutes: 60
-experiment: "实现带路径恢复的 Bellman–Ford，并构造 Dijkstra 失败与负环例子"
+experiment: "实现冻结轮次的 Bellman–Ford、路径恢复与可重放的可达负环见证"
 ---
 
 # Bellman–Ford：负边最短路与负环检测
 
 ## 学习目标
 
-读完后，你能说明为何 Dijkstra 不能接受负边；从“至多 $k$ 条边的最短路径”状态推导 Bellman–Ford；证明 $|V|-1$ 轮松弛的正确性；并实现负环检测和不可达点处理。
+读完后，你能说明为何 Dijkstra 不能接受负边；从“至多 $k$ 条边的最短路径”状态推导 Bellman–Ford；证明 $|V|-1$ 轮松弛的正确性；并恢复路径与可达负环见证。
 
 ## 从 Dijkstra 的失败开始
 
@@ -45,13 +45,43 @@ assert (2, 1, -5.0) in events[1].relaxed
 assert bellman_ford_certificate(5, edges, 0, distances, parents, events)["valid"]
 ```
 
-运行 `python -m unittest projects.algorithm_lab.test_bellman_ford_trace`。实现每轮先冻结前一轮的距离，再构造下一轮，因此第 $k$ 个事件直接对应“至多 $k$ 条边”的状态定义，而不是依赖边遍历顺序的就地更新。事件记录每轮成功松弛的边及候选距离；`bellman_ford_certificate` 重新执行逐轮松弛，并同时检查父指针给出的可达路径、最终所有边的松弛不等式和完整轮次轨迹。父路径说明标签可达到，边不等式说明沿任何边继续都不能改善标签；两者合成最短路的有限证书。测试核对负边路径、逐轮不变量、证书篡改、不可达负环和可达负环拒绝。提前停止不改变正确性：若一整轮没有更新，所有可用“再加一条边”的路径也不能改善，之后不会再改变。`parent` 仅在更新时写入，回溯有长度上限以防输入或代码错误产生环。
+运行 `python -m unittest projects.algorithm_lab.test_bellman_ford_trace`。实现每轮先冻结前一轮的距离，再构造下一轮，因此第 $k$ 个事件直接对应“至多 $k$ 条边”的状态定义，而不是依赖边遍历顺序的就地更新。事件记录每轮成功松弛的边及候选距离；`bellman_ford_certificate` 重新执行逐轮松弛，并同时检查父指针给出的可达路径、最终所有边的松弛不等式和完整轮次轨迹。父路径说明标签可达到，边不等式说明沿任何边继续都不能改善标签；两者合成最短路的有限证书。提前停止不改变正确性：若一整轮没有更新，所有可用“再加一条边”的路径也不能改善，之后不会再改变。`parent` 仅在更新时写入，回溯有长度上限以防输入或代码错误产生环。
+
+## 第 $|V|$ 轮仍能改善：把“存在负环”变成一条可检查的环
+
+第 $|V|$ 轮的严格松弛不是普通警告。它给出一条从源点出发、至少有 $|V|$ 条边且比已有标签更短的路径。该路径经过的顶点只有 $|V|$ 个，故某顶点重复。若重复段 $C$ 的总权重 $w(C)\ge0$，删除该段不会让路径更长；于是能产生严格改善的重复段必须满足 $w(C)<0$。
+
+设 $P$ 从 $s$ 到环上顶点 $c$，$Q$ 从 $c$ 到某个目标。每多绕环一次，路径权重变为
+
+$$
+w(P)+m\,w(C)+w(Q),\qquad m=0,1,2,\ldots
+$$
+
+当 $w(C)<0$，该式随 $m$ 增大趋于 $-\infty$；因此不是“某个更小距离尚未发现”，而是最短值根本不存在。
+
+`reachable_negative_cycle_witness` 用第 $|V|$ 轮改进的顶点，沿父指针回溯 $|V|$ 次进入重复顶点，再按有向顺序输出环、每条环边和总权重：
+
+```python
+from projects.algorithm_lab.bellman_ford_trace import (
+    reachable_negative_cycle_witness,
+    reachable_negative_cycle_witness_certificate,
+)
+
+edges = [(0, 1, 1.0), (1, 2, -3.0), (2, 1, 1.0)]
+witness = reachable_negative_cycle_witness(3, edges, source=0)
+assert witness is not None
+assert witness.cycle_vertices == (2, 1, 2)
+assert witness.total_weight == -2.0
+assert reachable_negative_cycle_witness_certificate(3, edges, 0, witness)
+```
+
+这份证书重新执行冻结轮次并拒绝改写的顶点、边或环权重；不可达负环与不存在负环的图返回 `None`。它只证明源可达的有限图见证，不计算受影响目标集合，也不为含负环的图伪造有限路径。
 
 ## 正确性与复杂度
 
 对轮数归纳：第 $k$ 轮后，`distance[v]` 等于至多 $k$ 条边路径的最短长度。基例对应只有空路径；归纳步枚举“不加第 $k$ 条边”与“从某个 $u$ 加一条边”两类路径。无负环时，简单最优路径边数不超过 $V-1$，结论成立。
 
-再做第 $V$ 轮若仍能松弛，改善路径含至少 $V$ 条边，必重复某顶点；去掉非负环不会改善，故能改善只能意味着包含负环。复杂度最坏 $O(VE)$，空间 $O(V)$；稠密图或多源最短路时，应评估 Floyd–Warshall、Johnson 或问题结构。
+再做第 $V$ 轮若仍能松弛，上节的回溯给出一条源可达负环。复杂度最坏 $O(VE)$，空间 $O(V)$；见证恢复再用 $O(V)$ 父边步数。稠密图或多源最短路时，应评估 Floyd–Warshall、Johnson 或问题结构。
 
 ## 失败案例与工程边界
 
@@ -70,15 +100,15 @@ assert bellman_ford_certificate(5, edges, 0, distances, parents, events)["valid"
 ## 练习
 
 1. **基础题**：对 $s\to a=2,s\to b=5,b\to a=-10$ 手算两轮松弛。
-2. **推导题**：完成“可改善的至少 $V$ 边路径蕴含可达负环”的证明。
-3. **编码题**：为实现添加 `reconstruct_path`，并测试不可达点、负边正确路径和可达负环；篡改一项距离、父指针或轮次事件，确认 `bellman_ford_certificate` 拒绝。
+2. **推导题**：完成“第 $|V|$ 轮可改善路径蕴含可达负环”的证明，并写出绕环 $m$ 次的路径权重。
+3. **编码题**：为实现添加 `reachable_negative_cycle_witness`，测试不可达环、环权重与篡改见证；确认结构证书拒绝它。
 4. **开放题**：比较 Dijkstra、Bellman–Ford、Floyd–Warshall 在稀疏/稠密、多源/单源、含负边三种维度的选择条件。
 
 ## 练习答案提示
 
 1. 第一轮从 $s$ 的初始标签出发；冻结上一轮状态时，$b\to a$ 的改善可能要到下一轮才可用，按边数而非边遍历顺序记录。
-2. 一条至少 $V$ 边的路径重复顶点；若重复段非负，删除它不会更差，因此仍可改善只能包含负权回路，并且该回路从源可达。
-3. 只有在松弛成功时更新 `parent`；回溯应限制最多 $V-1$ 条边，不可达返回空/None，可达负环应拒绝生成虚假的有限路径。证书还必须重新检查父路径权重、每条边的松弛不等式和每轮冻结状态，不能只比较一个最终数值。
+2. 一条至少 $|V|$ 边的路径重复顶点；非负重复段可删除，严格改善便要求某段为负；代入 $w(P)+mw(C)+w(Q)$。
+3. 第 $|V|$ 轮更新后先回溯 $|V|$ 次进入环，再按父边反向关系恢复有向环；证书须重算顶点、边和总权重。
 4. 单源有负边用 Bellman–Ford，多源小稠密图可用 Floyd–Warshall，非负稀疏单源优先 Dijkstra；还要比较顶点/边数和查询数量。
 
 ## 延伸

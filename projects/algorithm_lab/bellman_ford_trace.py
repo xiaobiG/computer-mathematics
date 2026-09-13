@@ -17,6 +17,17 @@ class BellmanFordEvent:
     relaxed: tuple[tuple[int, int, float], ...]
 
 
+@dataclass(frozen=True)
+class NegativeCycleWitness:
+    """One source-reachable directed negative cycle exposed on round |V|."""
+
+    trigger_round: int
+    trigger_vertices: tuple[int, ...]
+    cycle_vertices: tuple[int, ...]
+    cycle_edges: tuple[Edge, ...]
+    total_weight: float
+
+
 def _validate_input(vertex_count: int, edges: list[Edge], source: int) -> None:
     if not isinstance(vertex_count, int) or isinstance(vertex_count, bool) or vertex_count <= 0:
         raise ValueError("vertex_count must be a positive integer")
@@ -65,6 +76,84 @@ def bellman_ford_trace(
            for left, right, weight in edges):
         raise ValueError("a negative cycle is reachable from the source")
     return distances, parents, events
+
+
+def reachable_negative_cycle_witness(
+    vertex_count: int, edges: list[Edge], source: int,
+) -> NegativeCycleWitness | None:
+    """Return a concrete negative cycle, or ``None`` when round |V| is stable.
+
+    The calculation uses the same frozen-round recurrence as
+    :func:`bellman_ford_trace`.  A strict improvement on round ``vertex_count``
+    gives a path with at least that many edges; following its predecessor links
+    ``vertex_count`` times enters a repeated vertex, from which a directed
+    cycle and its recorded relaxation weights can be reconstructed.
+    """
+    _validate_input(vertex_count, edges, source)
+    distances = [inf] * vertex_count
+    parents: list[int | None] = [None] * vertex_count
+    parent_weights: list[float | None] = [None] * vertex_count
+    distances[source] = 0.0
+    trigger_vertices: tuple[int, ...] = ()
+    for round_number in range(1, vertex_count + 1):
+        prior = distances
+        next_distances = prior.copy()
+        next_parents = parents.copy()
+        next_parent_weights = parent_weights.copy()
+        relaxed = []
+        for left, right, weight in edges:
+            candidate = prior[left] + weight
+            if prior[left] != inf and candidate < next_distances[right]:
+                next_distances[right] = candidate
+                next_parents[right] = left
+                next_parent_weights[right] = weight
+                relaxed.append(right)
+        distances, parents, parent_weights = next_distances, next_parents, next_parent_weights
+        if round_number == vertex_count:
+            trigger_vertices = tuple(relaxed)
+            break
+        if not relaxed:
+            return None
+    if not trigger_vertices:
+        return None
+
+    inside_cycle = trigger_vertices[0]
+    for _ in range(vertex_count):
+        parent = parents[inside_cycle]
+        if parent is None:
+            raise AssertionError("a round-|V| improvement must retain a predecessor chain")
+        inside_cycle = parent
+
+    backward = [inside_cycle]
+    current = parents[inside_cycle]
+    while current != inside_cycle:
+        if current is None or len(backward) >= vertex_count:
+            raise AssertionError("predecessor chain must close to a finite cycle")
+        backward.append(current)
+        current = parents[current]
+    cycle_vertices = tuple([inside_cycle, *reversed(backward[1:]), inside_cycle])
+    cycle_edges = []
+    for left, right in zip(cycle_vertices, cycle_vertices[1:]):
+        weight = parent_weights[right]
+        if parents[right] != left or weight is None:
+            raise AssertionError("cycle parent edges must remain intact")
+        cycle_edges.append((left, right, weight))
+    total_weight = sum(weight for _, _, weight in cycle_edges)
+    if total_weight >= 0.0:
+        raise AssertionError("round-|V| witness must have negative total weight")
+    return NegativeCycleWitness(vertex_count, trigger_vertices, cycle_vertices, tuple(cycle_edges), total_weight)
+
+
+def reachable_negative_cycle_witness_certificate(
+    vertex_count: int, edges: list[Edge], source: int, witness: object,
+) -> bool:
+    """Rebuild a round-|V| negative-cycle witness from the declared graph."""
+    if not isinstance(witness, NegativeCycleWitness):
+        return False
+    try:
+        return witness == reachable_negative_cycle_witness(vertex_count, edges, source)
+    except (ArithmeticError, IndexError, TypeError, ValueError):
+        return False
 
 
 def reconstruct_path(parents: list[int | None], source: int, target: int) -> list[int] | None:

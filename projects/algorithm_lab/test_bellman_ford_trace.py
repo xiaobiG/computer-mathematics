@@ -1,7 +1,12 @@
 import unittest
 from math import inf
 
-from projects.algorithm_lab.bellman_ford_trace import bellman_ford_certificate, bellman_ford_trace, reconstruct_path
+from dataclasses import replace
+
+from projects.algorithm_lab.bellman_ford_trace import (
+    bellman_ford_certificate, bellman_ford_trace, reconstruct_path,
+    reachable_negative_cycle_witness, reachable_negative_cycle_witness_certificate,
+)
 
 
 class BellmanFordTraceTests(unittest.TestCase):
@@ -33,6 +38,21 @@ class BellmanFordTraceTests(unittest.TestCase):
             bellman_ford_trace(2, [(0, 1, float("nan"))], 0)
         with self.assertRaises(ValueError):
             reconstruct_path([None, 2, 1], 0, 1)
+
+    def test_round_v_improvement_yields_a_replayable_directed_negative_cycle(self):
+        edges = [(0, 1, 1.0), (1, 2, -3.0), (2, 1, 1.0)]
+        witness = reachable_negative_cycle_witness(3, edges, 0)
+        self.assertIsNotNone(witness)
+        assert witness is not None
+        self.assertEqual(witness.trigger_round, 3)
+        self.assertEqual(witness.cycle_vertices, (2, 1, 2))
+        self.assertEqual(witness.cycle_edges, ((2, 1, 1.0), (1, 2, -3.0)))
+        self.assertEqual(witness.total_weight, -2.0)
+        self.assertTrue(reachable_negative_cycle_witness_certificate(3, edges, 0, witness))
+        self.assertFalse(reachable_negative_cycle_witness_certificate(
+            3, edges, 0, replace(witness, total_weight=-1.0),
+        ))
+        self.assertIsNone(reachable_negative_cycle_witness(3, [(0, 1, 2.0), (1, 2, -1.0)], 0))
 
 
 if __name__ == "__main__":
