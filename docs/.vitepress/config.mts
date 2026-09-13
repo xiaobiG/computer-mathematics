@@ -480,7 +480,11 @@ export default defineConfig({
               .replaceAll("&", "&amp;")
               .replaceAll("<", "&lt;")
               .replaceAll(">", "&gt;");
-          const searchableSource = src
+          // Code samples remain available on their pages, but indexing every
+          // repeated import, assertion, and fixture crowds out prose. Keep
+          // the lesson's narrative, headings, inline code and TeX instead.
+          const withoutFencedCode = src.replace(/(^|\n)```[^\n]*\n[\s\S]*?^```[ \t]*(?=\n|$)/gm, "$1");
+          const searchableSource = withoutFencedCode
             .replace(/\$\$([\s\S]*?)\$\$/g, (_match, formula: string) =>
               `<span class="search-math">${escapeFormula(formula)}</span>`,
             )

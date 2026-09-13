@@ -14,6 +14,7 @@ const requiredCoursePhrases = [
   "残量网络",
   "lambda",
 ];
+const codeOnlyPhrase = "encoded_red";
 
 const candidates = (await readdir(chunksDirectory)).filter((name) =>
   /^@localSearchIndexroot\..+\.js$/.test(name),
@@ -39,5 +40,8 @@ const absentPhrase = requiredCoursePhrases.find((phrase) => !source.includes(phr
 if (absentPhrase) {
   throw new Error("course content is unexpectedly absent from local search: " + absentPhrase);
 }
+if (source.includes(codeOnlyPhrase)) {
+  throw new Error("fenced code unexpectedly remains in local search: " + codeOnlyPhrase);
+}
 
-console.log("本地搜索索引校验通过：" + (bytes / 1024).toFixed(1) + " KiB，课程与公式可搜索，辅助页面已排除。");
+console.log("本地搜索索引校验通过：" + (bytes / 1024).toFixed(1) + " KiB，课程正文与公式可搜索，围栏代码与辅助页面已排除。");
