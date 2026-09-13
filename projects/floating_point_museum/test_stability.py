@@ -33,3 +33,9 @@ class StabilityTests(unittest.TestCase):
             quadratic_stability_report(0.0, 1.0, 1.0)
         with self.assertRaises(ValueError):
             quadratic_stability_report(1.0, 0.0, 1.0)
+
+    def test_discriminant_overflow_is_rejected_before_it_can_masquerade_as_a_root(self):
+        with self.assertRaisesRegex(ValueError, "discriminant must be finite"):
+            quadratic_stability_report(1.0, 1e308, 1.0)
+        with self.assertRaisesRegex(ValueError, "discriminant must be finite"):
+            stable_quadratic_roots(1.0, -1e308, 1.0)

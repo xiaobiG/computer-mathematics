@@ -11,7 +11,10 @@ def _validate_quadratic(a: float, b: float, c: float) -> None:
         raise ValueError("quadratic coefficients must be finite")
     if a == 0:
         raise ValueError("a must be nonzero for a quadratic")
-    if b * b - 4.0 * a * c < 0:
+    discriminant = b * b - 4.0 * a * c
+    if not isfinite(discriminant):
+        raise ValueError("binary64 discriminant must be finite; scale coefficients before this teaching experiment")
+    if discriminant < 0:
         raise ValueError("this teaching experiment requires real roots")
 
 
