@@ -109,4 +109,4 @@ assert lu_reuse_work_certificate(matrix, right_sides, report)
 
 ## 延伸与下一步
 
-LU 用于多右端方阵；[QR](/linear-algebra/orthogonal-projection-qr)处理稳定最小二乘，SVD 处理秩亏。
+[行列式与可逆性](/linear-algebra/determinants-invertibility)解释为何 PA=LU 中的行交换会改变符号、为何零主元对应不可逆；LU 用于多右端方阵，[QR](/linear-algebra/orthogonal-projection-qr)处理稳定最小二乘，SVD 处理秩亏。

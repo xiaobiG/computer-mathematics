@@ -97,4 +97,4 @@ assert singular_events[-1].pivot_row is None
 
 ## 下一步
 
-[高斯消元](/linear-algebra/gaussian-elimination)给出稳定求解轨迹；[特征值与 PCA](/linear-algebra/eigenvalues-pca)将 $\det(A-\lambda I)$ 连接到方向与谱。
+[高斯消元](/linear-algebra/gaussian-elimination)给出稳定求解轨迹；[LU 分解与主元选择](/linear-algebra/lu-factorization-pivoting)将同一消元过程复用于多个右端；[特征值与 PCA](/linear-algebra/eigenvalues-pca)将 $\det(A-\lambda I)$ 连接到方向与谱。
