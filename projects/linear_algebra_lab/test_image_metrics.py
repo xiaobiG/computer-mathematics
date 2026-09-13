@@ -8,6 +8,7 @@ from projects.linear_algebra_lab.image_metrics import (
     same_mse_structural_comparison_report, structural_similarity_certificate, structural_similarity_report,
     local_structural_similarity_certificate, local_structural_similarity_report,
     linear_rgb_error_certificate, linear_rgb_error_report,
+    srgb_cielab_delta_e76_comparison, srgb_cielab_delta_e76_comparison_certificate,
     srgb_linear_luminance_comparison, srgb_linear_luminance_comparison_certificate, srgb_to_linear,
 )
 from projects.linear_algebra_lab.randomized_svd import randomized_svd_report
@@ -122,6 +123,24 @@ class ImageMetricsTests(unittest.TestCase):
             srgb_linear_luminance_comparison(reference, [[[1.1, 0.0, 0.0]]], 0.005)
         with self.assertRaisesRegex(ValueError, "non-negative"):
             srgb_linear_luminance_comparison(reference, approximation, -1.0)
+
+    def test_srgb_cielab_delta_e76_binds_encoding_white_and_budget(self):
+        black = [[[0.0, 0.0, 0.0]]]
+        encoded_red = [[[0.5, 0.0, 0.0]]]
+        report = srgb_cielab_delta_e76_comparison(black, encoded_red, delta_e76_budget=40.0)
+        self.assertEqual(report.contract, "srgb-cielab-delta-e76-comparison/v1")
+        self.assertEqual(report.reference_white_xyz, (0.95047, 1.0, 1.08883))
+        self.assertEqual(report.samples, 1)
+        self.assertAlmostEqual(report.rgb_mse, 1.0 / 12.0)
+        self.assertGreater(report.mean_delta_e76, 40.0)
+        self.assertEqual(report.budget_status, "exceeds_delta_e76_budget")
+        self.assertEqual(report.automatic_action, "none")
+        self.assertTrue(srgb_cielab_delta_e76_comparison_certificate(black, encoded_red, report))
+        self.assertFalse(srgb_cielab_delta_e76_comparison_certificate(
+            black, encoded_red, replace(report, reference_white_xyz=(1.0, 1.0, 1.0)),
+        ))
+        with self.assertRaisesRegex(ValueError, "non-negative"):
+            srgb_cielab_delta_e76_comparison(black, encoded_red, -1.0)
 
     def test_randomized_svd_artifact_drives_a_numeric_quality_budget_review(self):
         pixels = [[5.0, 0.0], [0.0, 1.0]]

@@ -93,6 +93,7 @@ class LinearRgbErrorReport:
 
 
 SRGB_LINEAR_LUMINANCE_CONTRACT = "srgb-linear-luminance-comparison/v1"
+SRGB_CIELAB_DELTA_E76_CONTRACT = "srgb-cielab-delta-e76-comparison/v1"
 
 
 @dataclass(frozen=True)
@@ -108,6 +109,22 @@ class SrgbLinearLuminanceComparison:
     decoded_linear_luminance_mse: float
     encoded_budget_status: str
     decoded_budget_status: str
+    automatic_action: str
+
+
+@dataclass(frozen=True)
+class SrgbCieLabDeltaE76Comparison:
+    """A finite sRGB/D65/CIE Lab comparison, not a display or ICC transform."""
+
+    contract: str
+    samples: int
+    source_encoding: str
+    reference_white_xyz: tuple[float, float, float]
+    rgb_mse: float
+    mean_delta_e76: float
+    max_delta_e76: float
+    delta_e76_budget: float
+    budget_status: str
     automatic_action: str
 
 
@@ -365,6 +382,81 @@ def _decode_srgb_image(image):
         [tuple(srgb_to_linear(component) for component in pixel) for pixel in row]
         for row in image
     ]
+
+
+_SRGB_TO_XYZ_D65 = (
+    (0.4124564, 0.3575761, 0.1804375),
+    (0.2126729, 0.7151522, 0.0721750),
+    (0.0193339, 0.1191920, 0.9503041),
+)
+_D65_WHITE_XYZ = (0.95047, 1.0, 1.08883)
+
+
+def _linear_srgb_to_xyz_d65(pixel):
+    return tuple(sum(weight * value for weight, value in zip(row, pixel)) for row in _SRGB_TO_XYZ_D65)
+
+
+def _cielab_f(value):
+    delta = 6.0 / 29.0
+    return value ** (1.0 / 3.0) if value > delta ** 3 else value / (3.0 * delta ** 2) + 4.0 / 29.0
+
+
+def _xyz_d65_to_cielab(xyz):
+    x, y, z = (value / white for value, white in zip(xyz, _D65_WHITE_XYZ))
+    fx, fy, fz = (_cielab_f(value) for value in (x, y, z))
+    return (116.0 * fy - 16.0, 500.0 * (fx - fy), 200.0 * (fy - fz))
+
+
+def _encoded_srgb_to_cielab(pixel):
+    return _xyz_d65_to_cielab(_linear_srgb_to_xyz_d65(tuple(srgb_to_linear(value) for value in pixel)))
+
+
+def srgb_cielab_delta_e76_comparison(reference, approximation, delta_e76_budget):
+    """Compare encoded-sRGB pixels in the declared CIE Lab D65 coordinate model.
+
+    The input is normalized, encoded sRGB.  Each pixel is decoded, transformed
+    with the fixed sRGB-to-XYZ D65 matrix, then mapped to CIE 1976 Lab.  The
+    result is a finite arithmetic Delta E 76 report; it is not ICC color
+    management, chromatic adaptation, a viewing-condition model, or a claim
+    about perceived quality.
+    """
+    _validate_srgb_encoded(reference, approximation)
+    if (not isinstance(delta_e76_budget, (int, float)) or isinstance(delta_e76_budget, bool)
+            or not isfinite(delta_e76_budget) or delta_e76_budget < 0.0):
+        raise ValueError("delta_e76_budget must be a finite non-negative number")
+    squared_rgb_error = 0.0
+    delta_es = []
+    for expected_row, actual_row in zip(reference, approximation):
+        for expected, actual in zip(expected_row, actual_row):
+            squared_rgb_error += sum((float(left) - float(right)) ** 2 for left, right in zip(expected, actual))
+            expected_lab = _encoded_srgb_to_cielab(expected)
+            actual_lab = _encoded_srgb_to_cielab(actual)
+            delta_es.append(sqrt(sum((left - right) ** 2 for left, right in zip(expected_lab, actual_lab))))
+    samples = len(delta_es)
+    budget = float(delta_e76_budget)
+    mean_delta_e76 = sum(delta_es) / samples
+    return SrgbCieLabDeltaE76Comparison(
+        SRGB_CIELAB_DELTA_E76_CONTRACT,
+        samples,
+        "sRGB encoded components decoded to linear RGB",
+        _D65_WHITE_XYZ,
+        squared_rgb_error / (samples * 3),
+        mean_delta_e76,
+        max(delta_es),
+        budget,
+        "within_delta_e76_budget" if mean_delta_e76 <= budget else "exceeds_delta_e76_budget",
+        "none",
+    )
+
+
+def srgb_cielab_delta_e76_comparison_certificate(reference, approximation, report):
+    """Rebuild the declared color-space calculation and reject altered claims."""
+    if not isinstance(report, SrgbCieLabDeltaE76Comparison):
+        return False
+    try:
+        return report == srgb_cielab_delta_e76_comparison(reference, approximation, report.delta_e76_budget)
+    except ValueError:
+        return False
 
 
 def srgb_linear_luminance_comparison(reference, approximation, luminance_mse_budget):

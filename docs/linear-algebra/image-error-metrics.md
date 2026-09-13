@@ -73,62 +73,15 @@ assert image_quality_certificate(reference, approximation, report)
 
 ## 跨课实验：审计随机 SVD 的实际像素误差
 
-`randomized_svd_image_quality_review` 先重放上游 SVD 产物，再把实际重构与声明的 MSE 预算比较：
-
-```python
-from projects.linear_algebra_lab.image_metrics import randomized_svd_image_quality_review
-from projects.linear_algebra_lab.randomized_svd import randomized_svd_report
-
-pixels = [[5.0, 0.0], [0.0, 1.0]]
-svd_report = randomized_svd_report(pixels, rank=1, oversampling=1, seed=3)
-review = randomized_svd_image_quality_review(pixels, svd_report, mse_budget=0.3, peak=5.0)
-
-assert review.source_seed == 3
-assert review.mse_budget_status == "within_mse_budget"
-assert review.automatic_action == "none"
-```
-
-`mse_budget=0.2` 会拒绝同一重构；它不推出视觉或部署结论。
-
-## 正确性与复杂度
-
-逐像素累加 $e_{ij}^2,|e_{ij}|$ 得到 MSE 与最大误差；MSE 为零时 PSNR 为无穷。这验证度量，不证明低秩最优、感知或任务质量。
+`randomized_svd_image_quality_review` 重放上游 SVD 后才比较重构与 MSE 预算；同一 `pixels=[[5,0],[0,1]]`、`rank=1, seed=3, mse_budget=.3` 通过，预算 `.2` 不通过。它不推出视觉或部署结论。
 
 ## 局部窗口：全局 SSIM 不能定位缺陷
 
-全局 SSIM 不能指出坏区域。实验按完整、不重叠的固定窗口报告整图分数、各窗口分数与最差坐标：
-
-```python
-from projects.linear_algebra_lab.image_metrics import local_structural_similarity_report
-
-reference = [[128.0] * 4 for _ in range(4)]
-approximation = [[128.0] * 4 for _ in range(4)]
-for row in range(2):
-    for column in range(2):
-        approximation[row][column] = 0.0
-
-report = local_structural_similarity_report(reference, approximation, 2, 2)
-assert (report.worst_window_row, report.worst_window_column) == (0, 0)
-assert report.worst_window_ssim < report.global_ssim
-```
-
-窗口尺寸必须整除图像；固定灰度平铺只定位数值弱点，不代表感知或任务质量。
+`local_structural_similarity_report` 以完整、不重叠且整除图像的窗口报告整图、各窗和最差坐标。对 $4\times4$ 的常数 128 图，将左上 $2\times2$ 改为 0，会得到最差坐标 $(0,0)$ 且其分数低于整图。它只定位数值弱点。
 
 ## 线性 RGB：相同通道 MSE 不等于相同亮度误差
 
-在线性 RGB 中，$Y=0.2126R+0.7152G+0.0722B$。红色与绿色通道各偏 10 时，逐通道平均 MSE 相同，亮度误差却不同：
-
-```python
-from projects.linear_algebra_lab.image_metrics import linear_rgb_error_report
-
-reference = [[[0.0, 0.0, 0.0]]]
-red = linear_rgb_error_report(reference, [[[10.0, 0.0, 0.0]]])
-green = linear_rgb_error_report(reference, [[[0.0, 10.0, 0.0]]])
-assert red.rgb_mse == green.rgb_mse
-assert red.linear_luminance_mse < green.linear_luminance_mse
-```
-
-该报告只接受线性 RGB；编码 sRGB 必须先线性化，且不代表外观或感知。
+在线性 RGB 中，$Y=.2126R+.7152G+.0722B$。黑色参考下红或绿通道各偏 10 的通道 MSE 相同，但前者亮度 MSE 更小；`linear_rgb_error_report` 可重算。它只接受线性 RGB，不代表外观。
 
 ## 编码 sRGB：错误空间会改变预算
 
@@ -159,35 +112,44 @@ assert report.decoded_budget_status == "within_luminance_mse_budget"
 assert srgb_linear_luminance_comparison_certificate(reference, encoded_red, report)
 ```
 
-编码 $0.5$ 不等于线性光强 $0.5$，故两条路径回答不同数值问题。报告重放传递函数、系数、预算与状态，且固定 `automatic_action="none"`。它不读文件或 ICC，不处理色域、显示条件、感知、色彩 SSIM 或任务质量。
+编码 $0.5$ 不等于线性光强 $0.5$，故两条路径回答不同数值问题。报告重放传递函数、系数、预算与状态，且固定 `automatic_action="none"`。
+
+## 从 RGB 距离到 CIE 色差：必须声明白点
+
+`srgb_cielab_delta_e76_comparison` 固定 sRGB/D65：解码后以 sRGB$\to XYZ_{D65}$ 矩阵变换，再按 CIE Lab 的分段 $f(t)$ 映射；$W=(0.95047,1,1.08883)$，并报告
+
+$$
+\Delta E_{76}=\sqrt{(\Delta L^*)^2+(\Delta a^*)^2+(\Delta b^*)^2}
+$$
+
+的均值、最大值与预算。证书重算并绑定编码、白点与结论；例如黑色和编码红 $[.5,0,0]$ 在预算 40 下超标。模型来源为 [CIE 15:2018](https://cie.co.at/publications/colorimetry-4th-edition) 与 [ICC sRGB 登记](https://registry.color.org/rgb-registry/srgb)。它不是 ICC profile、色域映射、色适应、显示条件、CIEDE2000、视觉偏好或自动验收。
 
 ## 失败案例与工程边界
 
-- **相同 MSE、不同可见性**：孤立的大错误和分散噪声可有相同 MSE；固定窗口只能定位，不能判定感知。
-- **编码与量化**：峰值、裁剪和量化都会改变结论；线性 RGB 的亮度加权也不等于色彩感知。
-- **任务错位**：PSNR 或 SSIM 更高不保证识别、检索、公平性或安全性更好。
+- 相同 MSE 的孤立错误与噪声仍可能不同；窗口只定位。
+- 峰值、量化、D65 与任务目标都会改变解释；PSNR、SSIM、$\Delta E_{76}$ 均不保证识别或视觉偏好。
 
 ## 常见误区
 
-1. “PSNR 是百分比。”错误：它是对数比值，不能按线性比例解释。
-2. “同一个 Frobenius 误差可跨尺寸直接比较。”错误：必须至少报告样本数或换为 MSE/RMSE。
-3. “PSNR 无穷说明编码器最强。”错误：只说明当前两份数值矩阵完全相等。
-4. “MSE 小就等于视觉质量高。”错误：它只测逐像素平方差，不含人类感知或任务目标。
+1. PSNR 是对数比值，不是百分比。
+2. Frobenius 误差跨尺寸应先归一化为 MSE/RMSE。
+3. PSNR 无穷只说明当前两矩阵相等。
+4. MSE 小不推出视觉或任务质量高。
 
 ## 练习
 
 1. **基础题**：若四个像素误差为 $1,-1,1,-1$，计算 MSE、RMSE 与最大绝对误差。
 2. **推导题**：从 $\|A-\hat A\|_F$ 推导 RMSE 的归一化式，并说明为何面积变成四倍时不能只比较原始范数。
 3. **编码题**：为 `image_quality_report` 增加逐行 MSE 报告，并为篡改的一行结果写一个拒绝测试。
-4. **开放题**：设计同时报告 PSNR、最大误差、文件大小、主观评审与检索指标的压缩实验。
+4. **开放题**：设计同时报告 PSNR、$\Delta E$、文件大小、主观评审与检索指标的压缩实验。
 
 ## 练习答案提示
 
 1. 平方误差均为 1，故 MSE 为 1、RMSE 为 1、最大绝对误差也为 1；先确认像素数是 4。
 2. Frobenius 平方是误差平方和；面积四倍时，相同像素误差的范数变两倍。
 3. 行报告须重算每行与聚合值，不能只信最终均值。
-4. 它们分别回答数值、局部、存储、感知与任务问题。
+4. 它们分别回答数值、色差、存储、感知与任务问题。
 
 ## 延伸
 
-[低秩图像压缩](/linear-algebra/low-rank-image-compression)产生重构；[SVD](/linear-algebra/svd)讨论 Frobenius 最优性；[浮点比较、容差与属性测试](/numerical-computing/tolerances-property-testing)解释证书容差。感知指标与真实文件编码需另行声明模型。
+[低秩图像压缩](/linear-algebra/low-rank-image-compression)产生重构；[SVD](/linear-algebra/svd)讨论 Frobenius 最优性；[浮点比较、容差与属性测试](/numerical-computing/tolerances-property-testing)解释证书容差。真实 profile、显示与感知模型仍须另行声明。
