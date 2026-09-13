@@ -53,6 +53,12 @@ assert ordered_shortest_path_updates_certificate(state, updates, report)
 
 运行 `python -m unittest projects.algorithm_lab.test_batch_shortest_path_updates`。证书会重建每个快照、操作与 Dijkstra 报告；篡改距离、重排更新或引用不存在的 ID 都会失败。
 
+## 查询版本：同一问题必须说明读哪个快照
+
+`versioned_shortest_path_query_report` 显式绑定版本：版本 0、1、2 的距离为 2、10、2；重读版本 0 仍得旧值。证书重放版本、边 ID、路径和距离。
+
+这是教学快照合同；每次仍完整 Dijkstra，不提供并发协议、动态数据结构或摊还界。
+
 ## 正确性与复杂度边界
 
 唯一 ID 使每个更新的目标边无歧义；按列表顺序应用使 $G_k$ 唯一；每个快照由 Dijkstra 从其实际边集重算，故报告的每一步都满足非负权最短路定义。若一批有 $m$ 次更新，当前教学 oracle 的成本约为
