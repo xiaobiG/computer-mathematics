@@ -3,6 +3,7 @@ import unittest
 
 from projects.foundations_lab.relations import (
     bitset_batch_relation_query_certificate, bitset_batch_relation_query_report,
+    relation_cache_invalidation_certificate, relation_cache_invalidation_report,
     boolean_relation_composition_certificate, boolean_relation_composition_report,
     finite_relation_certificate, finite_relation_report, relation_reachability_certificate, relation_reachability_report,
 )
@@ -72,3 +73,15 @@ class RelationTests(unittest.TestCase):
             bitset_batch_relation_query_report(["a"], [], [], ["missing"], 8)
         with self.assertRaises(ValueError):
             bitset_batch_relation_query_report(["a"], [], [], ["a"], 0)
+
+    def test_relation_update_marks_only_changed_cached_queries_stale(self):
+        domain = ["a", "b", "c", "d"]
+        left = [["a", "b"], ["c", "b"]]
+        before = [["b", "d"]]
+        after = [["b", "d"], ["b", "a"]]
+        report = relation_cache_invalidation_report(domain, left, before, after, ["a", "a", "c"], 2)
+        self.assertFalse(report["old_cache_valid_for_version_1"])
+        self.assertEqual(report["changed_query_indexes"], [0, 1, 2])
+        self.assertTrue(relation_cache_invalidation_certificate(domain, left, before, after, ["a", "a", "c"], 2, report))
+        report["old_cache_valid_for_version_1"] = True
+        self.assertFalse(relation_cache_invalidation_certificate(domain, left, before, after, ["a", "a", "c"], 2, report))

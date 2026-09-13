@@ -5,6 +5,7 @@ from __future__ import annotations
 CONTRACT = "finite-relation-matrix/v1"
 BOOLEAN_COMPOSITION_CONTRACT = "boolean-relation-composition/v1"
 BITSET_BATCH_CONTRACT = "bitset-batch-relation-query/v1"
+CACHE_INVALIDATION_CONTRACT = "relation-bitset-cache-invalidation/v1"
 
 
 def _domain(value):
@@ -205,5 +206,27 @@ def bitset_batch_relation_query_certificate(domain, left_pairs, right_pairs, que
         return report == bitset_batch_relation_query_report(
             domain, left_pairs, right_pairs, query_sources, word_bits,
         )
+    except ValueError:
+        return False
+
+
+def relation_cache_invalidation_report(domain, left_pairs, right_before, right_after, query_sources, word_bits):
+    """Show that a cached two-hop answer is tied to one declared relation version."""
+    before = bitset_batch_relation_query_report(domain, left_pairs, right_before, query_sources, word_bits)
+    after = bitset_batch_relation_query_report(domain, left_pairs, right_after, query_sources, word_bits)
+    changed = before["batch_outputs"] != after["batch_outputs"]
+    return {"contract": CACHE_INVALIDATION_CONTRACT, "versions": [0, 1],
+            "before": before, "after": after,
+            "old_cache_valid_for_version_1": not changed,
+            "changed_query_indexes": [index for index, pair in enumerate(zip(before["batch_outputs"], after["batch_outputs"])) if pair[0]["reachable_targets"] != pair[1]["reachable_targets"]],
+            "interpretation": "cache_entries_are_valid_only_for_the_declared_relation_version",
+            "boundary": "finite_snapshot_contract_not_concurrent_cache_coherence_or_runtime_performance", "automatic_action": "none"}
+
+
+def relation_cache_invalidation_certificate(domain, left_pairs, right_before, right_after, query_sources, word_bits, report):
+    if not isinstance(report, dict):
+        return False
+    try:
+        return report == relation_cache_invalidation_report(domain, left_pairs, right_before, right_after, query_sources, word_bits)
     except ValueError:
         return False
