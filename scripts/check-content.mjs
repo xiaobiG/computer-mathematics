@@ -340,6 +340,19 @@ for (const path of files) {
       errors.push(`${label}: 检测到公式拼写问题“${name}”`)
     }
   }
+
+  // A raw pipe inside inline TeX on a Markdown table row is parsed as a table
+  // cell boundary before KaTeX sees it.  For example, `$|x|$` can silently
+  // split a release-note table and leave a TeX fragment in the rendered page.
+  // Require TeX delimiters such as `\lvert x\rvert` there instead.
+  for (const [lineNumber, line] of prose.split(/\r?\n/).entries()) {
+    if (!/^\s*\|/.test(line)) continue
+    for (const math of line.matchAll(/\$([^$\r\n]*)\$/g)) {
+      if (math[1].includes('|')) {
+        errors.push(`${label}:${lineNumber + 1}: 表格行内公式不能使用原始 |，请改用 \\lvert…\\rvert`)
+      }
+    }
+  }
 }
 
 for (const path of allMarkdownFiles) {
