@@ -40,3 +40,31 @@ class SubgroupMonitoringTests(unittest.TestCase):
         tampered = copy.deepcopy(report)
         tampered["policy"]["declared_groups"] = ["a", "b"]
         self.assertFalse(subgroup_certificate(self.window, groups, tampered))
+
+    def test_predeclared_pair_uses_a_family_adjusted_difference_interval(self):
+        # Accuracy is 18/20 in a and 12/20 in b.  This is a normal
+        # approximation for independent finite groups, not a causal claim.
+        window = {
+            "contract_version": LABELED_WINDOW_CONTRACT_VERSION,
+            "probabilities": [.9] * 18 + [.1] * 2 + [.9] * 12 + [.1] * 8,
+            "labels": [1] * 40,
+        }
+        groups = ["a"] * 20 + ["b"] * 20
+        report = subgroup_report(window, groups, 20, ["a", "b", "c"], [["a", "b"], ["a", "c"]])
+        observed, refused = report["comparisons"]
+        self.assertEqual(observed["groups"], ["a", "b"])
+        self.assertEqual(observed["status"], "difference_interval_excludes_zero")
+        self.assertAlmostEqual(observed["accuracy_difference_left_minus_right"], .3)
+        self.assertLess(observed["interval"][0], observed["accuracy_difference_left_minus_right"])
+        self.assertEqual(refused["status"], "insufficient_sample_for_pairwise_comparison")
+        self.assertTrue(subgroup_certificate(window, groups, report))
+        altered = copy.deepcopy(report)
+        altered["policy"]["comparison_pairs"] = [["a", "c"]]
+        self.assertFalse(subgroup_certificate(window, groups, altered))
+
+    def test_comparison_pairs_must_be_frozen_and_nonduplicated(self):
+        groups = ["a", "a", "a", "a", "b", "b"]
+        with self.assertRaisesRegex(ValueError, "distinct declared"):
+            subgroup_report(self.window, groups, 3, ["a", "b"], [["a", "a"]])
+        with self.assertRaisesRegex(ValueError, "repeat"):
+            subgroup_report(self.window, groups, 3, ["a", "b"], [["a", "b"], ["b", "a"]])
