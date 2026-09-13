@@ -14,6 +14,14 @@ class FloydWarshallEvent:
     distance: tuple[tuple[float, ...], ...]
 
 
+@dataclass(frozen=True)
+class FloydWarshallNegativeCycleReport:
+    """Which all-pairs answers cease to have a finite minimum."""
+
+    negative_cycle_vertices: tuple[int, ...]
+    pair_status: tuple[tuple[str, ...], ...]
+
+
 def _initial_distance(vertex_count: int, edges: list[tuple[int, int, float]]) -> list[list[float]]:
     if not isinstance(vertex_count, int) or isinstance(vertex_count, bool) or vertex_count <= 0:
         raise ValueError("vertex_count must be a positive integer")
@@ -54,6 +62,57 @@ def floyd_warshall_trace(
     if any(distance[vertex][vertex] < 0 for vertex in range(vertex_count)):
         raise ValueError("negative cycle makes shortest paths undefined")
     return distance, events
+
+
+def floyd_warshall_negative_cycle_report(
+    vertex_count: int, edges: list[tuple[int, int, float]],
+) -> FloydWarshallNegativeCycleReport:
+    """Classify every pair without pretending affected distances are finite.
+
+    A pair ``(source, target)`` is undefined precisely when it can enter and
+    leave a vertex whose final diagonal entry is negative.  Such a route can
+    loop through that negative cycle arbitrarily often, so its path-length
+    infimum is ``-infinity`` rather than the finite value left in the DP
+    matrix after its final pass.
+    """
+    distance = _initial_distance(vertex_count, edges)
+    for middle in range(vertex_count):
+        for source in range(vertex_count):
+            for target in range(vertex_count):
+                through_middle = distance[source][middle] + distance[middle][target]
+                if through_middle < distance[source][target]:
+                    distance[source][target] = through_middle
+
+    negative_cycle_vertices = tuple(
+        vertex for vertex in range(vertex_count) if distance[vertex][vertex] < 0
+    )
+    pair_status: list[tuple[str, ...]] = []
+    for source in range(vertex_count):
+        row: list[str] = []
+        for target in range(vertex_count):
+            if any(
+                distance[source][middle] < inf and distance[middle][target] < inf
+                for middle in negative_cycle_vertices
+            ):
+                row.append("undefined_by_negative_cycle")
+            elif distance[source][target] == inf:
+                row.append("unreachable")
+            else:
+                row.append("finite")
+        pair_status.append(tuple(row))
+    return FloydWarshallNegativeCycleReport(negative_cycle_vertices, tuple(pair_status))
+
+
+def floyd_warshall_negative_cycle_certificate(
+    vertex_count: int,
+    edges: list[tuple[int, int, float]],
+    report: FloydWarshallNegativeCycleReport,
+) -> bool:
+    """Independently replay the pair classification from the frozen edge list."""
+    try:
+        return report == floyd_warshall_negative_cycle_report(vertex_count, edges)
+    except (ArithmeticError, TypeError, ValueError):
+        return False
 
 
 def floyd_warshall_trace_certificate(

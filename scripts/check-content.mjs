@@ -156,6 +156,7 @@ const priorityDeepLessons = new Set([
   'discrete-math/breadth-first-search.md',
   'discrete-math/strongly-connected-components.md',
   'discrete-math/dijkstra.md',
+  'discrete-math/floyd-warshall.md',
   'discrete-math/deletion-shortest-path.md',
   'discrete-math/ordered-shortest-path-updates.md',
   'discrete-math/max-flow-min-cut.md',

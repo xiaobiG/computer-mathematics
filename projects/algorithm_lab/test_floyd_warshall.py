@@ -2,7 +2,9 @@ import unittest
 from math import inf
 
 from projects.algorithm_lab.floyd_warshall import (
-    FloydWarshallEvent, floyd_warshall, floyd_warshall_path_certificate,
+    FloydWarshallEvent, FloydWarshallNegativeCycleReport, floyd_warshall,
+    floyd_warshall_negative_cycle_certificate, floyd_warshall_negative_cycle_report,
+    floyd_warshall_path_certificate,
     floyd_warshall_trace, floyd_warshall_trace_certificate, floyd_warshall_with_paths,
     recover_floyd_warshall_path,
 )
@@ -55,6 +57,29 @@ class FloydWarshallTests(unittest.TestCase):
             floyd_warshall(2, [(0, 2, 1)])
         with self.assertRaises(ValueError):
             floyd_warshall(2, [(0, 1, float("nan"))])
+
+    def test_negative_cycle_report_marks_only_pairs_that_can_enter_and_leave_it(self):
+        edges = [
+            (0, 1, 2), (1, 2, 1), (2, 1, -3), (2, 3, 2), (3, 4, 5),
+        ]
+        report = floyd_warshall_negative_cycle_report(5, edges)
+
+        self.assertEqual(report.negative_cycle_vertices, (1, 2))
+        self.assertEqual(report.pair_status[0][3], "undefined_by_negative_cycle")
+        self.assertEqual(report.pair_status[0][4], "undefined_by_negative_cycle")
+        self.assertEqual(report.pair_status[3][4], "finite")
+        self.assertEqual(report.pair_status[4][0], "unreachable")
+        self.assertTrue(floyd_warshall_negative_cycle_certificate(5, edges, report))
+
+        tampered = FloydWarshallNegativeCycleReport(
+            report.negative_cycle_vertices,
+            tuple(
+                tuple("finite" if (source, target) == (0, 3) else value
+                      for target, value in enumerate(row))
+                for source, row in enumerate(report.pair_status)
+            ),
+        )
+        self.assertFalse(floyd_warshall_negative_cycle_certificate(5, edges, tampered))
 
 
 if __name__ == "__main__":
