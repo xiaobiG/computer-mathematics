@@ -22,6 +22,9 @@ class RandomizedSVDReport:
     singular_values: tuple[float, ...]
     approximation: tuple[tuple[float, ...], ...]
     frobenius_error: float
+    range_projection_error: float
+    in_range_truncation_error: float
+    pythagorean_residual: float
     source_range_report: RandomizedRangeReport
 
 
@@ -58,6 +61,14 @@ def randomized_svd_from_range_report(matrix, range_report, rank):
     singular_values = [component[0] for component in components]
     error = sqrt(sum((float(matrix[row][column]) - approximation[row][column]) ** 2
                      for row in range(len(matrix)) for column in range(len(matrix[0]))))
+    projection_error = range_report.frobenius_error
+    in_range_error = sqrt(sum(
+        (float(range_report.approximation[row][column]) - approximation[row][column]) ** 2
+        for row in range(len(matrix)) for column in range(len(matrix[0]))
+    ))
+    # A - A_k = (I - QQ^T)A + Q(B - B_k).  The summands are orthogonal:
+    # Q^T(I - QQ^T) = 0, so their squared Frobenius norms add.
+    pythagorean_residual = abs(error * error - projection_error * projection_error - in_range_error * in_range_error)
     return RandomizedSVDReport(
         seed=range_report.seed,
         rank=rank,
@@ -66,6 +77,9 @@ def randomized_svd_from_range_report(matrix, range_report, rank):
         singular_values=tuple(float(value) for value in singular_values),
         approximation=tuple(tuple(float(value) for value in row) for row in approximation),
         frobenius_error=error,
+        range_projection_error=projection_error,
+        in_range_truncation_error=in_range_error,
+        pythagorean_residual=pythagorean_residual,
         source_range_report=range_report,
     )
 
@@ -85,7 +99,10 @@ def randomized_svd_certificate(matrix, report, tolerance=1e-10):
             or report.oversampling != report.source_range_report.oversampling
             or report.power_iterations != report.source_range_report.power_iterations
             or report.singular_values != expected.singular_values
-            or not isclose(report.frobenius_error, expected.frobenius_error, rel_tol=tolerance, abs_tol=tolerance)):
+            or not isclose(report.frobenius_error, expected.frobenius_error, rel_tol=tolerance, abs_tol=tolerance)
+            or not isclose(report.range_projection_error, expected.range_projection_error, rel_tol=tolerance, abs_tol=tolerance)
+            or not isclose(report.in_range_truncation_error, expected.in_range_truncation_error, rel_tol=tolerance, abs_tol=tolerance)
+            or not isclose(report.pythagorean_residual, expected.pythagorean_residual, rel_tol=tolerance, abs_tol=tolerance)):
         return False
     # ``zip`` alone silently accepts a truncated or overlong approximation.
     # Shape is part of the report claim: an m-by-n reconstruction cannot be

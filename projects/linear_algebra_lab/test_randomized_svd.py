@@ -33,7 +33,13 @@ class RandomizedSVDTests(unittest.TestCase):
     def test_rank_truncation_has_a_visible_residual(self):
         report = randomized_svd_report([[5., 0.], [0., 1.]], rank=1, oversampling=1, seed=3)
         self.assertGreater(report.frobenius_error, 0.)
+        self.assertLess(report.range_projection_error, 1e-10)
+        self.assertAlmostEqual(report.in_range_truncation_error, 1.0)
+        self.assertLess(report.pythagorean_residual, 1e-10)
         self.assertTrue(randomized_svd_certificate([[5., 0.], [0., 1.]], report))
+        self.assertFalse(randomized_svd_certificate(
+            [[5., 0.], [0., 1.]], replace(report, in_range_truncation_error=0.0)
+        ))
 
     def test_same_seed_replays_the_entire_report(self):
         matrix = [[3., 1., 0.], [0., 2., 1.], [1., 0., 2.]]
