@@ -111,6 +111,7 @@ export default defineConfig({
               text: "高斯消元：解线性方程组",
               link: "/linear-algebra/gaussian-elimination",
             },
+            { text: "行列式与可逆性", link: "/linear-algebra/determinants-invertibility" },
             {
               text: "LU 分解与主元选择",
               link: "/linear-algebra/lu-factorization-pivoting",

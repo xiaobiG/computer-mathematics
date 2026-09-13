@@ -46,6 +46,7 @@ const roadmapAnchors = {
   '程序员的线性代数': [
     '/linear-algebra/vectors-dot-product',
     '/linear-algebra/linear-combinations-basis',
+    '/linear-algebra/determinants-invertibility',
     '/linear-algebra/four-fundamental-subspaces',
     '/linear-algebra/orthogonal-projection-qr',
     '/linear-algebra/gaussian-elimination',
