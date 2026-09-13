@@ -25,7 +25,8 @@ def _validate_graph(graph: Graph, start: Node) -> None:
         raise ValueError("start must be a graph key")
     for neighbors in graph.values():
         for neighbor, weight in neighbors:
-            if neighbor not in graph or weight < 0 or not isfinite(weight):
+            if (neighbor not in graph or not isinstance(weight, (int, float)) or isinstance(weight, bool)
+                    or weight < 0 or not isfinite(weight)):
                 raise ValueError("every neighbor must be a graph key with a finite non-negative weight")
 
 
@@ -52,6 +53,48 @@ def dijkstra_trace(graph: Graph, start: Node) -> tuple[dict[Node, float], dict[N
                 heappush(heap, (candidate, next(sequence), neighbor))
         events.append(DijkstraEvent(node, distance, tuple(relaxed)))
     return distances, parents, events
+
+
+def shortest_path_tie_report(graph: Graph, start: Node, target: Node) -> dict[str, object]:
+    """Expose every tight predecessor while retaining Dijkstra's one parent choice.
+
+    Strict relaxation deliberately leaves an equal-distance discovery unchanged,
+    so the stored parent is a deterministic *representative* shortest path,
+    not proof that no other shortest path exists.
+    """
+    if target not in graph:
+        raise ValueError("target must be a graph key")
+    distances, parents, events = dijkstra_trace(graph, start)
+    target_distance = distances[target]
+    tight_predecessors: list[Node] = []
+    if target_distance != inf:
+        for source, neighbors in graph.items():
+            if distances[source] == inf:
+                continue
+            for neighbor, weight in neighbors:
+                if neighbor == target and distances[source] + weight == target_distance and source not in tight_predecessors:
+                    tight_predecessors.append(source)
+    return {
+        "start": start,
+        "target": target,
+        "distance": target_distance,
+        "selected_parent": parents.get(target),
+        "selected_path": reconstruct_path(parents, target),
+        "tight_predecessors": tight_predecessors,
+        "has_multiple_shortest_predecessors": len(tight_predecessors) > 1,
+        "settlement_order": [event.node for event in events],
+        "interpretation": "parent_is_one_deterministic_shortest_path_representative",
+    }
+
+
+def shortest_path_tie_certificate(graph: Graph, start: Node, target: Node, report: object) -> bool:
+    """Replay all tight predecessor checks rather than trusting a displayed tie."""
+    if not isinstance(report, dict):
+        return False
+    try:
+        return report == shortest_path_tie_report(graph, start, target)
+    except (TypeError, ValueError):
+        return False
 
 
 def shortest_path_certificate(

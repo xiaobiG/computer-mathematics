@@ -59,6 +59,28 @@ assert shortest_path_certificate(graph, "s", distances, parents, events)["valid"
 
 <DijkstraTraceExplorer />
 
+## 等长最短路：一个 `parent` 不是全部最短路
+
+最短**距离**可以确定，但达到该距离的路径未必唯一。图 $s\to a,s\to b,a\to t,b\to t$ 的每条边权均为 1 时，$s\to a\to t$ 与 $s\to b\to t$ 都有长度 2。当前实现只在候选距离严格更小时更新 `parent`；于是按邻居与堆序，先发现的 `a` 会保留为 `t` 的父节点，但这只是一个确定性的代表，不是“`b` 路径较差”的结论。
+
+```python
+from projects.algorithm_lab.dijkstra_trace import (
+    shortest_path_tie_certificate,
+    shortest_path_tie_report,
+)
+
+graph = {"s": [("a", 1.0), ("b", 1.0)], "a": [("t", 1.0)], "b": [("t", 1.0)], "t": []}
+report = shortest_path_tie_report(graph, "s", "t")
+
+assert report["distance"] == 2.0
+assert report["selected_path"] == ["s", "a", "t"]
+assert report["tight_predecessors"] == ["a", "b"]
+assert report["has_multiple_shortest_predecessors"]
+assert shortest_path_tie_certificate(graph, "s", "t", report)
+```
+
+报告从最终距离检查每条紧边 $u\to t$ 是否满足 $dist[u]+w(u,t)=dist[t]$，并独立重放 Dijkstra 的代表父路径。若任务只需一条最短路径，这一选择足够；若要枚举、计数或在等价路径间按额外业务规则选择，必须保存紧边 DAG 或另设规则，不能从单个 `parent` 反推出全部路径。
+
 ## 失败案例与工程边界
 
 负权边会破坏证明。图 $s\to a$ 权重 $2$、$s\to b$ 权重 $5$、$b\to a$ 权重 $-10$ 中，算法可能先确定 $a=2$，却遗漏真实距离 $-5$。有负权边应使用 Bellman–Ford；有负环时最短路甚至未定义。超大图还要考虑权重溢出、稀疏存储和多源查询的预处理。

@@ -1,7 +1,10 @@
 import unittest
 from math import inf
 
-from projects.algorithm_lab.dijkstra_trace import dijkstra_trace, reconstruct_path, shortest_path_certificate
+from projects.algorithm_lab.dijkstra_trace import (
+    dijkstra_trace, reconstruct_path, shortest_path_certificate,
+    shortest_path_tie_certificate, shortest_path_tie_report,
+)
 
 
 class DijkstraTraceTests(unittest.TestCase):
@@ -48,3 +51,18 @@ class DijkstraTraceTests(unittest.TestCase):
             dijkstra_trace({"s": [("a", float("nan"))], "a": []}, "s")
         with self.assertRaises(ValueError):
             dijkstra_trace({"s": [("missing", 1.0)]}, "s")
+        with self.assertRaises(ValueError):
+            dijkstra_trace({"s": [("a", True)], "a": []}, "s")
+
+    def test_equal_shortest_paths_keep_one_parent_but_report_all_tight_predecessors(self):
+        graph = {"s": [("a", 1.0), ("b", 1.0)], "a": [("t", 1.0)], "b": [("t", 1.0)], "t": []}
+        report = shortest_path_tie_report(graph, "s", "t")
+        self.assertEqual(report["distance"], 2.0)
+        self.assertEqual(report["selected_parent"], "a")
+        self.assertEqual(report["selected_path"], ["s", "a", "t"])
+        self.assertEqual(report["tight_predecessors"], ["a", "b"])
+        self.assertTrue(report["has_multiple_shortest_predecessors"])
+        self.assertTrue(shortest_path_tie_certificate(graph, "s", "t", report))
+        altered = dict(report)
+        altered["tight_predecessors"] = ["a"]
+        self.assertFalse(shortest_path_tie_certificate(graph, "s", "t", altered))
