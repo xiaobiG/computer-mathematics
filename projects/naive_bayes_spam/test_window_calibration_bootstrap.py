@@ -14,11 +14,16 @@ class WindowCalibrationBootstrapTests(unittest.TestCase):
         report = window_calibration_bootstrap_report("old", self.reference, "new", self.current, minimum_window_size=10, repeats=40, seed=11)
         self.assertEqual(report["bootstrap_policy"]["resampling_unit"], "labeled_observation")
         self.assertEqual(report["bootstrap_policy"]["automatic_action"], "none")
+        self.assertEqual(len(report["bootstrap_ece_deltas"]), 40)
+        self.assertAlmostEqual(report["ece_delta_percentile_interval"][0], -.1)
+        self.assertAlmostEqual(report["ece_delta_percentile_interval"][1], .5)
         self.assertTrue(window_calibration_bootstrap_certificate("old", self.reference, "new", self.current, report))
 
-    def test_certificate_rejects_interval_or_seed_change(self):
+    def test_certificate_rejects_interval_delta_or_seed_change(self):
         report = window_calibration_bootstrap_report("old", self.reference, "new", self.current, minimum_window_size=10, repeats=40, seed=11)
         altered = copy.deepcopy(report); altered["ece_delta_percentile_interval"][0] = 0.0
+        self.assertFalse(window_calibration_bootstrap_certificate("old", self.reference, "new", self.current, altered))
+        altered = copy.deepcopy(report); altered["bootstrap_ece_deltas"][0] = 0.0
         self.assertFalse(window_calibration_bootstrap_certificate("old", self.reference, "new", self.current, altered))
         altered = copy.deepcopy(report); altered["bootstrap_policy"]["seed"] = 12
         self.assertFalse(window_calibration_bootstrap_certificate("old", self.reference, "new", self.current, altered))

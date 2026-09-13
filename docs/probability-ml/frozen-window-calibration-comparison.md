@@ -19,9 +19,9 @@ experiment: "重放两个冻结窗口的 ECE、Brier 差异与人工复核信号
 
 ## 直觉与定义：同一口径下的两个描述
 
-对固定 $K$ 个箱，分别算参考与当前窗口的 $operatorname{ECE}_{K,r}$、$operatorname{ECE}_{K,c}$，并记录
+对固定 $K$ 个箱，分别算参考与当前窗口的 $\operatorname{ECE}_{K,r}$、$\operatorname{ECE}_{K,c}$，并记录
 
-$$Delta_{mathrm{ECE}}=operatorname{ECE}_{K,c}-operatorname{ECE}_{K,r}.$$
+$$\Delta_{\mathrm{ECE}}=\operatorname{ECE}_{K,c}-\operatorname{ECE}_{K,r}.$$
 
 它描述同一报告口径下观测到的变化，不是模型退化的因果证明，也不是未来校准误差的置信区间。Brier 差也一并报告，因为 ECE 与平方损失回答不同问题。
 
@@ -74,7 +74,7 @@ python -m unittest projects.naive_bayes_spam.test_window_calibration_comparison
 
 1. 说明为何两个窗口要使用同一分箱数。
 2. 若当前窗口只有 8 个标签、门槛是 20，合同应输出什么？
-3. 解释 $Delta_{ECE}=0$ 为什么不表示两个窗口的分箱图完全相同。
+3. 解释 $\Delta_{ECE}=0$ 为什么不表示两个窗口的分箱图完全相同。
 4. 为人工复核写出两个可检查步骤，且不包含自动改模型。
 
 ## 练习答案提示

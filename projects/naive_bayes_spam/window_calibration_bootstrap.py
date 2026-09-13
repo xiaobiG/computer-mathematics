@@ -29,7 +29,21 @@ def window_calibration_bootstrap_report(reference_name, reference_window, curren
         deltas.append(cur_ece - ref_ece)
     alpha = (1 - float(confidence_level)) / 2
     interval = [percentile(deltas, alpha), percentile(deltas, 1 - alpha)]
-    return {"contract": CONTRACT, "point_report": point, "bootstrap_policy": {"repeats": repeats, "seed": seed, "confidence_level": float(confidence_level), "resampling_unit": "labeled_observation", "automatic_action": "none"}, "ece_delta_percentile_interval": interval, "causal_interpretation": "not_established", "interpretation": "sampling_uncertainty_for_frozen_descriptive_difference"}
+    return {
+        "contract": CONTRACT,
+        "point_report": point,
+        "bootstrap_policy": {
+            "repeats": repeats,
+            "seed": seed,
+            "confidence_level": float(confidence_level),
+            "resampling_unit": "labeled_observation",
+            "automatic_action": "none",
+        },
+        "bootstrap_ece_deltas": deltas,
+        "ece_delta_percentile_interval": interval,
+        "causal_interpretation": "not_established",
+        "interpretation": "sampling_uncertainty_for_frozen_descriptive_difference",
+    }
 
 
 def window_calibration_bootstrap_certificate(reference_name, reference_window, current_name, current_window, report):

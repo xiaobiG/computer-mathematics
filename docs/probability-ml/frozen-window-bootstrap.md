@@ -17,13 +17,30 @@ experiment: "window-calibration-bootstrap/v1：固定种子下 ECE 差的百分�
 
 参考窗口与当前窗口的 ECE 差为 $\hat\Delta$。这只是一次有限样本的观察：若同一生成过程重新抽样，$\hat\Delta$ 会变化。bootstrap 从各自窗口内有放回抽取同样数量的**带标签观测**，每次重算 $\hat\Delta^{*(b)}$，用固定分位数描述该估计器在这个重采样模型下的变化。
 
-## 定义与算法
+## 定义与算法：从点差到重复抽样
 
-对 $B$ 次重采样，百分位区间为
+先由冻结窗口报告得到点估计
 
 $$[q_{\alpha/2}(\hat\Delta^*),q_{1-\alpha/2}(\hat\Delta^*)].$$
 
+其中 $\hat\Delta=\operatorname{ECE}(\mathrm{current})-\operatorname{ECE}(\mathrm{reference})$。第 $b$ 次重复在参考窗口和当前窗口内，各自独立、有放回地抽取与原窗口同样多的行；若索引序列为 $I_r^{(b)}$、$I_c^{(b)}$，则
+
+$$
+\hat\Delta^{*(b)}=
+\operatorname{ECE}(W_c[I_c^{(b)}])-
+\operatorname{ECE}(W_r[I_r^{(b)}]),
+\qquad b=1,\ldots,B.
+$$
+
+排序这 $B$ 个差后，报告按固定的最近秩规则取 $q_{\alpha/2}$ 和 $q_{1-\alpha/2}$；不是把点估计加减某个常数。报告同时保存完整的 `bootstrap_ece_deltas`，因此读者可以检查端点确实来自哪一组重复值。
+
 本实验预先固定分箱、窗口、最小样本量、$B$、种子、置信水平与“观测级重采样”单位。种子不制造统计真实性，却让同一教学报告可以精确重放。窗口存在用户内相关、时间依赖或事后选组时，观测级 bootstrap 不再匹配数据生成过程。
+
+## 一个固定样本：区间为什么会比点差更宽
+
+下面的参考窗口预测恒为 $0.5$、标签一半为 1；当前窗口预测恒为 $0.8$、标签仍一半为 1。原窗口的 ECE 分别为 $0$ 与 $0.3$，所以点差 $\hat\Delta=0.3$。但重采样后，每次样本中的正类比例会变：当前窗口抽到更多正类时，$0.8$ 看起来较校准；抽到更少正类时则更差。因此固定 `repeats=40, seed=11` 下，报告的 95% 百分位端点为 $[-0.1,0.5]$。
+
+这个结果不表示“差异有 95% 的概率落在区间内”，也不抵消点差。它只描述在“窗口内带标签观测可交换”的明确模型下，重抽这些有限记录会怎样改变估计器。
 
 ## 可运行实验
 
@@ -36,15 +53,17 @@ from projects.naive_bayes_spam.labeled_window_monitoring import LABELED_WINDOW_C
 old = {"contract_version": LABELED_WINDOW_CONTRACT_VERSION, "probabilities": [0.5] * 10, "labels": [1] * 5 + [0] * 5}
 new = {"contract_version": LABELED_WINDOW_CONTRACT_VERSION, "probabilities": [0.8] * 10, "labels": [1] * 5 + [0] * 5}
 report = window_calibration_bootstrap_report("old", old, "new", new, minimum_window_size=10, repeats=40, seed=11)
+assert len(report["bootstrap_ece_deltas"]) == 40
+assert [round(value, 1) for value in report["ece_delta_percentile_interval"]] == [-.1, .5]
 assert report["bootstrap_policy"]["automatic_action"] == "none"
 assert window_calibration_bootstrap_certificate("old", old, "new", new, report)
 ```
 
-运行 `python -m unittest projects.naive_bayes_spam.test_window_calibration_bootstrap`。证书从窗口、策略、种子重建全部重采样序列与区间；篡改区间端点或种子都会失败。
+运行 `python -m unittest projects.naive_bayes_spam.test_window_calibration_bootstrap`。证书从窗口、策略、种子重建全部 ECE 差序列与区间；篡改任一次差、区间端点或种子都会失败。
 
 ## 正确性与边界
 
-在固定伪随机生成器与输入下，重放得到同一索引序列、ECE 差列表和分位数。它证明报告忠实于声明的重采样设计，不证明总体差异方向、因果变化或未来校准质量。`automatic_action` 固定为 `none`。
+在固定伪随机生成器与输入下，重放得到同一 ECE 差列表和分位数。它证明报告忠实于声明的重采样设计，不证明总体差异方向、因果变化或未来校准质量。`automatic_action` 固定为 `none`。
 
 ## 失败案例与工程边界
 

@@ -26,6 +26,10 @@ function proseOnly(source) {
     .replace(/`[^`\r\n]*`/g, '')
 }
 
+function inlineCode(source) {
+  return source.match(/`[^`\r\n]*`/g) ?? []
+}
+
 function formulasIn(source) {
   const formulas = []
   let remaining = source
@@ -62,6 +66,15 @@ const errors = []
 for (const path of await markdownFiles(docsRoot)) {
   const source = proseOnly(await readFile(path, 'utf8'))
   const label = relative(docsRoot, path)
+  // markdown-it-katex processes inline math before inline-code rendering in
+  // this site.  A bare, argument-less \operatorname inside backticks can
+  // therefore still leak into KaTeX and create an HMR overlay.  Detect this
+  // concrete malformed macro without rejecting valid literal teaching syntax.
+  for (const code of inlineCode(await readFile(path, 'utf8'))) {
+    if (/(^|[^\\])\\operatorname(?!\{)/.test(code)) {
+      errors.push(`${label}: 行内代码包含不完整的 operatorname 宏 ${code}`)
+    }
+  }
   // The configured markdown-it-katex plugin recognizes only dollar
   // delimiters.  LaTeX-style \(...\) and \[...\] remain literal text in the
   // published site, so reject them instead of merely accepting their TeX.

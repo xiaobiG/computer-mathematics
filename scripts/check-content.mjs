@@ -323,6 +323,8 @@ for (const path of files) {
   const formulaTypos = [
     ['遗漏反斜杠的 qquad', /(^|[^\\])qquad/],
     ['求和下标与因子粘连的 \\sum_up_', /\\sum_up_/],
+    ['遗漏反斜杠的 operatorname', /(^|[^\\])operatorname\{/],
+    ['遗漏反斜杠的 Delta', /(^|[^\\])Delta(?:_|\{)/],
   ]
   for (const [name, pattern] of formulaTypos) {
     if (pattern.test(source)) {
