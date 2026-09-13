@@ -271,6 +271,8 @@ def relation_batch_runtime_measurement(domain, left_pairs, right_pairs, query_so
     if clock_ns is not None and not callable(clock_ns):
         raise ValueError("clock_ns must be callable when supplied")
     members, left_outgoing, right_outgoing = _batch_query_inputs(domain, left_pairs, right_pairs, query_sources)
+    normalized_left = [list(pair) for pair in _pairs(left_pairs, members)]
+    normalized_right = [list(pair) for pair in _pairs(right_pairs, members)]
     for _ in range(warmup_runs):
         _sparse_two_hop_batch_outputs(members, left_outgoing, right_outgoing, query_sources)
         _bitset_cached_batch_outputs(members, left_outgoing, right_outgoing, query_sources)
@@ -293,6 +295,9 @@ def relation_batch_runtime_measurement(domain, left_pairs, right_pairs, query_so
         raise ValueError("clock_ns must not move backwards within a measurement")
     return {
         "contract": RUNTIME_MEASUREMENT_CONTRACT,
+        "domain": members,
+        "left_pairs": normalized_left,
+        "right_pairs": normalized_right,
         "query_sources": list(query_sources),
         "repetitions": repetitions,
         "warmup_runs": warmup_runs,
@@ -311,6 +316,45 @@ def relation_batch_runtime_measurement(domain, left_pairs, right_pairs, query_so
         "interpretation": "local_runtime_measurement_not_cross_machine_throughput_or_concurrent_cache_guarantee",
         "automatic_action": "none",
     }
+
+
+def relation_batch_runtime_measurement_structure_certificate(domain, left_pairs, right_pairs, query_sources, report):
+    """Verify the frozen workload and outputs without pretending to replay time.
+
+    Wall-clock samples are observations of one environment and cannot honestly
+    be recomputed later.  This certificate instead binds exactly the relation
+    snapshot, batch, output equivalence and sample-summary arithmetic.
+    """
+    if not isinstance(report, dict) or report.get("contract") != RUNTIME_MEASUREMENT_CONTRACT:
+        return False
+    try:
+        members, left_outgoing, right_outgoing = _batch_query_inputs(domain, left_pairs, right_pairs, query_sources)
+        normalized_left = [list(pair) for pair in _pairs(left_pairs, members)]
+        normalized_right = [list(pair) for pair in _pairs(right_pairs, members)]
+    except ValueError:
+        return False
+    sparse_outputs = _sparse_two_hop_batch_outputs(members, left_outgoing, right_outgoing, query_sources)
+    bitset_outputs = _bitset_cached_batch_outputs(members, left_outgoing, right_outgoing, query_sources)
+    repetitions = report.get("repetitions")
+    sparse_samples, bitset_samples = report.get("sparse_two_hop_elapsed_ns"), report.get("bitset_cached_elapsed_ns")
+    if (not isinstance(repetitions, int) or isinstance(repetitions, bool) or repetitions < 3
+            or not isinstance(sparse_samples, list) or not isinstance(bitset_samples, list)
+            or len(sparse_samples) != repetitions or len(bitset_samples) != repetitions
+            or any(not isinstance(sample, int) or isinstance(sample, bool) or sample < 0
+                   for sample in sparse_samples + bitset_samples)):
+        return False
+    return (
+        report.get("domain") == members
+        and report.get("left_pairs") == normalized_left
+        and report.get("right_pairs") == normalized_right
+        and report.get("query_sources") == list(query_sources)
+        and report.get("outputs") == sparse_outputs == bitset_outputs
+        and report.get("verification") == {"sparse_and_bitset_outputs_match_each_repetition": True}
+        and report.get("sparse_two_hop_median_ns") == median(sparse_samples)
+        and report.get("bitset_cached_median_ns") == median(bitset_samples)
+        and report.get("interpretation") == "local_runtime_measurement_not_cross_machine_throughput_or_concurrent_cache_guarantee"
+        and report.get("automatic_action") == "none"
+    )
 
 
 def relation_cache_invalidation_report(domain, left_pairs, right_before, right_after, query_sources, word_bits):

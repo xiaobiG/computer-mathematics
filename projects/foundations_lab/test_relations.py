@@ -4,7 +4,7 @@ import unittest
 from projects.foundations_lab.relations import (
     bitset_batch_relation_query_certificate, bitset_batch_relation_query_report,
     relation_cache_invalidation_certificate, relation_cache_invalidation_report,
-    relation_batch_runtime_measurement,
+    relation_batch_runtime_measurement, relation_batch_runtime_measurement_structure_certificate,
     boolean_relation_composition_certificate, boolean_relation_composition_report,
     finite_relation_certificate, finite_relation_report, relation_reachability_certificate, relation_reachability_report,
 )
@@ -101,6 +101,19 @@ class RelationTests(unittest.TestCase):
         self.assertEqual(report["outputs"], [["c"], ["c"], ["a"]])
         self.assertTrue(report["verification"]["sparse_and_bitset_outputs_match_each_repetition"])
         self.assertEqual(report["automatic_action"], "none")
+        self.assertTrue(relation_batch_runtime_measurement_structure_certificate(
+            ["a", "b", "c"], [["a", "b"], ["b", "c"]], [["b", "c"], ["c", "a"]], ["a", "a", "b"], report,
+        ))
+        tampered = copy.deepcopy(report)
+        tampered["left_pairs"] = [["a", "c"]]
+        self.assertFalse(relation_batch_runtime_measurement_structure_certificate(
+            ["a", "b", "c"], [["a", "b"], ["b", "c"]], [["b", "c"], ["c", "a"]], ["a", "a", "b"], tampered,
+        ))
+        tampered = copy.deepcopy(report)
+        tampered["sparse_two_hop_median_ns"] = 0
+        self.assertFalse(relation_batch_runtime_measurement_structure_certificate(
+            ["a", "b", "c"], [["a", "b"], ["b", "c"]], [["b", "c"], ["c", "a"]], ["a", "a", "b"], tampered,
+        ))
         with self.assertRaisesRegex(ValueError, "at least 3"):
             relation_batch_runtime_measurement(["a"], [], [], ["a"], repetitions=2)
         with self.assertRaisesRegex(ValueError, "backwards"):

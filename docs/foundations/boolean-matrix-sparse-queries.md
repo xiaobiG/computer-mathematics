@@ -106,7 +106,7 @@ assert report["verification"]["sparse_and_bitset_outputs_match_each_repetition"]
 print(report["sparse_two_hop_median_ns"], report["bitset_cached_median_ns"])
 ```
 
-报告同时记录 Python 实现/版本与平台、预热次数、全部样本和 `automatic_action="none"`。`perf_counter_ns` 只保证短时段的高分辨率差值，并不让跨机器、负载、解释器版本或并发情形的中位数可直接比较；[Python 时间文档](https://docs.python.org/3/library/time.html#time.perf_counter_ns)也明确其参考点没有含义。故它是可复跑的**测量协议**，不是摊还复杂度证明、吞吐量承诺或并发缓存正确性。
+报告绑定完整左右关系、源批次、Python 实现/版本、平台、预热与全部样本；`relation_batch_runtime_measurement_structure_certificate` 可重建工作负载、输出和中位数，却不会假装重放真实计时。`perf_counter_ns` 只保证短时段的高分辨率差值，并不让跨机器、负载、解释器版本或并发情形的中位数可直接比较；[Python 时间文档](https://docs.python.org/3/library/time.html#time.perf_counter_ns)也明确其参考点没有含义。故它是可复跑的**测量协议**，不是摊还复杂度证明、吞吐量承诺或并发缓存正确性。
 
 ## 失败案例与工程边界
 
