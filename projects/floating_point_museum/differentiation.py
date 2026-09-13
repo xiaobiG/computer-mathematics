@@ -8,6 +8,7 @@ from typing import Callable, Iterable
 
 
 Function = Callable[[float], float]
+ComplexFunction = Callable[[complex], complex]
 
 
 @dataclass(frozen=True)
@@ -43,6 +44,17 @@ def _function_value(function: Function, point: float) -> float:
     return value
 
 
+def _complex_function_value(function: ComplexFunction, point: complex) -> complex:
+    """Evaluate an analytic teaching function without discarding its imaginary part."""
+    try:
+        value = complex(function(point))
+    except (TypeError, ValueError, OverflowError) as error:
+        raise ValueError("complex function is not evaluable at the required point") from error
+    if not isfinite(value.real) or not isfinite(value.imag):
+        raise ValueError("complex function must be finite at the required point")
+    return value
+
+
 def central_difference(function: Function, point: float, step: float) -> float:
     """Approximate f'(x) by the second-order symmetric finite difference."""
     point = _finite_real(point, "point")
@@ -60,6 +72,21 @@ def forward_difference(function: Function, point: float, step: float) -> float:
     if step <= 0:
         raise ValueError("step must be positive")
     return (_function_value(function, point + step) - _function_value(function, point)) / step
+
+
+def complex_step_difference(function: ComplexFunction, point: float, step: float) -> float:
+    """Approximate an analytic f'(x) with Im(f(x + ih)) / h.
+
+    This deliberately has a separate callable contract from real finite
+    differences: calling a real-only function through a complex step is a
+    meaningful failure, not a result that should be coerced back to float.
+    """
+    point = _finite_real(point, "point")
+    step = _finite_real(step, "step")
+    if step <= 0:
+        raise ValueError("step must be positive")
+    value = _complex_function_value(function, complex(point, step))
+    return value.imag / step
 
 
 def finite_difference_stencil_comparison(
@@ -130,3 +157,60 @@ def central_difference_report(
         "coarse_error_ratio": coarse_error_ratio,
         "certificate": certificate,
     }
+
+
+def complex_step_comparison_report(
+    real_function: Function,
+    complex_function: ComplexFunction,
+    exact_derivative: Function,
+    point: float,
+    step: float,
+) -> dict[str, object]:
+    """Compare equal-step real and complex formulas on a supplied oracle.
+
+    The report demonstrates cancellation avoidance only for the declared
+    analytic complex extension.  It neither proves that extension is
+    holomorphic nor chooses a production differentiation method.
+    """
+    point = _finite_real(point, "point")
+    step = _finite_real(step, "step")
+    if step <= 0:
+        raise ValueError("step must be positive")
+    exact = _function_value(exact_derivative, point)
+    central = central_difference(real_function, point, step)
+    complex_step = complex_step_difference(complex_function, point, step)
+    central_estimate = DifferenceEstimate("central", central, abs(central - exact))
+    complex_estimate = DifferenceEstimate("complex_step", complex_step, abs(complex_step - exact))
+    certificate = {
+        "same_positive_step": step > 0,
+        "complex_step_avoids_real_subtraction_in_this_example": (
+            complex_estimate.absolute_error < central_estimate.absolute_error
+        ),
+        "complex_step_matches_oracle_to_1e-12": complex_estimate.absolute_error < 1e-12,
+    }
+    certificate["valid"] = all(certificate.values())
+    return {
+        "point": point,
+        "step": step,
+        "exact_derivative": exact,
+        "central": central_estimate,
+        "complex_step": complex_estimate,
+        "certificate": certificate,
+    }
+
+
+def complex_step_comparison_certificate(
+    real_function: Function,
+    complex_function: ComplexFunction,
+    exact_derivative: Function,
+    point: float,
+    step: float,
+    report: dict[str, object],
+) -> bool:
+    """Rebuild the comparison so displayed errors cannot certify themselves."""
+    if not isinstance(report, dict):
+        return False
+    expected = complex_step_comparison_report(
+        real_function, complex_function, exact_derivative, point, step,
+    )
+    return report == expected and bool(expected["certificate"]["valid"])

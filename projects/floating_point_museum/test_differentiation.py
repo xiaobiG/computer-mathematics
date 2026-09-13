@@ -1,9 +1,14 @@
 import math
+import cmath
+from copy import deepcopy
 import unittest
 
 from projects.floating_point_museum.differentiation import (
     central_difference,
     central_difference_report,
+    complex_step_comparison_certificate,
+    complex_step_comparison_report,
+    complex_step_difference,
     finite_difference_stencil_comparison,
     forward_difference,
 )
@@ -36,6 +41,27 @@ class DifferentiationTests(unittest.TestCase):
         self.assertFalse(boundary["central_available"])
         self.assertIsNone(boundary["central"])
         self.assertGreater(boundary["forward"].absolute_error, 0.0)
+
+    def test_complex_step_avoids_real_subtraction_only_for_declared_complex_extension(self):
+        report = complex_step_comparison_report(
+            math.sin, cmath.sin, math.cos, point=1.0, step=1e-16,
+        )
+        self.assertTrue(report["certificate"]["valid"])
+        self.assertLess(report["complex_step"].absolute_error, report["central"].absolute_error)
+        self.assertTrue(complex_step_comparison_certificate(
+            math.sin, cmath.sin, math.cos, 1.0, 1e-16, report,
+        ))
+
+        tampered = deepcopy(report)
+        tampered["complex_step"] = tampered["central"]
+        self.assertFalse(complex_step_comparison_certificate(
+            math.sin, cmath.sin, math.cos, 1.0, 1e-16, tampered,
+        ))
+
+        with self.assertRaises(ValueError):
+            complex_step_difference(math.sin, 1.0, 1e-16)
+        with self.assertRaises(ValueError):
+            complex_step_difference(lambda _: complex(float("inf"), 0.0), 1.0, 1e-16)
 
 
 if __name__ == "__main__":
