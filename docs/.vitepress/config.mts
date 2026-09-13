@@ -268,6 +268,10 @@ export default defineConfig({
               link: "/probability-ml/laws-of-large-numbers-clt",
             },
             {
+              text: "时间相关观测的样本均值：两状态 Markov 链方差",
+              link: "/probability-ml/markov-dependent-sample-mean",
+            },
+            {
               text: "抽样误差与置信区间",
               link: "/probability-ml/confidence-intervals-sampling",
             },

@@ -9,7 +9,7 @@
 | 0 · 预备 | 事件、函数与有限求和 | 用可枚举样本空间表达概率 | [符号、函数、求和与 Python](/foundations/functions-summation-python) → [概率空间与事件](/probability-ml/probability-space-events) |
 | 1 · 核心 | 条件概率、随机变量、期望与方差 | 正确解释概率与平均行为 | [条件概率与贝叶斯更新](/probability-ml/bayes) → [期望与方差](/probability-ml/expectation-variance) |
 | 2 · 推导与算法 | 似然、先验、交叉熵与估计 | 从数据推导参数与预测规则 | [最大似然](/probability-ml/maximum-likelihood) → [共轭先验与后验预测](/probability-ml/conjugate-priors-predictive) |
-| 3 · 工程与前沿 | 校准、再校准、层级部分汇聚、漂移监控、带标签性能审计、联合证据、子群体不确定性、分组校准、冻结窗口比较与 bootstrap、失访观测机制、重要性采样、MCMC | 审计不确定性、相关样本、选择偏差与模型分数 | [多组概率的部分汇聚](/probability-ml/hierarchical-beta-binomial) → [概率校准与可靠性曲线](/probability-ml/calibration-reliability) → [概率再校准](/probability-ml/recalibration) → [数据漂移监控](/probability-ml/data-drift-monitoring) → [带标签窗口性能审计](/probability-ml/labeled-window-performance-degradation) → [联合证据](/probability-ml/joint-input-label-evidence) → [子群体性能](/probability-ml/subgroup-performance-uncertainty) → [分组校准](/probability-ml/subgroup-calibration-uncertainty) → [冻结窗口比较](/probability-ml/frozen-window-calibration-comparison) → [冻结窗口 Bootstrap](/probability-ml/frozen-window-bootstrap) → [时间块 Bootstrap](/probability-ml/block-bootstrap-calibration) → [簇级 Bootstrap](/probability-ml/cluster-bootstrap-calibration) → [时间分层簇级 Bootstrap](/probability-ml/time-stratified-cluster-bootstrap) → [失访与逆概率加权](/probability-ml/attrition-observation-ipw) |
+| 3 · 工程与前沿 | 校准、再校准、层级部分汇聚、时间相关方差、漂移监控、带标签性能审计、联合证据、子群体不确定性、分组校准、冻结窗口比较与 bootstrap、失访观测机制、重要性采样、MCMC | 审计不确定性、相关样本、选择偏差与模型分数 | [多组概率的部分汇聚](/probability-ml/hierarchical-beta-binomial) → [两状态 Markov 链方差](/probability-ml/markov-dependent-sample-mean) → [概率校准与可靠性曲线](/probability-ml/calibration-reliability) → [概率再校准](/probability-ml/recalibration) → [数据漂移监控](/probability-ml/data-drift-monitoring) → [带标签窗口性能审计](/probability-ml/labeled-window-performance-degradation) → [联合证据](/probability-ml/joint-input-label-evidence) → [子群体性能](/probability-ml/subgroup-performance-uncertainty) → [分组校准](/probability-ml/subgroup-calibration-uncertainty) → [冻结窗口比较](/probability-ml/frozen-window-calibration-comparison) → [时间块 Bootstrap](/probability-ml/block-bootstrap-calibration) → [簇级 Bootstrap](/probability-ml/cluster-bootstrap-calibration) → [时间分层簇级 Bootstrap](/probability-ml/time-stratified-cluster-bootstrap) → [失访与逆概率加权](/probability-ml/attrition-observation-ipw) |
 
 若你的目标是机器学习建模，至少完成层 1 后再进入最大似然；层 3 的实验仍依赖前面建立的概率语义与边界。
 
@@ -31,6 +31,7 @@
 - [联合、边缘与条件分布](/probability-ml/joint-marginal-conditional)：有限联合表、边缘化、条件化与独立性证书；
 - [协方差、相关性与特征](/probability-ml/covariance-correlation)：共同变化、协方差矩阵、PCA 与因果边界；
 - [大数定律与中心极限定理](/probability-ml/laws-of-large-numbers-clt)：样本均值、标准误缩放、近似正态与独立性边界；
+- [时间相关观测的样本均值](/probability-ml/markov-dependent-sample-mean)：两状态平稳 Markov 链的滞后协方差、精确方差与有效样本量；
 - [抽样误差、置信区间与覆盖率](/probability-ml/confidence-intervals-sampling)：标准误、覆盖率、bootstrap 与实验设计边界；
 - [最大似然](/probability-ml/maximum-likelihood)：样本均值 MLE、经验交叉熵/KL 分解与 MAP/预测的区别；
 - [交叉熵与 KL 散度](/probability-ml/cross-entropy-kl)：概率承诺、分布比较与零概率边界；
