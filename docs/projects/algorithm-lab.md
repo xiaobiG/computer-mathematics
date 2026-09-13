@@ -19,6 +19,7 @@ description: 用图搜索、拓扑排序、最大流轨迹和 3-SAT 验证器连
 - [P、NP 与多项式归约](/discrete-math/p-np-reductions)：候选解验证为何不等于快速搜索，并重放独立集到 CNF-SAT 的归约双向性。
 - [Floyd–Warshall](/discrete-math/floyd-warshall)：重放允许中间点集合逐步扩展的全源最短路动态规划。
 - [递推关系与分治复杂度](/discrete-math/recurrences)：重放递归树的逐层分割、线性工作与总量，并和实际比较次数区分。
+- [组合计数、容斥与鸽巢原理](/discrete-math/combinatorics-counting)：重放有限集合的交替交集项，并为强制碰撞给出共享桶见证。
 - [渐进复杂度](/discrete-math/asymptotic-complexity)：用操作计数和双指针轨迹区分线性、二次与指数增长。
 - [集合、关系、等价类与偏序](/discrete-math/sets-relations-orders)：用性质报告和等价类划分验证有限关系。
 - [Dijkstra 交互轨迹实验](/discrete-math/dijkstra)：在浏览器中逐步查看最小堆、确定集合、松弛与过期条目，再用堆的确定顺序与松弛轨迹验证非负最短路。

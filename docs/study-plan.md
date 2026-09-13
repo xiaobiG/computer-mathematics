@@ -12,7 +12,7 @@ search: false
 
 | 周次 | 主题 | 必读 | 本周产出 |
 | --- | --- | --- | --- |
-| 1 | 正确性与规模 | [循环不变量](/discrete-math/loop-invariants)、[渐进复杂度](/discrete-math/asymptotic-complexity) | 为二分查找写出不变量 |
+| 1 | 正确性与规模 | [循环不变量](/discrete-math/loop-invariants)、[组合计数、容斥与鸽巢原理](/discrete-math/combinatorics-counting)、[渐进复杂度](/discrete-math/asymptotic-complexity) | 为二分查找写出不变量，并解释 $2^n$ 状态从何而来 |
 | 2 | 图与递归 | [BFS](/discrete-math/breadth-first-search)、[递推关系](/discrete-math/recurrences) | 输出无权图的一条最短路径 |
 | 3 | 向量与矩阵 | [向量与点积](/linear-algebra/vectors-dot-product)、[矩阵乘法](/linear-algebra/matrix-multiplication) | 比较余弦相似度与欧氏距离 |
 | 4 | 方程与拟合 | [高斯消元](/linear-algebra/gaussian-elimination)、[最小二乘](/linear-algebra/least-squares) | 用数据拟合一条直线 |

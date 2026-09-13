@@ -18,7 +18,7 @@
 1. 命题逻辑与程序条件
 2. 集合、关系与映射
 3. 证明方法与循环不变量
-4. 组合计数与递推
+4. 组合计数、容斥与递推
 5. 渐进复杂度
 6. 图论、最短路与网络流
 
@@ -29,6 +29,7 @@
 - [图、树、二分图与拓扑排序](/discrete-math/graph-foundations-topological-sort)：图表示、DFS、树不变量、二分染色与依赖环；
 - [图的两种存储：邻接表与邻接矩阵](/discrete-math/graph-representations)：同一边表如何变成两种内存表示，并按操作成本选择；
 - [循环不变量](/discrete-math/loop-invariants)：二分查找为何不会漏掉答案；
+- [组合计数、容斥与鸽巢原理](/discrete-math/combinatorics-counting)：从排列组合、重叠集合到哈希碰撞的有限计数模型；
 - [动态数组的摊还分析](/discrete-math/amortized-dynamic-array)：容量翻倍、势能函数与任意 append 前缀的严格复制成本上界；
 - [Dijkstra](/discrete-math/dijkstra)：非负边权为何能贪心，以及负权边为何失败；页面内可逐步操作最小堆与松弛轨迹实验；
 - [BFS](/discrete-math/breadth-first-search)：队列分层不变量与无权图最短路；

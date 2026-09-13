@@ -180,6 +180,10 @@ export default defineConfig({
               link: "/discrete-math/asymptotic-complexity",
             },
             {
+              text: "组合计数、容斥与鸽巢原理",
+              link: "/discrete-math/combinatorics-counting",
+            },
+            {
               text: "动态数组的摊还分析：容量翻倍为何仍是常数",
               link: "/discrete-math/amortized-dynamic-array",
             },
