@@ -6,16 +6,37 @@ from decimal import Decimal, localcontext
 from math import isfinite, sqrt
 
 
-def _validate_quadratic(a: float, b: float, c: float) -> None:
+def _validate_coefficients(a: float, b: float, c: float) -> None:
     if any(not isfinite(value) for value in (a, b, c)):
         raise ValueError("quadratic coefficients must be finite")
     if a == 0:
         raise ValueError("a must be nonzero for a quadratic")
+
+
+def _validate_quadratic(a: float, b: float, c: float) -> None:
+    _validate_coefficients(a, b, c)
     discriminant = b * b - 4.0 * a * c
     if not isfinite(discriminant):
         raise ValueError("binary64 discriminant must be finite; scale coefficients before this teaching experiment")
     if discriminant < 0:
         raise ValueError("this teaching experiment requires real roots")
+
+
+def scale_quadratic_coefficients(a: float, b: float, c: float) -> tuple[tuple[float, float, float], float]:
+    """Normalize by the largest coefficient without silently deleting a term.
+
+    Multiplying all coefficients by a nonzero scalar preserves the roots.
+    Normalization makes each magnitude at most one, so the binary64
+    discriminant cannot overflow merely from squaring a coefficient.  A
+    nonzero term that underflows to zero would change the polynomial, so this
+    deliberately fails rather than claiming a scaling fix.
+    """
+    _validate_coefficients(a, b, c)
+    largest = max(abs(a), abs(b), abs(c))
+    scaled = (a / largest, b / largest, c / largest)
+    if any(original != 0.0 and normalized == 0.0 for original, normalized in zip((a, b, c), scaled)):
+        raise ValueError("coefficient normalization underflowed a nonzero term; this teaching scaler refuses to change the polynomial")
+    return scaled, largest
 
 
 def direct_quadratic_roots(a: float, b: float, c: float) -> tuple[float, float]:
@@ -43,13 +64,24 @@ def stable_quadratic_roots(a: float, b: float, c: float) -> tuple[float, float]:
     return q / a, c / q
 
 
+def scaled_stable_quadratic_roots(a: float, b: float, c: float) -> tuple[tuple[float, float], tuple[float, float, float], float]:
+    """Use the stable formula after an auditable, root-preserving scaling."""
+    scaled, largest = scale_quadratic_coefficients(a, b, c)
+    roots = stable_quadratic_roots(*scaled)
+    if any(not isfinite(root) for root in roots):
+        raise ValueError("scaled computation produced a non-finite root")
+    return roots, scaled, largest
+
+
 def decimal_reference_roots(a: float, b: float, c: float) -> tuple[float, float]:
     """Use high-precision decimal arithmetic as a classroom reference."""
-    _validate_quadratic(a, b, c)
+    _validate_coefficients(a, b, c)
     with localcontext() as context:
         context.prec = 80
         coefficient_a, coefficient_b, coefficient_c = (Decimal(str(value)) for value in (a, b, c))
         discriminant = coefficient_b * coefficient_b - Decimal(4) * coefficient_a * coefficient_c
+        if discriminant < 0:
+            raise ValueError("this teaching experiment requires real roots")
         root_discriminant = discriminant.sqrt()
         denominator = Decimal(2) * coefficient_a
         return (
@@ -99,5 +131,42 @@ def quadratic_stability_report_certificate(a: float, b: float, c: float, report:
         return False
     try:
         return report == quadratic_stability_report(a, b, c)
+    except (TypeError, ValueError):
+        return False
+
+
+def quadratic_scaling_report(a: float, b: float, c: float) -> dict[str, object]:
+    """Show when coefficient normalization recovers a finite stable path."""
+    _validate_coefficients(a, b, c)
+    scaled_roots, scaled_coefficients, largest_coefficient = scaled_stable_quadratic_roots(a, b, c)
+    reference_roots = decimal_reference_roots(a, b, c)
+    scaled_small = min(scaled_roots, key=abs)
+    reference_small = min(reference_roots, key=abs)
+    unscaled_discriminant = b * b - 4.0 * a * c
+    return {
+        "original_coefficients": (a, b, c),
+        "scaled_coefficients": scaled_coefficients,
+        "largest_coefficient": largest_coefficient,
+        "scaled_stable_roots": scaled_roots,
+        "reference_roots": reference_roots,
+        "scaled_small_root_relative_error": _relative_error(scaled_small, reference_small),
+        "certificate": {
+            "unscaled_binary64_discriminant_is_finite": isfinite(unscaled_discriminant),
+            "scaling_preserved_nonzero_coefficients": all(
+                original == 0.0 or normalized != 0.0
+                for original, normalized in zip((a, b, c), scaled_coefficients)
+            ),
+            "scaled_coefficients_are_bounded_by_one": all(abs(value) <= 1.0 for value in scaled_coefficients),
+            "automatic_production_solver_claim": False,
+        },
+    }
+
+
+def quadratic_scaling_report_certificate(a: float, b: float, c: float, report: object) -> bool:
+    """Replay scaling, roots, reference and every displayed boundary field."""
+    if not isinstance(report, dict):
+        return False
+    try:
+        return report == quadratic_scaling_report(a, b, c)
     except (TypeError, ValueError):
         return False

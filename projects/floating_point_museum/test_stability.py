@@ -2,8 +2,12 @@ import copy
 import unittest
 
 from projects.floating_point_museum.stability import (
+    quadratic_scaling_report,
+    quadratic_scaling_report_certificate,
     quadratic_stability_report,
     quadratic_stability_report_certificate,
+    scale_quadratic_coefficients,
+    scaled_stable_quadratic_roots,
     stable_quadratic_roots,
 )
 
@@ -39,3 +43,18 @@ class StabilityTests(unittest.TestCase):
             quadratic_stability_report(1.0, 1e308, 1.0)
         with self.assertRaisesRegex(ValueError, "discriminant must be finite"):
             stable_quadratic_roots(1.0, -1e308, 1.0)
+
+    def test_auditable_scaling_recovers_a_finite_path_without_dropping_terms(self):
+        report = quadratic_scaling_report(1.0, 1e308, 1.0)
+        self.assertFalse(report["certificate"]["unscaled_binary64_discriminant_is_finite"])
+        self.assertTrue(report["certificate"]["scaling_preserved_nonzero_coefficients"])
+        self.assertTrue(report["certificate"]["scaled_coefficients_are_bounded_by_one"])
+        self.assertFalse(report["certificate"]["automatic_production_solver_claim"])
+        self.assertEqual(report["scaled_coefficients"], (1e-308, 1.0, 1e-308))
+        self.assertLess(report["scaled_small_root_relative_error"], 1e-12)
+        self.assertTrue(quadratic_scaling_report_certificate(1.0, 1e308, 1.0, report))
+        self.assertEqual(scaled_stable_quadratic_roots(1.0, 1e308, 1.0)[0], report["scaled_stable_roots"])
+
+    def test_scaling_rejects_a_nonzero_term_that_would_underflow_away(self):
+        with self.assertRaisesRegex(ValueError, "underflowed a nonzero term"):
+            scale_quadratic_coefficients(1.0, 1e308, 5e-324)
