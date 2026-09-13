@@ -6,6 +6,8 @@ from projects.algorithm_lab.batch_shortest_path_updates import (
     ordered_shortest_path_updates_report,
     versioned_shortest_path_query_certificate,
     versioned_shortest_path_query_report,
+    replacement_path_cache_certificate,
+    replacement_path_cache_report,
 )
 
 
@@ -46,6 +48,15 @@ class OrderedShortestPathUpdateTests(unittest.TestCase):
         self.assertTrue(versioned_shortest_path_query_certificate(state(), updates, [0, 1, 2, 0], report))
         report["queries"][1]["visible_version"] = 2
         self.assertFalse(versioned_shortest_path_query_certificate(state(), updates, [0, 1, 2, 0], report))
+
+    def test_replacement_cache_separates_precomputation_and_lookup(self):
+        report = replacement_path_cache_report(state(), ["fast", "fast", "slow-parallel"])
+        self.assertEqual(report["cache"]["fast"]["target_distance"], 10.0)
+        self.assertEqual([item["target_distance"] for item in report["queries"]], [10.0, 10.0, 2.0])
+        self.assertEqual(report["work"], {"precomputation_full_dijkstra_runs": 4, "cache_reads": 3})
+        self.assertTrue(replacement_path_cache_certificate(state(), ["fast", "fast", "slow-parallel"], report))
+        report["cache"]["fast"]["target_distance"] = 2.0
+        self.assertFalse(replacement_path_cache_certificate(state(), ["fast", "fast", "slow-parallel"], report))
 
 
 if __name__ == "__main__":

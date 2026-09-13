@@ -15,9 +15,7 @@ experiment: "ordered-shortest-path-updates/v1：稳定边 ID 的顺序更新与�
 
 ## 从一个平行边问题开始
 
-图中同时有 `fast: 0→1,1` 与 `slow-parallel: 0→1,9`，再有 `to-target: 1→2,1`。删去 `fast` 后最短距离从 2 变为 10；删去 `slow-parallel` 则仍为 2。两条边的端点相同，只记录 $(0,1)$ 会让“删除哪一条”失去含义。
-
-若接着插入 `shortcut: 0→2,2`，先删后插与先插后删虽然最终都可能到达 2，却经过不同中间快照。批量更新不是无序集合；它是一段状态转换序列。
+`fast` 与 `slow-parallel` 都是 $0\to1$；删前者距离 2→10，删后者仍为 2。端点不能代替边 ID；更新顺序决定中间快照。
 
 ## 定义与推导：稳定身份与有序状态
 
@@ -29,11 +27,11 @@ $$G_{k+1}=U_k(G_k).$$
 
 $$G_0\xrightarrow{U_0}G_1\xrightarrow{U_1}\cdots\xrightarrow{U_{m-1}}G_m.$$
 
-对每个 $G_k$，本课运行非负边 Dijkstra 并保存目标距离与路径。完整重算给出教学 oracle：若报告中的某步距离与该快照直接计算不一致，序列结论就不可信。它不推出增量更新的复杂度优势。
+每个 $G_k$ 重跑 Dijkstra 并保存路径/距离；这是教学 oracle，不是增量复杂度优势。
 
 ## 算法：顺序应用、每步完整验证
 
-合同限定小图、非负有限权和至多六项更新。每项只能是 `insert(edge)`、`delete(edge_id)` 或 `set_weight(edge_id, weight)`；运行时先检查 ID 合同，再产生新快照并重放 Dijkstra。这样“改权”不被偷偷解释成删除加插入，“平行边删除”也不会误删所有端点相同的边。
+合同限定小图、非负权与至多六项更新：`insert`、`delete`、`set_weight`。稳定 ID 保证平行边不会一起被删。
 
 ```python
 from projects.algorithm_lab.batch_shortest_path_updates import (
@@ -51,17 +49,21 @@ assert report["steps"][2]["dijkstra"]["target_distance"] == 2.0
 assert ordered_shortest_path_updates_certificate(state, updates, report)
 ```
 
-运行 `python -m unittest projects.algorithm_lab.test_batch_shortest_path_updates`。证书会重建每个快照、操作与 Dijkstra 报告；篡改距离、重排更新或引用不存在的 ID 都会失败。
+证书重建快照、操作与 Dijkstra；篡改距离、顺序或 ID 会失败。
 
 ## 查询版本：同一问题必须说明读哪个快照
 
-`versioned_shortest_path_query_report` 显式绑定版本：版本 0、1、2 的距离为 2、10、2；重读版本 0 仍得旧值。证书重放版本、边 ID、路径和距离。
+`versioned_shortest_path_query_report` 绑定版本：0、1、2 的距离为 2、10、2；重读 0 仍得旧值。证书重放版本、边、路径和距离；每次仍完整 Dijkstra。
 
-这是教学快照合同；每次仍完整 Dijkstra，不提供并发协议、动态数据结构或摊还界。
+## 替换路径缓存：预处理成本与读取成本分开
+
+`replacement_path_cache_report` 删除每条初始边并缓存路径；`fast,fast,slow-parallel` 读出 10、10、2，报告 4 次预处理 Dijkstra 与 3 次读取。
+
+它是有限静态缓存，不是一般替换路径、在线更新或摊还算法。
 
 ## 正确性与复杂度边界
 
-唯一 ID 使每个更新的目标边无歧义；按列表顺序应用使 $G_k$ 唯一；每个快照由 Dijkstra 从其实际边集重算，故报告的每一步都满足非负权最短路定义。若一批有 $m$ 次更新，当前教学 oracle 的成本约为
+唯一 ID 与顺序使快照唯一；每步从实际边集重算。$m$ 次更新成本约为
 
 $$O\left(m(V+E)\log V\right).$$
 

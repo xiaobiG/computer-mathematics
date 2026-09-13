@@ -15,6 +15,7 @@ from projects.algorithm_lab.shortest_path_comparison import (
 
 CONTRACT = "ordered-shortest-path-updates/v1"
 VERSIONED_QUERY_CONTRACT = "versioned-shortest-path-query/v1"
+REPLACEMENT_INDEX_CONTRACT = "replacement-path-cache-index/v1"
 MAX_UPDATES = 6
 
 
@@ -167,5 +168,33 @@ def versioned_shortest_path_query_certificate(initial_state: object, updates: ob
         return False
     try:
         return report == versioned_shortest_path_query_report(initial_state, updates, query_versions)
+    except (TypeError, ValueError):
+        return False
+
+
+def replacement_path_cache_report(initial_state: object, deleted_edge_queries: object) -> dict[str, object]:
+    """Precompute tiny deletion answers, separating cache build from cache reads."""
+    state = _state(initial_state)
+    if not isinstance(deleted_edge_queries, list) or not deleted_edge_queries:
+        raise ValueError("deleted_edge_queries must be a non-empty list")
+    ids = [edge[0] for edge in state["edges"]]
+    if any(not isinstance(edge_id, str) or edge_id not in ids for edge_id in deleted_edge_queries):
+        raise ValueError("each query must name an edge in the initial snapshot")
+    cache = {}
+    for edge_id in ids:
+        deleted = _apply(state, {"kind": "delete", "edge_id": edge_id})
+        card = _replay(deleted)["dijkstra"]
+        cache[edge_id] = {"target_distance": card["target_distance"], "target_path": card["target_path"]}
+    return {"contract": REPLACEMENT_INDEX_CONTRACT, "base": _replay(state)["dijkstra"],
+            "cache": cache, "queries": [{"deleted_edge_id": edge_id, **cache[edge_id]} for edge_id in deleted_edge_queries],
+            "work": {"precomputation_full_dijkstra_runs": len(ids) + 1, "cache_reads": len(deleted_edge_queries)},
+            "boundary": "finite deletion cache, not a replacement-path algorithm or amortized dynamic bound", "automatic_action": "none"}
+
+
+def replacement_path_cache_certificate(initial_state: object, deleted_edge_queries: object, report: object) -> bool:
+    if not isinstance(report, dict):
+        return False
+    try:
+        return report == replacement_path_cache_report(initial_state, deleted_edge_queries)
     except (TypeError, ValueError):
         return False
