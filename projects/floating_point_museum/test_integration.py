@@ -10,6 +10,8 @@ from projects.floating_point_museum.integration import (
     endpoint_power_integral_certificate,
     endpoint_power_integral_report,
     refinement_report,
+    unbounded_power_tail_certificate,
+    unbounded_power_tail_report,
 )
 
 
@@ -82,3 +84,21 @@ class IntegrationTests(unittest.TestCase):
         self.assertFalse(endpoint_power_integral_certificate(.5, [.1, .01, .001], changed))
         with self.assertRaises(ValueError):
             endpoint_power_integral_report(.5, [.01, .1])
+
+    def test_unbounded_power_tail_requires_an_analytic_tail_argument(self):
+        report = unbounded_power_tail_report(2.0, [1.0, 9.0, 99.0])
+        self.assertTrue(report["converges"])
+        self.assertEqual(report["limit"], 1.0)
+        self.assertEqual(report["tail_bounds"], (.5, .1, .01))
+        self.assertAlmostEqual(report["truncated_integrals"][-1], .99)
+        self.assertTrue(unbounded_power_tail_certificate(2.0, [1.0, 9.0, 99.0], report))
+
+        divergent = unbounded_power_tail_report(1.0, [1.0, 9.0, 99.0])
+        self.assertFalse(divergent["converges"])
+        self.assertIsNone(divergent["tail_bounds"])
+        self.assertGreater(divergent["truncated_integrals"][-1], divergent["truncated_integrals"][0])
+
+        changed = dict(report); changed["limit"] = 2.0
+        self.assertFalse(unbounded_power_tail_certificate(2.0, [1.0, 9.0, 99.0], changed))
+        with self.assertRaises(ValueError):
+            unbounded_power_tail_report(2.0, [9.0, 1.0])

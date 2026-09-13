@@ -4,20 +4,18 @@ description: 从插值推导复合梯形法与 Simpson 法，比较误差阶、�
 courseLevel: "2–3（算法与误差）"
 prerequisites: "积分、泰勒展开、函数与求和"
 estimatedMinutes: 70
-experiment: "比较求积误差阶、重放自适应预算，并诊断端点奇性"
+experiment: "比较求积误差阶、自适应预算、端点奇性与无界尾部"
 ---
 
 # 数值积分：从求和逼近面积
 
 ## 学习目标
 
-读完后，你能从局部插值解释梯形与 Simpson 求积公式；用误差阶预测加密网格的收益；实现带输入验证的复合求积；区分可积端点奇性与发散积分；并识别间断、尖峰、振荡和累计舍入误差何时让固定网格失效。
+你将推导梯形/Simpson 公式与误差阶，重放自适应预算，区分端点奇性和无界尾部，并识别固定网格的失效边界。
 
 ## 从“函数只能运行，不能积分”开始
 
-物理模拟、概率密度和黑盒模型常能给出 `f(x)`，却没有可用原函数。把区间分成小段并求和似乎直接，但“分成多少段”决定误差和成本：过少遗漏曲率，过多浪费函数调用且可能累计浮点误差。
-
-数值积分不是把面积公式翻译成循环，而是用一族可控的局部近似替代函数，再验证误差是否按预期收敛。
+物理模拟、概率密度和黑盒模型常只有 `f(x)`；分段过少会漏曲率，过多浪费调用并累积舍入。数值积分以可控局部近似替代函数，再检查误差是否按预期收敛。
 
 ## 直觉、定义与推导：从插值到复合公式
 
@@ -96,9 +94,7 @@ assert budget_limited.evaluations == 3
 assert budget_limited.leaves[0].status == "evaluation_budget_exhausted"
 ```
 
-每次继续细分需要两个新的四分点。程序先检查剩余预算是否至少足以采两个点，因此不会把“半次细分”藏在报告外。叶区间的 `status` 只有 `accepted`、`max_depth_exhausted` 或 `evaluation_budget_exhausted`；独立证书会以函数、端点、容差、最大深度和调用预算重放整条叶轨迹。
-
-这里的 `estimated_error` 是**光滑函数模型下的估计**，而不是对任意黑盒函数的数学保证。预算耗尽时它为 `None`，因为尚未计算可解释的粗细差。遇到跳变、尖峰或噪声时，应把可疑断点显式分段，并把 `converged=False` 视为需要进一步诊断的结果，而不是增大深度后盲信一个数字。
+每次细分需两个新四分点；预算不足不会留下隐藏的半步。叶状态为 `accepted`、深度或预算耗尽，证书重放整条轨迹。`estimated_error` 只适于光滑模型；跳变/尖峰/噪声应分段，`converged=False` 是诊断信号。
 
 蒙特卡洛积分在高维中常比张量网格更可行，但收敛通常是 $O(N^{-1/2})$，与维度和方差强相关。不要把一维 Simpson 的高阶收敛外推到高维问题。
 
@@ -136,7 +132,25 @@ assert not divergent["converges"]
 assert divergent["limit"] is None
 ```
 
-运行 `python -m unittest projects.floating_point_museum.test_integration`。`endpoint_power_integral_report` 要求截断严格向零减小，保存每个截断积分、收敛分类和（仅在 $p<1$ 时）精确尾项；证书从 $p$ 与截断序列重新计算它们。它只能诊断这一解析幂函数族，不能从任意黑盒的几个采样点判断奇点可积、估算未知尾部，或替代专门的变量变换与不当积分库。
+`endpoint_power_integral_report` 要求截断向零减小，保存积分、分类和精确尾项；证书重算它们。它只诊断该解析族，不能从黑盒采样判断奇点或未知尾部。
+
+## 无界域：大截断不是尾部证明
+
+对 $J_p=\int_0^\infty(1+x)^{-p}\,dx$，只算到 $L$ 仍遗漏尾部。解析式表明仅 $p>1$ 收敛，极限为 $1/(p-1)$，遗漏量为 $(1+L)^{1-p}/(p-1)$；$p\le1$ 即使有限截断数值稳定也发散：
+
+```python
+from projects.floating_point_museum.integration import (
+    unbounded_power_tail_certificate,
+    unbounded_power_tail_report,
+)
+
+finite = unbounded_power_tail_report(2.0, [1.0, 9.0, 99.0])
+assert finite["limit"] == 1.0 and finite["tail_bounds"][-1] == .01
+assert unbounded_power_tail_certificate(2.0, [1.0, 9.0, 99.0], finite)
+assert not unbounded_power_tail_report(1.0, [1.0, 9.0, 99.0])["converges"]
+```
+
+这不是一般无界积分器；它只说明有限区间求积还必须有独立尾界、变量变换或专门理论，不能由“大到够用”的截断自行证明。
 
 ## 失败案例与工程边界
 

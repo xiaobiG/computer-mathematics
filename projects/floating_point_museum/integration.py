@@ -9,6 +9,7 @@ from typing import Callable
 
 Function = Callable[[float], float]
 ENDPOINT_POWER_CONTRACT = "endpoint-power-improper-integral/v1"
+UNBOUNDED_POWER_TAIL_CONTRACT = "unbounded-power-tail-integral/v1"
 
 
 def _validate_interval(a: float, b: float, segments: int) -> None:
@@ -295,5 +296,55 @@ def endpoint_power_integral_certificate(exponent: float, cutoffs: list[float], r
         return False
     try:
         return report == endpoint_power_integral_report(exponent, cutoffs)
+    except (TypeError, ValueError):
+        return False
+
+
+def unbounded_power_tail_report(exponent: float, cutoffs: list[float]) -> dict[str, object]:
+    """Classify ``integral_0^infinity (1+x)**(-p) dx`` with analytic tails.
+
+    A finite cutoff is not evidence that an unbounded integral converges.  This
+    restricted family exposes the missing tail argument exactly: p > 1 has a
+    finite limit and known omitted tail, while p <= 1 diverges as the cutoff
+    increases.
+    """
+    if (isinstance(exponent, bool) or not isinstance(exponent, (int, float))
+            or not isfinite(exponent)):
+        raise ValueError("exponent must be finite")
+    if (not isinstance(cutoffs, list) or len(cutoffs) < 2
+            or any(isinstance(value, bool) or not isinstance(value, (int, float))
+                   or not isfinite(value) or value < 0.0 for value in cutoffs)):
+        raise ValueError("cutoffs must contain at least two finite non-negative values")
+    normalized = tuple(float(value) for value in cutoffs)
+    if any(left >= right for left, right in zip(normalized, normalized[1:])):
+        raise ValueError("cutoffs must be strictly increasing toward infinity")
+    exponent = float(exponent)
+    if exponent == 1.0:
+        truncated = tuple(log(1.0 + cutoff) for cutoff in normalized)
+    else:
+        truncated = tuple(((1.0 + cutoff) ** (1.0 - exponent) - 1.0) / (1.0 - exponent)
+                          for cutoff in normalized)
+    converges = exponent > 1.0
+    return {
+        "contract": UNBOUNDED_POWER_TAIL_CONTRACT,
+        "integrand": "(1+x)**(-p) on [0, infinity)",
+        "exponent": exponent,
+        "cutoffs": normalized,
+        "truncated_integrals": truncated,
+        "converges": converges,
+        "limit": 1.0 / (exponent - 1.0) if converges else None,
+        "tail_bounds": (tuple((1.0 + cutoff) ** (1.0 - exponent) / (exponent - 1.0)
+                              for cutoff in normalized) if converges else None),
+        "interpretation": ("unbounded_integral_with_analytic_tail_bound"
+                           if converges else "divergent_unbounded_power_tail"),
+    }
+
+
+def unbounded_power_tail_certificate(exponent: float, cutoffs: list[float], report: object) -> bool:
+    """Recompute the finite-cutoff and tail classification report."""
+    if not isinstance(report, dict) or report.get("contract") != UNBOUNDED_POWER_TAIL_CONTRACT:
+        return False
+    try:
+        return report == unbounded_power_tail_report(exponent, cutoffs)
     except (TypeError, ValueError):
         return False
