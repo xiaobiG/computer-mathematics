@@ -6,6 +6,12 @@ search: false
 
 # 课程深度升级路线图
 
+## v6.22：非有限权重不能构成 MCMC 核
+
+[Metropolis–Hastings](/probability-ml/metropolis-hastings)的详细平衡推导需要有限正的目标权重与提议概率，但原输入检查会让 NaN 绕过“小于等于零”的比较，并把它传入接受率或行和。现在目标权重、提议概率均要求有限正实数；测试分别拒绝 NaN 目标与无穷提议，正文说明“非负”不是充分的数值合同。
+
+这只保护有限状态教学核的算术定义；不验证连续密度的可积性、提议覆盖、混合性或真实 MCMC 诊断。
+
 ## v6.21 Meta Review：把近期深度课纳入可见阶段门禁
 
 v6.17–v6.20 连续发现的并非新公式，而是“已写出的数学前提”未完全落实为输入合同：比较差的稀有格、Miller–Rabin 的重复底数和 SSIM 的单样本统计。复盘其正文后，[子群体性能](/probability-ml/subgroup-performance-uncertainty)、[素性测试](/number-theory-crypto/primality-testing)与[结构相似度 SSIM](/linear-algebra/structural-similarity)均已形成问题—定义—推导—实验—边界的完整可阅读链。

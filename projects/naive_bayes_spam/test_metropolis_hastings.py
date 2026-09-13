@@ -78,3 +78,7 @@ class MetropolisHastingsTests(unittest.TestCase):
             empirical_probabilities([])
         with self.assertRaises(ValueError):
             finite_horizon_mixing_report(TARGET, SYMMETRIC_PROPOSAL, [0, 0], steps=1)
+        with self.assertRaises(ValueError):
+            metropolis_hastings({0: float("nan"), 1: 1.0}, SYMMETRIC_PROPOSAL, 0, steps=2)
+        with self.assertRaises(ValueError):
+            metropolis_hastings(TARGET, {0: {1: float("inf")}, 1: {0: 1.0}}, 0, steps=2)

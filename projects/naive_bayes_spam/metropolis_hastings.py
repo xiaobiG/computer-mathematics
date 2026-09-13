@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from math import isfinite
 from random import Random
 from typing import Hashable
 
@@ -20,10 +21,16 @@ class McmcEvent:
 
 
 def _validate(target: dict[State, float], proposal: dict[State, dict[State, float]]) -> None:
-    if not target or set(target) != set(proposal) or any(weight <= 0 for weight in target.values()):
+    if (not target or set(target) != set(proposal) or any(
+            not isinstance(weight, (int, float)) or isinstance(weight, bool)
+            or not isfinite(weight) or weight <= 0
+            for weight in target.values())):
         raise ValueError("target and proposal need the same nonempty states and positive target weights")
     for state, probabilities in proposal.items():
-        if not probabilities or any(candidate not in target or chance <= 0 for candidate, chance in probabilities.items()):
+        if not probabilities or any(
+                candidate not in target or not isinstance(chance, (int, float)) or isinstance(chance, bool)
+                or not isfinite(chance) or chance <= 0
+                for candidate, chance in probabilities.items()):
             raise ValueError("proposal transitions must target known states with positive probabilities")
         if abs(sum(probabilities.values()) - 1.0) > 1e-12:
             raise ValueError("each proposal row must sum to one")
