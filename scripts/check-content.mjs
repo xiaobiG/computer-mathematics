@@ -274,6 +274,19 @@ for (const path of files) {
         errors.push(`${label}: 缺少 ${key} 课程元信息`)
       }
     }
+    // The frontmatter value feeds course indexes, while some lessons repeat it
+    // in their visible metadata list.  When both exist, they must make the same
+    // promise to the reader; otherwise a page card and its own introduction
+    // silently disagree about the required study time.
+    const estimatedMinutes = /^estimatedMinutes:\s*(\d+)\s*$/m.exec(source)?.[1]
+    if (estimatedMinutes) {
+      const visibleDurationPattern = /预计学习(?:时间)?[^\d\n]*?(\d+)\s*分钟/g
+      for (const match of prose.matchAll(visibleDurationPattern)) {
+        if (match[1] !== estimatedMinutes) {
+          errors.push(`${label}: 正文预计学习时间 ${match[1]} 分钟应与 frontmatter 的 ${estimatedMinutes} 分钟一致`)
+        }
+      }
+    }
   }
   if (priorityDeepLessons.has(label)) {
     for (const [stage, pattern] of priorityStagePatterns) {

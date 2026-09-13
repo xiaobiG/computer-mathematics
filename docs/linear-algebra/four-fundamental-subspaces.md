@@ -13,7 +13,7 @@ description: 用列空间、零空间、行空间和左零空间统一解释方�
 
 - **建议阅读层级**：1–2 · 结构模型、消元与可解性
 - **前置知识**：[线性组合、基与维度](/linear-algebra/linear-combinations-basis)、[高斯消元](/linear-algebra/gaussian-elimination)
-- **预计学习时间**：60 分钟
+- **预计学习时间**：70 分钟
 - **配套实验**：[线性代数实验室](/projects/linear-algebra-lab)
 
 ## 学习目标

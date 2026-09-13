@@ -13,7 +13,7 @@ description: 从高斯消元推导 PA=LU，理解重复求解、部分选主元�
 
 - **建议阅读层级**：2–3 · 算法分解、复杂度与数值稳定性
 - **前置知识**：[高斯消元](/linear-algebra/gaussian-elimination)、[条件数](/numerical-computing/condition-number)
-- **预计学习时间**：65 分钟
+- **预计学习时间**：55 分钟
 - **配套实验**：[线性代数实验室](/projects/linear-algebra-lab)
 
 ## 学习目标

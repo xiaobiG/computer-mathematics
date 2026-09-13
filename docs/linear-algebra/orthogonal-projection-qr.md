@@ -13,7 +13,7 @@ description: 从投影推导 Gram–Schmidt 正交化和 QR 分解，理解它�
 
 - **建议阅读层级**：2–3 · 推导、算法与数值稳定性
 - **前置知识**：[向量与点积](/linear-algebra/vectors-dot-product)、[四个基本子空间](/linear-algebra/four-fundamental-subspaces)、[最小二乘](/linear-algebra/least-squares)
-- **预计学习时间**：70 分钟
+- **预计学习时间**：60 分钟
 - **配套实验**：[线性代数实验室](/projects/linear-algebra-lab)
 
 ## 学习目标
