@@ -6,6 +6,12 @@ search: false
 
 # 课程深度升级路线图
 
+## v6.15：正对角不能代替 SPD 前提
+
+[预条件共轭梯度法](/numerical-computing/preconditioned-conjugate-gradient)曾以“对称、正对角和运行期曲率”保护 CG，却无法在启动时识别正对角的对称不定矩阵。本轮加入 Cholesky 主元报告：$\begin{bmatrix}1&2\\2&1\end{bmatrix}$ 的第二主元为 $-3$，因此在任何迭代前按 SPD 前提拒绝；报告和证书均可重放该失败位置。
+
+该稠密 $O(n^3)$ 检查只服务小型教学输入的 fail-closed 合同，不应当作稀疏 CG 的生产预处理流程，更不提供一般浮点 SPD 判定的后向稳定性界。
+
 ## v6.14：方阵的形状兼容不代表轴语义正确
 
 [张量形状与批处理](/foundations/tensor-shapes-batches)已经声明“样本按行”，但单靠形状合同无法揭露方阵被转置的错误：$(2,2)$ 仍是 `(2,2)`，并且仍可能乘上 `(2,2)` 权重。本轮用带样本标签的二阶单位权重例子并列 $X$ 与 $X^\mathsf T$；报告保留原行的 `alice, bob` 和转置后行的 `feature_0, feature_1`，将“形状相同、轴角色已交换”作为可重放结论。

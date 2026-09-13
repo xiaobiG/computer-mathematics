@@ -25,11 +25,63 @@ def _validate_system(matrix: list[list[float]], right_side: list[float], symmetr
     if any(not isinstance(value, (int, float)) or isinstance(value, bool) or not isfinite(value) for value in values):
         raise ValueError("matrix and right_side must contain finite real values")
     for row in range(len(matrix)):
-        if matrix[row][row] <= 0:
-            raise ValueError("Jacobi preconditioner requires positive diagonal entries")
         for column in range(row):
             if abs(matrix[row][column] - matrix[column][row]) > symmetry_tolerance:
                 raise ValueError("conjugate gradient requires a symmetric matrix")
+    spd = spd_cholesky_report(matrix)
+    if not spd["positive_definite"]:
+        raise ValueError("conjugate gradient requires a positive-definite matrix")
+
+
+def spd_cholesky_report(matrix: list[list[float]], symmetry_tolerance: float = 1e-12) -> dict[str, object]:
+    """Expose Cholesky pivots as a finite, replayable SPD diagnostic."""
+    if not matrix or not isinstance(matrix, list) or any(not isinstance(row, list) or len(row) != len(matrix) for row in matrix):
+        raise ValueError("matrix must be a non-empty square list")
+    values = [value for row in matrix for value in row]
+    if any(not isinstance(value, (int, float)) or isinstance(value, bool) or not isfinite(value) for value in values):
+        raise ValueError("matrix must contain finite real values")
+    for row in range(len(matrix)):
+        for column in range(row):
+            if abs(matrix[row][column] - matrix[column][row]) > symmetry_tolerance:
+                raise ValueError("Cholesky SPD diagnostic requires a symmetric matrix")
+
+    dimension = len(matrix)
+    lower = [[0.0] * dimension for _ in range(dimension)]
+    pivots: list[float] = []
+    for row in range(dimension):
+        pivot = float(matrix[row][row]) - sum(lower[row][column] ** 2 for column in range(row))
+        pivots.append(pivot)
+        if pivot <= 0 or not isfinite(pivot):
+            return {
+                "matrix": [[float(value) for value in current_row] for current_row in matrix],
+                "positive_definite": False,
+                "cholesky_pivots": pivots,
+                "failing_pivot_index": row,
+                "lower_factor": None,
+            }
+        lower[row][row] = sqrt(pivot)
+        for target_row in range(row + 1, dimension):
+            numerator = float(matrix[target_row][row]) - sum(
+                lower[target_row][column] * lower[row][column] for column in range(row)
+            )
+            lower[target_row][row] = numerator / lower[row][row]
+    return {
+        "matrix": [[float(value) for value in current_row] for current_row in matrix],
+        "positive_definite": True,
+        "cholesky_pivots": pivots,
+        "failing_pivot_index": None,
+        "lower_factor": lower,
+    }
+
+
+def spd_cholesky_certificate(matrix: list[list[float]], report: object) -> bool:
+    """Rebuild the Cholesky diagnostic so a claimed SPD premise cannot be forged."""
+    if not isinstance(report, dict):
+        return False
+    try:
+        return report == spd_cholesky_report(matrix)
+    except (TypeError, ValueError):
+        return False
 
 
 def _matvec(matrix: list[list[float]], vector: list[float]) -> list[float]:
@@ -58,9 +110,9 @@ def preconditioned_conjugate_gradient(
 ) -> tuple[list[float], list[CgEvent]]:
     """Solve a small SPD system with identity or diagonal-Jacobi CG.
 
-    Symmetry and positive diagonal are checked directly.  Positive definiteness
-    is additionally witnessed at runtime by positive search-direction
-    curvature; a failure is reported rather than being treated as convergence.
+    Symmetry and positive definiteness are checked before iteration.  The
+    latter uses real Cholesky pivots, rather than incorrectly treating a
+    positive diagonal as sufficient evidence of positive definiteness.
     """
     _validate_system(matrix, right_side)
     if not isinstance(tolerance, (int, float)) or isinstance(tolerance, bool) or not isfinite(tolerance) or tolerance <= 0:

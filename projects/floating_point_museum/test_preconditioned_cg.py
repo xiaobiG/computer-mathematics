@@ -1,6 +1,12 @@
 import unittest
 
-from projects.floating_point_museum.preconditioned_cg import CgEvent, pcg_trace_certificate, preconditioned_conjugate_gradient
+from projects.floating_point_museum.preconditioned_cg import (
+    CgEvent,
+    pcg_trace_certificate,
+    preconditioned_conjugate_gradient,
+    spd_cholesky_certificate,
+    spd_cholesky_report,
+)
 
 
 MATRIX = [[4.0, 1.0], [1.0, 3.0]]
@@ -51,6 +57,19 @@ class PreconditionedCgTests(unittest.TestCase):
             preconditioned_conjugate_gradient(MATRIX, RIGHT_SIDE, tolerance=1e-15, max_steps=1)
         with self.assertRaises(ValueError):
             preconditioned_conjugate_gradient(MATRIX, RIGHT_SIDE, preconditioner="unknown")
+
+    def test_positive_diagonal_is_not_a_positive_definiteness_check(self):
+        indefinite = [[1.0, 2.0], [2.0, 1.0]]
+        report = spd_cholesky_report(indefinite)
+        self.assertFalse(report["positive_definite"])
+        self.assertEqual(report["cholesky_pivots"], [1.0, -3.0])
+        self.assertEqual(report["failing_pivot_index"], 1)
+        self.assertTrue(spd_cholesky_certificate(indefinite, report))
+        altered = dict(report)
+        altered["positive_definite"] = True
+        self.assertFalse(spd_cholesky_certificate(indefinite, altered))
+        with self.assertRaisesRegex(ValueError, "positive-definite"):
+            preconditioned_conjugate_gradient(indefinite, [1.0, 0.0])
 
 
 if __name__ == "__main__":

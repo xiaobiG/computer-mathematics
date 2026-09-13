@@ -1907,3 +1907,12 @@ v5.92 的只增长数组留下了一个必要反例：若“低于半满就缩�
 | 范围 | 扩展[张量形状与批处理](/foundations/tensor-shapes-batches)、`tensor_shapes.py` 与测试；新报告绑定样本标签、原/转置轴角色和两条矩阵乘法。 |
 | 验证 | 对 $X=\begin{bmatrix}1&2\\3&4\end{bmatrix}$ 与单位权重，两个输出均为 `(2,2)`，但原行标签为 `alice,bob`、转置行标签为 `feature_0,feature_1`；篡改轴角色被证书拒绝。 |
 | 边界 | 仅演示声明的二维方阵行批次；不推断真实数据的 schema、广播、三维张量或自动微分语义。 |
+
+## v6.15：CG 的 Cholesky SPD 前提
+
+| 项目 | 说明 |
+| --- | --- |
+| 目标 | 防止把“对称且正对角”误当作 CG 所需的正定性，并在迭代前定位失败主元。 |
+| 范围 | 扩展[预条件共轭梯度法](/numerical-computing/preconditioned-conjugate-gradient)、`preconditioned_cg.py` 与测试；新增 Cholesky 主元报告/证书并接入 CG 输入合同。 |
+| 验证 | $\begin{bmatrix}1&2\\2&1\end{bmatrix}$ 的主元轨迹为 $[1,-3]$，索引 1 失败；篡改 `positive_definite` 或直接调用 CG 均被拒绝。 |
+| 边界 | 仅为有限小型实对称矩阵的教学 Cholesky 诊断；不构成稀疏生产检查、一般浮点稳定性或预条件器质量评估。 |
