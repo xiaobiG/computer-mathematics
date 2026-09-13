@@ -37,9 +37,27 @@ def encode_sequenced_message(sequence: int, payload: bytes) -> bytes:
     return sequence.to_bytes(8, "big") + len(payload).to_bytes(4, "big") + payload
 
 
+def encode_contextual_sequenced_message(context: bytes, sequence: int, payload: bytes) -> bytes:
+    """Prefix a declared protocol context before the sequenced teaching message.
+
+    The context is a byte-level domain separator, not an HTTP canonicalizer,
+    authorization scheme, or general-purpose serialization format.  It makes
+    an otherwise identical sequence/payload authenticate to a different input
+    in each declared protocol use.
+    """
+    if not isinstance(context, bytes) or not context or len(context) >= 2 ** 32:
+        raise ValueError("context must be non-empty bytes shorter than 2**32")
+    return len(context).to_bytes(4, "big") + context + encode_sequenced_message(sequence, payload)
+
+
 def sequenced_hmac_tag(key: bytes, sequence: int, payload: bytes) -> bytes:
     """Authenticate an unambiguously encoded sequence number and payload."""
     return hmac_tag(key, encode_sequenced_message(sequence, payload))
+
+
+def contextual_sequenced_hmac_tag(key: bytes, context: bytes, sequence: int, payload: bytes) -> bytes:
+    """Authenticate a message only in its declared byte-level context."""
+    return hmac_tag(key, encode_contextual_sequenced_message(context, sequence, payload))
 
 
 @dataclass(frozen=True)
@@ -64,6 +82,19 @@ def verify_sequenced_hmac(
     if last_accepted_sequence is not None:
         _validate_sequence(last_accepted_sequence, "last_accepted_sequence")
     encoded = encode_sequenced_message(sequence, payload)
+    tag_valid = isinstance(tag, bytes) and compare_digest(hmac_tag(key, encoded), tag)
+    sequence_is_fresh = last_accepted_sequence is None or sequence > last_accepted_sequence
+    return SequencedHmacVerification(tag_valid, sequence_is_fresh, tag_valid and sequence_is_fresh)
+
+
+def verify_contextual_sequenced_hmac(
+    key: bytes, context: bytes, sequence: int, payload: bytes, tag: bytes, *, last_accepted_sequence: int | None,
+) -> SequencedHmacVerification:
+    """Verify both the context-bound tag and the declared sequence policy."""
+    _validate_sequence(sequence, "sequence")
+    if last_accepted_sequence is not None:
+        _validate_sequence(last_accepted_sequence, "last_accepted_sequence")
+    encoded = encode_contextual_sequenced_message(context, sequence, payload)
     tag_valid = isinstance(tag, bytes) and compare_digest(hmac_tag(key, encoded), tag)
     sequence_is_fresh = last_accepted_sequence is None or sequence > last_accepted_sequence
     return SequencedHmacVerification(tag_valid, sequence_is_fresh, tag_valid and sequence_is_fresh)

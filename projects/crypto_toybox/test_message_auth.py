@@ -3,10 +3,13 @@ import unittest
 from pathlib import Path
 
 from projects.crypto_toybox.message_auth import (
+    contextual_sequenced_hmac_tag,
+    encode_contextual_sequenced_message,
     encode_sequenced_message,
     hmac_tag,
     sequenced_hmac_tag,
     verify_hmac,
+    verify_contextual_sequenced_hmac,
     verify_sequenced_hmac,
 )
 
@@ -54,6 +57,28 @@ class MessageAuthTests(unittest.TestCase):
         self.assertFalse(verify_sequenced_hmac(key, 7, b"amount=900", tag, last_accepted_sequence=6).accepted)
         with self.assertRaises(ValueError):
             sequenced_hmac_tag(key, -1, payload)
+
+    def test_context_bound_tag_cannot_move_to_a_different_declared_protocol_use(self):
+        key, payload = b"demo-shared-key", b"amount=100"
+        update_context = b"software-update/v1"
+        telemetry_context = b"telemetry-config/v1"
+        tag = contextual_sequenced_hmac_tag(key, update_context, 7, payload)
+        intended = verify_contextual_sequenced_hmac(
+            key, update_context, 7, payload, tag, last_accepted_sequence=6,
+        )
+        wrong_context = verify_contextual_sequenced_hmac(
+            key, telemetry_context, 7, payload, tag, last_accepted_sequence=6,
+        )
+        self.assertTrue(intended.accepted)
+        self.assertTrue(wrong_context.sequence_is_fresh)
+        self.assertFalse(wrong_context.tag_valid)
+        self.assertFalse(wrong_context.accepted)
+        self.assertNotEqual(
+            encode_contextual_sequenced_message(update_context, 7, payload),
+            encode_contextual_sequenced_message(telemetry_context, 7, payload),
+        )
+        with self.assertRaisesRegex(ValueError, "context must be non-empty"):
+            contextual_sequenced_hmac_tag(key, b"", 7, payload)
 
 
 if __name__ == "__main__":

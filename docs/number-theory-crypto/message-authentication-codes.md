@@ -3,8 +3,9 @@ title: 消息认证码：完整性为什么需要密钥
 description: 从攻击者可重算哈希的反例出发，解释 HMAC 的结构、验证流程、常量时间比较与“认证不等于保密”的边界。
 courseLevel: "2–3（密码原语、协议与工程边界）"
 prerequisites: "哈希、共享密钥、威胁模型与字节编码"
-estimatedMinutes: 50
+estimatedMinutes: 60
 experiment: "用标准库 HMAC 为消息生成标签，并验证消息或标签篡改会失败"
+search: false
 ---
 
 # 消息认证码：完整性为什么需要密钥
@@ -52,6 +53,37 @@ python -m unittest projects.crypto_toybox.test_message_auth
 
 标签生成与验证为消息长度的 $O(n)$；实现使用 `compare_digest`，避免普通逐字节比较尽早退出所造成的一类时序信号。`encode_sequenced_message` 为 64 位序号和主体加入固定长度前缀，`verify_sequenced_hmac` 将“标签有效”与“序号比已接受值新”分开返回：旧消息的 HMAC 可以完全正确，却仍不能被协议接受。这个函数不保存状态；真实接收方必须持久化序号或维护明确的滑动窗口。测试覆盖正常验证、消息/标签篡改、空密钥、编码分界和有效重放拒绝。
 
+## 上下文绑定：新鲜消息也不能跨用途搬运
+
+序号阻止旧记录在**同一个**接收规则下重放，却不会自动说明标签属于“软件更新”还是“遥测配置”。若两种用途误把相同的 $(sequence,payload)$ 直接喂给同一把 HMAC 密钥，它们的输入字节串相同，标签也相同。令 $e=\operatorname{enc}(sequence,payload)$；为每一种已声明用途加入长度前缀上下文 $c$ 后，认证对象变成
+
+$$
+M_c=\operatorname{len}(c)\,\|\,c\,\|\,e,
+\qquad t=\operatorname{HMAC}_K(M_c).
+$$
+
+`contextual_sequenced_hmac_tag` 与验证函数用这个有限的字节级分界做对照：同一序号和主体在错误上下文仍然“新鲜”，但标签不再有效。
+
+```python
+from projects.crypto_toybox.message_auth import (
+    contextual_sequenced_hmac_tag,
+    verify_contextual_sequenced_hmac,
+)
+
+key, payload = b"demo-shared-key", b"amount=100"
+tag = contextual_sequenced_hmac_tag(key, b"software-update/v1", 7, payload)
+intended = verify_contextual_sequenced_hmac(
+    key, b"software-update/v1", 7, payload, tag, last_accepted_sequence=6,
+)
+wrong_use = verify_contextual_sequenced_hmac(
+    key, b"telemetry-config/v1", 7, payload, tag, last_accepted_sequence=6,
+)
+assert intended.accepted
+assert wrong_use.sequence_is_fresh and not wrong_use.tag_valid and not wrong_use.accepted
+```
+
+这里的 `context` 是调用者已定义的字节串，不是 URL 规范化、HTTP 签名、身份验证或密钥轮换机制；真实协议还必须把方法、规范路径、主体编码、时钟/nonce、密钥标识和权限语义一起定义，并使用经过审计的协议库。这个实验只证明：**同一密钥下，HMAC 覆盖的字节不同，就不会验证为同一标签。**
+
 ## 正确性与工程边界
 
 验证函数以同一密钥和消息重算 HMAC，再常量时间比较。标签匹配说明“持有该共享密钥的一方计算过同一字节串”，不说明谁在多人共享密钥中发送，也不提供不可否认性。MAC 也不加密消息；旁观者仍可读取 `amount=100`。需要保密和认证时使用经审计的 AEAD 协议，而不是手工拼接加密与 MAC。
@@ -61,6 +93,7 @@ python -m unittest projects.crypto_toybox.test_message_auth
 - **重放**：攻击者可重发一条曾经有效的 MAC 消息；加入序号、时间窗或随机 nonce，并由协议验证新鲜性。
 - **歧义编码**：`("ab", "c")` 与 `("a", "bc")` 若直接拼接字节可能相同；必须定义长度前缀或规范序列化。
 - **密钥复用**：同一密钥不应随意跨协议、跨用途复用；应按协议使用 KDF 分离密钥。
+- **缺少上下文**：即使序号新鲜，一条“更新批准”的标签也不应在“遥测配置”规则下被解释；上下文必须进入认证字节串。
 - **认证当作授权**：MAC 只证明持钥，不能替代服务器端权限检查。
 
 ## 练习
@@ -68,14 +101,16 @@ python -m unittest projects.crypto_toybox.test_message_auth
 1. **基础题**：说明为什么攻击者能为修改后的裸哈希消息重算摘要，却不能在未知密钥下重算 HMAC。
 2. **推导题**：写出 HMAC 内外层的输入，并解释为何两个不同填充是必要结构的一部分。
 3. **编码题**：阅读 `encode_sequenced_message` 的长度前缀，构造两个直接拼接会歧义的字段；再确认一个标签有效但等于已接受序号的消息仍被拒绝。
-4. **开放题**：为 API 请求认证列出必须覆盖的方法、路径、主体、时间和 nonce，并说明日志中哪些字段不能泄露。
+4. **推导题**：说明为何在同一个共享密钥下，给相同 $(sequence,payload)$ 加不同上下文会得到不同的 HMAC 输入；它为何仍不等于权限检查？
+5. **开放题**：为 API 请求认证列出必须覆盖的方法、路径、主体、时间和 nonce，并说明日志中哪些字段不能泄露。
 
 ## 练习答案提示
 
 1. 裸哈希没有秘密，攻击者可对修改后消息再算摘要；HMAC 的标签依赖未知密钥，攻击者不能凭公开消息重算有效标签。
 2. HMAC 形如 $H((K\oplus opad)\|H((K\oplus ipad)\|m))$；内外两层与不同填充形成规范构造，不能简化为随意字符串拼接。
 3. 用长度前缀或规范二进制序列化编码序号和主体；`tag_valid` 与 `sequence_is_fresh` 是两项不同断言。服务端保存/验证单调序号或去重窗口，旧序号即使标签正确也必须拒绝。
-4. 认证输入应覆盖方法、规范路径、主体哈希、时间、nonce 和密钥标识；日志不能记录密钥、完整认证标签或敏感主体，且需避免泄漏可重放材料。
+4. 长度前缀上下文会改变输入字节串，故旧标签不能在另一上下文验证；但持钥者是否有权执行该用途仍需独立授权规则。
+5. 认证输入应覆盖方法、规范路径、主体哈希、时间、nonce 和密钥标识；日志不能记录密钥、完整认证标签或敏感主体，且需避免泄漏可重放材料。
 
 ## 延伸
 
