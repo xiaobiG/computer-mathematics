@@ -346,6 +346,42 @@ for (const path of allMarkdownFiles) {
   }
 }
 
+// Code blocks are part of a lesson's learning path.  A Markdown page that
+// imports a renamed or missing project helper can pass rendering checks yet
+// still fail at the reader's first copy-and-run attempt.  Validate the narrow
+// `from projects... import ...` form used by the course examples against the
+// checked-in teaching modules.  This is intentionally not a Python parser:
+// it only guards our documented import contract.
+for (const path of allMarkdownFiles) {
+  const source = await readFile(path, 'utf8')
+  const label = relative(docsRoot, path).replaceAll('\\', '/')
+  const imports = source.matchAll(/from\s+(projects(?:\.[A-Za-z_]\w*)+)\s+import\s+(\([\s\S]*?\)|[^\r\n]+)/g)
+  for (const match of imports) {
+    const module = match[1]
+    const modulePath = `${module.replaceAll('.', '/')}.py`
+    let moduleSource
+    try {
+      moduleSource = await readFile(modulePath, 'utf8')
+    } catch {
+      errors.push(`${label}: 示例导入模块 ${module} 不存在`)
+      continue
+    }
+    const names = match[2]
+      .replace(/[()]/g, '')
+      .split(',')
+      .map((name) => name.replace(/#.*/, '').trim())
+      .filter((name) => /^[A-Za-z_]\w*$/.test(name))
+    for (const name of names) {
+      const definition = new RegExp(
+        `^(?:def|class)\\s+${name}\\b|^${name}(?:\\s*:[^=\\n]+)?\\s*=`, 'm',
+      )
+      if (!definition.test(moduleSource)) {
+        errors.push(`${label}: 示例导入 ${module}.${name} 在项目源码中不存在`)
+      }
+    }
+  }
+}
+
 // Exercises are part of the runnable learning contract, not informal API
 // suggestions.  This lesson formerly named a helper that does not exist,
 // leaving readers unable to start its step-size experiment.  Keep the exact
