@@ -288,6 +288,10 @@ export default defineConfig({
               link: "/probability-ml/conjugate-priors-predictive",
             },
             {
+              text: "多组概率的部分汇聚：Beta–Binomial 层级模型",
+              link: "/probability-ml/hierarchical-beta-binomial",
+            },
+            {
               text: "常见分布如何建模现实",
               link: "/probability-ml/common-distributions",
             },
