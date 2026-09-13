@@ -51,14 +51,14 @@ $$
 
 ## 算法：一次分组，一次重放
 
-报告输入是同一带标签窗口中的 `probabilities`、`labels` 和等长的预定义 `groups`。算法对总体及每个合格组执行相同的分箱：
+报告输入是同一带标签窗口中的 `probabilities`、`labels`、等长观测组 `groups`，以及查看窗口前冻结的 `declared_groups`。算法拒绝未声明的观测组，并为未出现的声明组保留零样本行；随后对总体及每个合格组执行相同的分箱：
 
 1. 将每个 $p_i$ 放入 `min(int(p_i * K), K - 1)`，使 $p_i=1$ 进入最后一箱；
 2. 对非空箱计算计数、平均预测、正例率、绝对差和 $n_k/n$ 加权贡献；
 3. 求贡献和得到 ECE，同时报告 Brier 分数、Wilson 频率区间及其映射的绝对差范围；
 4. 对 $n_g<m$ 的组拒绝指标结论；对合格组仅在 ECE 达到预先记录阈值时发出人工复核信号。
 
-时间复杂度为 $O(n+K\cdot G)$：样本只扫描一次以形成分组索引，随后各组总计仍处理 $n$ 个样本。这里的 $G$ 是实际出现的组数；这不是允许枚举或发掘无限候选群体的许可。
+时间复杂度为 $O(n+K\cdot G)$：样本只扫描一次以形成分组索引，随后各组总计仍处理 $n$ 个样本。这里的 $G$ 是冻结的声明组数；这不是允许枚举或发掘无限候选群体的许可。
 
 ## 可运行实验：平均抵消反例
 
@@ -75,12 +75,13 @@ window = {
     "labels": [1] * 6 + [0] * 4 + [1] * 10,
 }
 groups = ["A"] * 10 + ["B"] * 10
+declared_groups = ["A", "B", "C"]  # C 在本窗口零样本，仍必须出现
 report = subgroup_calibration_report(
-    window, groups, bins=5, minimum_group_size=10,
+    window, groups, declared_groups=declared_groups, bins=5, minimum_group_size=10,
     ece_review_threshold=0.15, confidence_z=1.96,
 )
 print(report["overall_metrics"]["expected_calibration_error"])  # 0.0
-print([(row["group"], row["metrics"]["expected_calibration_error"])
+print([(row["group"], row["metrics"] and row["metrics"]["expected_calibration_error"])
        for row in report["subgroups"]])  # A、B 都是 0.2
 first_bin = report["subgroups"][0]["metrics"]["bins"][0]
 print(first_bin["positive_rate_wilson_low"], first_bin["positive_rate_wilson_high"])
@@ -93,7 +94,7 @@ assert subgroup_calibration_certificate(window, groups, report)
 python -m unittest projects.naive_bayes_spam.test_subgroup_calibration
 ```
 
-证书会重新生成窗口、组、分箱数、样本门槛、ECE 阈值和 `confidence_z` 对应的整份报告。因此把阈值改大以消除信号、把区间口径改窄、把 `causal_interpretation` 改成“已建立”，或篡改组内指标都会被拒绝。
+证书会重新生成窗口、观测组、声明组宇宙、分箱数、样本门槛、ECE 阈值和 `confidence_z` 对应的整份报告。因此把阈值改大以消除信号、删除零样本组、把区间口径改窄、把 `causal_interpretation` 改成“已建立”，或篡改组内指标都会被拒绝。
 
 ## 正确性与证据边界
 
@@ -111,6 +112,7 @@ $$
 ## 失败案例与工程边界
 
 - **事后搜索许多组。** 从几十个属性组合中只报告最大 ECE 会产生多重比较和选择偏差。组、窗口、门槛应在查看结果前治理并记录。
+- **让零样本组消失。** 这会把覆盖缺口伪装成“不在审计范围”；应保留其零计数与证据不足状态。
 - **把分箱区间当作 ECE 区间。** 错。每箱的 Wilson 区间针对该箱正例率；多箱 ECE 的抽样分布还受分箱、预测和依赖结构影响，不能直接把端点相加。
 - **小样本稳定幻觉。** 区间能显示频率的不确定性，却不能挽救极小组或任意事后分组；仍要遵守最小样本量和预定义审计维度。
 - **把描述性差异当成因果或公平结论。** 采集、标注、覆盖范围和条件分布都可能造成差异。报告的 `automatic_action` 始终为 `none`。

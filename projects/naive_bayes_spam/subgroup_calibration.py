@@ -14,7 +14,7 @@ from projects.naive_bayes_spam.main import wilson_interval
 from projects.naive_bayes_spam.recalibration import brier_score
 
 
-SUBGROUP_CALIBRATION_CONTRACT_VERSION = "subgroup-calibration/v1"
+SUBGROUP_CALIBRATION_CONTRACT_VERSION = "subgroup-calibration/v2"
 
 
 def _positive_int(value: object, name: str, minimum: int) -> int:
@@ -44,6 +44,22 @@ def _normalized_groups(groups: object, size: int) -> list[str]:
     if any(not isinstance(group, str) or not group for group in groups):
         raise ValueError("groups must be non-empty strings")
     return list(groups)
+
+
+def _declared_group_universe(declared_groups: object, observed_groups: list[str]) -> list[str]:
+    """Freeze the audit universe before a window is interpreted.
+
+    Inferring groups from the current window would silently erase a declared
+    but uncovered group.  Conversely, accepting an observed undeclared group
+    would turn an after-the-fact discovery into a reportable comparison.
+    """
+    if (not isinstance(declared_groups, list) or not declared_groups
+            or any(not isinstance(group, str) or not group for group in declared_groups)
+            or len(set(declared_groups)) != len(declared_groups)):
+        raise ValueError("declared_groups must be a non-empty list of unique non-empty strings")
+    if any(group not in declared_groups for group in observed_groups):
+        raise ValueError("every observed group must belong to declared_groups")
+    return list(declared_groups)
 
 
 def calibration_bins(
@@ -119,6 +135,7 @@ def subgroup_calibration_report(
     window: object,
     groups: object,
     *,
+    declared_groups: object,
     bins: int = 5,
     minimum_group_size: int = 20,
     ece_review_threshold: float = 0.05,
@@ -135,12 +152,13 @@ def subgroup_calibration_report(
     probabilities = normalized["probabilities"]  # type: ignore[assignment]
     labels = normalized["labels"]  # type: ignore[assignment]
     group_values = _normalized_groups(groups, len(labels))
+    declared_group_values = _declared_group_universe(declared_groups, group_values)
     bins = _positive_int(bins, "bins", 2)
     minimum_group_size = _positive_int(minimum_group_size, "minimum_group_size", 2)
     ece_review_threshold = _threshold(ece_review_threshold, "ece_review_threshold")
     confidence_z = _positive_finite(confidence_z, "confidence_z")
     rows: list[dict[str, object]] = []
-    for group in sorted(set(group_values)):
+    for group in declared_group_values:
         indexes = [index for index, value in enumerate(group_values) if value == group]
         subgroup_probabilities = [probabilities[index] for index in indexes]
         subgroup_labels = [labels[index] for index in indexes]
@@ -162,6 +180,7 @@ def subgroup_calibration_report(
         "contract_version": SUBGROUP_CALIBRATION_CONTRACT_VERSION,
         "window": normalized,
         "groups": group_values,
+        "declared_groups": declared_group_values,
         "policy": {
             "bins": bins,
             "minimum_group_size": minimum_group_size,
@@ -186,6 +205,7 @@ def subgroup_calibration_certificate(window: object, groups: object, report: obj
         expected = subgroup_calibration_report(
             window,
             groups,
+            declared_groups=report["declared_groups"],
             bins=policy["bins"],
             minimum_group_size=policy["minimum_group_size"],
             ece_review_threshold=policy["ece_review_threshold"],

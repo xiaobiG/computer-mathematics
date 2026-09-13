@@ -18,7 +18,7 @@ class SubgroupCalibrationTests(unittest.TestCase):
             "labels": [1] * 6 + [0] * 4 + [1] * 10,
         }
         groups = ["a"] * 10 + ["b"] * 10
-        report = subgroup_calibration_report(window, groups, bins=5, minimum_group_size=10, ece_review_threshold=0.15)
+        report = subgroup_calibration_report(window, groups, declared_groups=["a", "b"], bins=5, minimum_group_size=10, ece_review_threshold=0.15)
         self.assertEqual(report["overall_metrics"]["expected_calibration_error"], 0.0)
         self.assertTrue(report["needs_review"])
         self.assertEqual([row["needs_review"] for row in report["subgroups"]], [True, True])
@@ -31,7 +31,7 @@ class SubgroupCalibrationTests(unittest.TestCase):
             "labels": [1, 0, 1, 0, 1, 0],
         }
         groups = ["large"] * 4 + ["small"] * 2
-        report = subgroup_calibration_report(window, groups, minimum_group_size=3)
+        report = subgroup_calibration_report(window, groups, declared_groups=["large", "small"], minimum_group_size=3)
         small = next(row for row in report["subgroups"] if row["group"] == "small")
         self.assertIsNone(small["metrics"])
         self.assertEqual(small["interpretation"], "insufficient_sample_for_group_calibration_conclusion")
@@ -42,7 +42,7 @@ class SubgroupCalibrationTests(unittest.TestCase):
             "probabilities": [0.8] * 10,
             "labels": [1] * 6 + [0] * 4,
         }
-        report = subgroup_calibration_report(window, ["a"] * 10, minimum_group_size=10)
+        report = subgroup_calibration_report(window, ["a"] * 10, declared_groups=["a"], minimum_group_size=10)
         bin_row = report["subgroups"][0]["metrics"]["bins"][0]
         self.assertLessEqual(bin_row["positive_rate_wilson_low"], bin_row["positive_rate"])
         self.assertGreaterEqual(bin_row["positive_rate_wilson_high"], bin_row["positive_rate"])
@@ -56,7 +56,7 @@ class SubgroupCalibrationTests(unittest.TestCase):
             "labels": [1] * 4 + [0] * 4,
         }
         groups = ["review"] * 8
-        report = subgroup_calibration_report(window, groups, minimum_group_size=4)
+        report = subgroup_calibration_report(window, groups, declared_groups=["review"], minimum_group_size=4)
         tampered = copy.deepcopy(report)
         tampered["policy"]["ece_review_threshold"] = 0.9
         self.assertFalse(subgroup_calibration_certificate(window, groups, tampered))
@@ -66,6 +66,27 @@ class SubgroupCalibrationTests(unittest.TestCase):
         tampered = copy.deepcopy(report)
         tampered["policy"]["confidence_z"] = 1.0
         self.assertFalse(subgroup_calibration_certificate(window, groups, tampered))
+        tampered = copy.deepcopy(report)
+        tampered["declared_groups"] = ["review", "unseen"]
+        self.assertFalse(subgroup_calibration_certificate(window, groups, tampered))
+
+    def test_declared_zero_sample_group_is_retained_and_undeclared_group_is_rejected(self):
+        window = {
+            "contract_version": LABELED_WINDOW_CONTRACT_VERSION,
+            "probabilities": [0.8] * 4,
+            "labels": [1, 1, 0, 0],
+        }
+        report = subgroup_calibration_report(
+            window, ["covered"] * 4, declared_groups=["covered", "uncovered"], minimum_group_size=4,
+        )
+        self.assertEqual([row["group"] for row in report["subgroups"]], ["covered", "uncovered"])
+        self.assertEqual(report["subgroups"][1], {
+            "group": "uncovered", "count": 0, "sufficient_sample": False,
+            "metrics": None, "needs_review": False,
+            "interpretation": "insufficient_sample_for_group_calibration_conclusion",
+        })
+        with self.assertRaises(ValueError):
+            subgroup_calibration_report(window, ["unknown"] * 4, declared_groups=["covered"], minimum_group_size=4)
 
     def test_input_contract_rejects_unsafe_bin_and_group_policies(self):
         window = {
@@ -74,12 +95,14 @@ class SubgroupCalibrationTests(unittest.TestCase):
             "labels": [0, 1],
         }
         with self.assertRaises(ValueError):
-            subgroup_calibration_report(window, ["a", "a"], bins=1)
+            subgroup_calibration_report(window, ["a", "a"], declared_groups=["a"], bins=1)
         with self.assertRaises(ValueError):
-            subgroup_calibration_report(window, ["a", "a"], minimum_group_size=1)
+            subgroup_calibration_report(window, ["a", "a"], declared_groups=["a"], minimum_group_size=1)
         with self.assertRaises(ValueError):
-            subgroup_calibration_report(window, ["a", "a"], ece_review_threshold=1.1)
+            subgroup_calibration_report(window, ["a", "a"], declared_groups=["a"], ece_review_threshold=1.1)
         with self.assertRaises(ValueError):
-            subgroup_calibration_report(window, ["a", "a"], confidence_z=0)
+            subgroup_calibration_report(window, ["a", "a"], declared_groups=["a"], confidence_z=0)
         with self.assertRaises(ValueError):
-            subgroup_calibration_report(window, ["a"])
+            subgroup_calibration_report(window, ["a"], declared_groups=["a"])
+        with self.assertRaises(ValueError):
+            subgroup_calibration_report(window, ["a", "a"], declared_groups=["a", "a"])
