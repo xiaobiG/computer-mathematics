@@ -5,6 +5,11 @@ from __future__ import annotations
 from math import isfinite, isinf, isnan
 
 
+def _is_real_number(value: object) -> bool:
+    """Accept the small teaching contract's scalar domain, excluding bool."""
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
 def close_enough(
     left: float, right: float, *, abs_tol: float = 1e-12, rel_tol: float = 1e-9
 ) -> bool:
@@ -14,8 +19,10 @@ def close_enough(
     opposite infinities are not.  Finite values use the larger of the absolute
     and scale-dependent relative tolerances.
     """
-    if abs_tol < 0 or rel_tol < 0:
-        raise ValueError("tolerances must be non-negative")
+    if not all(_is_real_number(value) for value in (left, right, abs_tol, rel_tol)):
+        raise ValueError("values and tolerances must be real non-boolean numbers")
+    if not isfinite(abs_tol) or not isfinite(rel_tol) or abs_tol < 0 or rel_tol < 0:
+        raise ValueError("tolerances must be finite and non-negative")
     if isnan(left) or isnan(right):
         return False
     if isinf(left) or isinf(right):
@@ -52,7 +59,7 @@ def comparison_certificate(report: dict[str, object]) -> dict[str, bool]:
     right = report["right"]
     abs_tol = report["abs_tol"]
     rel_tol = report["rel_tol"]
-    if not all(isinstance(value, (int, float)) for value in (left, right, abs_tol, rel_tol)):
+    if not all(_is_real_number(value) for value in (left, right, abs_tol, rel_tol)):
         return {"has_required_fields": True, "matches_contract": False, "valid": False}
     try:
         expected_close = close_enough(float(left), float(right), abs_tol=float(abs_tol), rel_tol=float(rel_tol))

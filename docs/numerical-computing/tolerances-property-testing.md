@@ -32,6 +32,8 @@ description: 将误差模型变成 API 契约：设计尺度相关容差、残�
 
 容差不是一个神奇常数，而是接口契约的一部分：它必须说明参考尺度、误差来源与失败后的含义。
 
+契约还必须限制容差本身：`abs_tol` 与 `rel_tol` 应为有限、非负且非布尔的实数。若允许无穷容差，任意两个有限结果都会“通过”；若把 Python 的 `True` 当作 1，又会把类型错误伪装成一整单位的数值预算。这里允许被比较值是 `NaN` 或无穷，以便显式给出它们的语义；但它们不能进入容差参数。
+
 ## 近似相等的数学模型
 
 常用规则是同时允许绝对和相对误差：
@@ -57,6 +59,9 @@ assert close_enough(0.1 + 0.2, 0.3)
 assert close_enough(1_000_000_000.0 + 0.5, 1_000_000_000.0, rel_tol=1e-9)
 assert not close_enough(1.0, 1.1, abs_tol=1e-12, rel_tol=1e-9)
 assert not close_enough(float("nan"), float("nan"))
+
+# 无限容差不是“宽松模式”，而是无效的测试合同。
+# close_enough(1.0, 1.1, rel_tol=float("inf"))  # raises ValueError
 
 report = comparison_report(1e12, 1e12 + 1.0, abs_tol=1e-6, rel_tol=1e-9)
 assert report["close"]

@@ -19,6 +19,10 @@ class ComparisonContractTests(unittest.TestCase):
         self.assertFalse(close_enough(float("inf"), float("-inf")))
         with self.assertRaises(ValueError):
             close_enough(1.0, 1.0, abs_tol=-1.0)
+        with self.assertRaises(ValueError):
+            close_enough(1.0, 1.1, rel_tol=float("inf"))
+        with self.assertRaises(ValueError):
+            close_enough(True, 1.0)
 
     def test_report_certificate_rejects_a_tampered_threshold_or_decision(self):
         report = comparison_report(1e12, 1e12 + 1.0, abs_tol=1e-6, rel_tol=1e-9)
@@ -30,6 +34,12 @@ class ComparisonContractTests(unittest.TestCase):
         self.assertFalse(comparison_certificate(tampered)["valid"])
         tampered = dict(report)
         tampered["close"] = False
+        self.assertFalse(comparison_certificate(tampered)["valid"])
+        tampered = dict(report)
+        tampered["rel_tol"] = float("inf")
+        self.assertFalse(comparison_certificate(tampered)["valid"])
+        tampered = dict(report)
+        tampered["abs_tol"] = True
         self.assertFalse(comparison_certificate(tampered)["valid"])
 
 
