@@ -5,6 +5,8 @@ from projects.naive_bayes_spam.randomized_experiment import (
     assignment_mean_difference,
     complete_randomization_certificate,
     complete_randomization_report,
+    monotone_noncompliance_randomization_certificate,
+    monotone_noncompliance_randomization_report,
     two_unit_interference_certificate,
     two_unit_interference_report,
 )
@@ -38,6 +40,30 @@ class RandomizedExperimentTests(unittest.TestCase):
             complete_randomization_report(self.outcomes, 0)
         with self.assertRaises(ValueError):
             assignment_mean_difference(self.outcomes, [0, 0])
+
+    def test_monotone_noncompliance_separates_itt_all_units_and_complier_estimands(self):
+        # Rows are (D(0), D(1), Y(0), Y(1)): never, two compliers, always.
+        table = [(0, 0, 0.0, 4.0), (0, 1, 0.0, 2.0), (0, 1, 1.0, 4.0), (1, 1, 0.0, 10.0)]
+        report = monotone_noncompliance_randomization_report(table, treated_count=2)
+        self.assertEqual(report["compliance_type_counts"], {"never_taker": 1, "complier": 2, "always_taker": 1})
+        self.assertAlmostEqual(report["all_units_received_treatment_effect"], 4.75)
+        self.assertAlmostEqual(report["intention_to_treat_effect"], 1.25)
+        self.assertAlmostEqual(report["receipt_effect_of_assignment"], 0.5)
+        self.assertAlmostEqual(report["complier_average_received_treatment_effect"], 2.5)
+        self.assertAlmostEqual(report["wald_ratio"], 2.5)
+        self.assertAlmostEqual(report["expected_observed_assignment_difference"], report["intention_to_treat_effect"])
+        self.assertEqual(report["automatic_action"], "none")
+        self.assertTrue(monotone_noncompliance_randomization_certificate(table, 2, report))
+
+    def test_noncompliance_certificate_rejects_changed_estimand_and_defiers(self):
+        table = [(0, 0, 0.0, 4.0), (0, 1, 0.0, 2.0), (0, 1, 1.0, 4.0), (1, 1, 0.0, 10.0)]
+        report = monotone_noncompliance_randomization_report(table, treated_count=2)
+        report["wald_ratio"] = 1.25
+        self.assertFalse(monotone_noncompliance_randomization_certificate(table, 2, report))
+        with self.assertRaisesRegex(ValueError, "defiers"):
+            monotone_noncompliance_randomization_report([(1, 0, 0.0, 1.0), (0, 1, 0.0, 1.0)], 1)
+        with self.assertRaisesRegex(ValueError, "complier"):
+            monotone_noncompliance_randomization_report([(0, 0, 0.0, 1.0), (1, 1, 0.0, 1.0)], 1)
 
     def test_interference_breaks_the_complete_randomization_direct_effect_identity(self):
         # Y_i(z_i, z_peer) = 2*z_i + 3*z_peer for both units.

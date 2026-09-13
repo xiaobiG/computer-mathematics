@@ -144,7 +144,7 @@ $$
 
 ## 用代码把定义变成可检查的计算
 
-下面的实验不依赖第三方库，刻意暴露了中心化、分母选择和零方差这些关键环节。
+实验显式检查中心化、分母和零方差：
 
 ```python
 from projects.naive_bayes_spam.covariance import (
@@ -163,7 +163,7 @@ assert sample_covariance(xs, ys) == 0.0
 assert sample_correlation(xs, ys) == 0.0
 ```
 
-运行 `python -m unittest projects.naive_bayes_spam.test_covariance`。`covariance_report` 自动检查中心化列和、协方差矩阵对称性与对角方差非负；这些是定义直接导出的结构证据。`covariance_report_certificate` 会从原始样本重算均值、矩阵和三项结构结论，篡改非对角元或结构标签都不能通过。第二组对称的二次样本精确给出零协方差、零相关，却由 `ys = xs^2` 确定性生成，形成“零相关不等于独立”的可运行反例。
+`covariance_report` 检查中心化列和、对称性与对角方差；证书从原样本重算。二次样本的零协方差/相关仍不等于独立。
 
 ## 相关不是因果：随机分配改变了什么
 
@@ -184,7 +184,7 @@ assert report["finite_population_average_treatment_effect"] == 1.25
 
 ## 无干扰为何也是随机化恒等式的前提
 
-上一节每个单位只有 $Y_i(0),Y_i(1)$，隐含别人的处理不改变它的结果。两单位时改写为 $Y_i(z_i,z_j)$；令它们都满足 $2z_i+3z_j$。自身处理、邻居未处理时的直接效应为 2；但固定恰好一人处理时，处理者看到 $Y(1,0)=2$，对照者看到 $Y(0,1)=3$，均值差的两个分配期望都是 $-1$：
+若结果为 $Y_i(z_i,z_j)=2z_i+3z_j$，直接效应为 2；固定一人处理时均值差却为 $-1$：
 
 ```python
 from projects.naive_bayes_spam.randomized_experiment import (
@@ -200,7 +200,27 @@ assert not report["no_interference_condition_holds"]
 assert two_unit_interference_certificate(outcomes, report)
 ```
 
-这不是干扰估计器：它只用完整已知的小表证明，随机分配本身不足以把处理—对照差解释为某个直接效应；网络、失访、不依从和外推仍需独立设计。
+这不是干扰估计器；随机化不能单独保证均值差是直接效应。
+
+## 不依从：随机化的 ITT 不是“人人实际接受”的效应
+
+令 $Z$ 为分配、$D(z)$ 为实际接受、$Y(d)$ 为结果。每行是 $(D(0),D(1),Y(0),Y(1))$，并声明无干扰、排除性和单调性 $D(1)\ge D(0)$；随机化均值差的期望是 ITT：
+
+$$
+\operatorname{ITT}=\frac1n\sum_i\left[Y_i(D_i(1))-Y_i(D_i(0))\right].
+$$
+
+```python
+from projects.naive_bayes_spam.randomized_experiment import monotone_noncompliance_randomization_report
+
+table = [(0, 0, 0, 4), (0, 1, 0, 2), (0, 1, 1, 4), (1, 1, 0, 10)]
+report = monotone_noncompliance_randomization_report(table, treated_count=2)
+assert report["all_units_received_treatment_effect"] == 4.75
+assert report["intention_to_treat_effect"] == 1.25
+assert report["complier_average_received_treatment_effect"] == report["wald_ratio"] == 2.5
+```
+
+4.75 是全体接受效应，1.25 是 ITT，2.5 是依从者效应。仅在已声明的排除性、单调性与非零接受差下，$\operatorname{ITT}/E[D(1)-D(0)]$ 等于后者；报告不验证这些假设，也不处理失访、时间/层级或自动决策。
 
 ## 常见误区
 
@@ -212,19 +232,19 @@ assert two_unit_interference_certificate(outcomes, report)
 
 ## 练习
 
-1. **基础**：从 $\mathbb E[(X-\mu_X)(Y-\mu_Y)]$ 逐项展开，证明本课的协方差计算式。
-2. **推导**：证明协方差矩阵的对称性，并完成 $\mathbf v^\mathsf T\Sigma\mathbf v=\mathrm{Var}(\mathbf v^\mathsf T\mathbf X)$ 的推导。
-3. **编码**：为 `covariance_report` 添加三维样本，检查对称性与对角方差；篡改一项协方差后确认重放证书拒绝，再传入常量列，验证相关系数被拒绝。
-4. **开放**：找一份两列以上的真实数据：分别在原始尺度与标准化后做 PCA，比较第一主方向，并写出量纲理由。
+1. **基础**：展开 $\mathbb E[(X-\mu_X)(Y-\mu_Y)]$，推出协方差计算式。
+2. **推导**：证明协方差矩阵对称，并推导 $\mathbf v^\mathsf T\Sigma\mathbf v=\mathrm{Var}(\mathbf v^\mathsf T\mathbf X)$。
+3. **编码**：为 `covariance_report` 加三维样本、篡改协方差，并测试常量列的相关拒绝。
+4. **开放**：比较原始尺度与标准化后的 PCA 主方向，并写出量纲理由。
 5. **开放**：新闻中出现“冰淇淋销量与溺水人数正相关”。画出一个含季节变量的因果图，说明为何该相关不能支持因果结论。
 
 ## 练习答案提示
 
-1. 展开乘积后利用 $E[X]=\mu_X,E[Y]=\mu_Y$；中间两项各为 $-\mu_X\mu_Y$，最后常数项补回一个该值。
-2. 由协方差定义可直接交换 $i,j$ 得对称性；将线性组合的方差展开为双重求和，即得到 $v^T\Sigma v$。
-3. 三维输入应验证矩阵与其转置近似相等、对角线非负；证书需从原样本重算而非信任报告。常量列方差为零，相关系数分母无定义，应有明确异常或缺失值契约。
-4. 原始尺度会使大单位变量主导协方差，标准化相当于改用相关结构；保留数据处理、中心化和尺度的记录才能解释方向变化。
-5. 画 $season\to ice\ cream$ 与 $season\to drowning$，必要时加入共同暴露因素；该图说明观察相关兼容共同原因，不能单凭相关确定任一箭头。
+1. 展开后用 $E[X]=\mu_X,E[Y]=\mu_Y$ 合并各项。
+2. 交换 $i,j$；再展开线性组合方差。
+3. 检查对称、非负对角和重放；常量列使相关分母无定义。
+4. 先说明单位与标准化为何改变方向。
+5. 画季节到两变量的共同原因箭头。
 
 ## 下一步
 

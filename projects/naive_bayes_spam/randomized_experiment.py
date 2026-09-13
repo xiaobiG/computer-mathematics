@@ -13,6 +13,7 @@ from math import isfinite
 
 CONTRACT = "finite-complete-randomization/v1"
 INTERFERENCE_CONTRACT = "two-unit-interference-randomization/v1"
+NONCOMPLIANCE_CONTRACT = "monotone-noncompliance-randomization/v1"
 
 
 def _potential_outcomes(value: object) -> list[tuple[float, float]]:
@@ -79,6 +80,103 @@ def complete_randomization_certificate(potential_outcomes: object, treated_count
         return False
     try:
         return report == complete_randomization_report(potential_outcomes, treated_count)
+    except ValueError:
+        return False
+
+
+def _monotone_noncompliance_table(value: object) -> list[tuple[int, int, float, float]]:
+    """Normalize (D(0), D(1), Y(0), Y(1)) under exclusion and monotonicity.
+
+    ``D`` is actual receipt and ``Y`` depends only on actual receipt in this
+    intentionally restricted teaching model.  The validation excludes defiers
+    so that the finite Wald identity has a stated interpretation.
+    """
+    if not isinstance(value, list) or not 2 <= len(value) <= 12:
+        raise ValueError("noncompliance_table must contain from 2 to 12 units")
+    normalized = []
+    for row in value:
+        if not isinstance(row, (list, tuple)) or len(row) != 4:
+            raise ValueError("each noncompliance row must be D0, D1, Y0, Y1")
+        d0, d1, y0, y1 = row
+        if (not isinstance(d0, int) or isinstance(d0, bool) or d0 not in (0, 1)
+                or not isinstance(d1, int) or isinstance(d1, bool) or d1 not in (0, 1)):
+            raise ValueError("D0 and D1 must be binary receipt indicators")
+        if d0 > d1:
+            raise ValueError("monotonicity excludes defiers: D0 must not exceed D1")
+        if any(not isinstance(outcome, (int, float)) or isinstance(outcome, bool) or not isfinite(outcome)
+               for outcome in (y0, y1)):
+            raise ValueError("Y0 and Y1 must be finite numeric outcomes")
+        normalized.append((d0, d1, float(y0), float(y1)))
+    return normalized
+
+
+def _received_outcome(row: tuple[int, int, float, float], assignment: int) -> float:
+    received = row[assignment]
+    return row[3] if received else row[2]
+
+
+def monotone_noncompliance_randomization_report(noncompliance_table: object, treated_count: object) -> dict[str, object]:
+    """Separate ITT from receipt and complier effects in a finite randomized table.
+
+    This enumerates uniform complete assignments.  It establishes the ITT
+    identity for the supplied finite table; the reported Wald equality also
+    relies on the table's explicit exclusion and monotonicity restrictions.
+    It does not infer these hidden rows from observed data.
+    """
+    table = _monotone_noncompliance_table(noncompliance_table)
+    if (not isinstance(treated_count, int) or isinstance(treated_count, bool)
+            or not 1 <= treated_count < len(table)):
+        raise ValueError("treated_count must leave at least one assigned treatment and control unit")
+    assignments = list(combinations(range(len(table)), treated_count))
+    assignment_differences = []
+    for treated in assignments:
+        treated_set = set(treated)
+        treated_outcomes = [_received_outcome(table[index], 1) for index in treated_set]
+        control_outcomes = [_received_outcome(table[index], 0) for index in range(len(table)) if index not in treated_set]
+        assignment_differences.append(sum(treated_outcomes) / len(treated_outcomes) - sum(control_outcomes) / len(control_outcomes))
+    types = {"never_taker": 0, "complier": 0, "always_taker": 0}
+    for d0, d1, _, _ in table:
+        types["never_taker" if (d0, d1) == (0, 0) else "complier" if (d0, d1) == (0, 1) else "always_taker"] += 1
+    unit_count = len(table)
+    all_units_effect = sum(y1 - y0 for _, _, y0, y1 in table) / unit_count
+    itt = sum(_received_outcome(row, 1) - _received_outcome(row, 0) for row in table) / unit_count
+    receipt_effect = sum(d1 - d0 for d0, d1, _, _ in table) / unit_count
+    if receipt_effect == 0.0:
+        raise ValueError("at least one complier is required for a nonzero receipt effect")
+    complier_effect = sum(y1 - y0 for d0, d1, y0, y1 in table if (d0, d1) == (0, 1)) / types["complier"]
+    expected_difference = sum(assignment_differences) / len(assignment_differences)
+    return {
+        "contract": NONCOMPLIANCE_CONTRACT,
+        "units": unit_count,
+        "treated_count": treated_count,
+        "assignment_count": len(assignments),
+        "compliance_type_counts": types,
+        "all_units_received_treatment_effect": all_units_effect,
+        "intention_to_treat_effect": itt,
+        "receipt_effect_of_assignment": receipt_effect,
+        "complier_average_received_treatment_effect": complier_effect,
+        "wald_ratio": itt / receipt_effect,
+        "expected_observed_assignment_difference": expected_difference,
+        "expectation_minus_itt": expected_difference - itt,
+        "all_units_effect_minus_itt": all_units_effect - itt,
+        "assignment_difference_range": [min(assignment_differences), max(assignment_differences)],
+        "assignment_mechanism": "uniform_complete_randomization_over_fixed_treated_count",
+        "assumptions_for_wald_identity": [
+            "fixed_finite_population", "no_interference", "exclusion_Y_depends_only_on_received_D",
+            "monotonicity_no_defiers", "nonzero_receipt_effect",
+        ],
+        "interpretation": "randomization_identifies_ITT; wald_ratio_equals_complier_effect_only_under_declared_model",
+        "boundary": "does_not_identify_hidden_potential_outcomes_or_validate_exclusion_monotonicity_attrition_or_external_validity",
+        "automatic_action": "none",
+    }
+
+
+def monotone_noncompliance_randomization_certificate(noncompliance_table: object, treated_count: object, report: object) -> bool:
+    """Replay all finite assignments and reject altered estimands or assumptions."""
+    if not isinstance(report, dict):
+        return False
+    try:
+        return report == monotone_noncompliance_randomization_report(noncompliance_table, treated_count)
     except ValueError:
         return False
 
