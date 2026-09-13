@@ -4,6 +4,8 @@ import unittest
 from projects.algorithm_lab.batch_shortest_path_updates import (
     ordered_shortest_path_updates_certificate,
     ordered_shortest_path_updates_report,
+    versioned_shortest_path_query_certificate,
+    versioned_shortest_path_query_report,
 )
 
 
@@ -34,6 +36,16 @@ class OrderedShortestPathUpdateTests(unittest.TestCase):
             ordered_shortest_path_updates_report(state(), [{"kind": "delete", "edge_id": "missing"}])
         with self.assertRaises(ValueError):
             ordered_shortest_path_updates_report(state(), [{"kind": "insert", "edge": ["fast", 0, 2, 1]}])
+
+    def test_queries_read_declared_old_and_new_snapshots(self):
+        updates = [{"kind": "delete", "edge_id": "fast"}, {"kind": "insert", "edge": ["shortcut", 0, 2, 2]}]
+        report = versioned_shortest_path_query_report(state(), updates, [0, 1, 2, 0])
+        self.assertEqual([item["target_distance"] for item in report["queries"]], [2.0, 10.0, 2.0, 2.0])
+        self.assertIn("fast", report["queries"][0]["snapshot_edge_ids"])
+        self.assertNotIn("fast", report["queries"][1]["snapshot_edge_ids"])
+        self.assertTrue(versioned_shortest_path_query_certificate(state(), updates, [0, 1, 2, 0], report))
+        report["queries"][1]["visible_version"] = 2
+        self.assertFalse(versioned_shortest_path_query_certificate(state(), updates, [0, 1, 2, 0], report))
 
 
 if __name__ == "__main__":

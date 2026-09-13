@@ -14,6 +14,7 @@ from projects.algorithm_lab.shortest_path_comparison import (
 
 
 CONTRACT = "ordered-shortest-path-updates/v1"
+VERSIONED_QUERY_CONTRACT = "versioned-shortest-path-query/v1"
 MAX_UPDATES = 6
 
 
@@ -133,5 +134,38 @@ def ordered_shortest_path_updates_certificate(initial_state: object, updates: ob
         return False
     try:
         return report == ordered_shortest_path_updates_report(initial_state, updates)
+    except (TypeError, ValueError):
+        return False
+
+
+def versioned_shortest_path_query_report(initial_state: object, updates: object, query_versions: object) -> dict[str, object]:
+    """Bind each query to one immutable ordered-update snapshot, not wall-clock time."""
+    update_report = ordered_shortest_path_updates_report(initial_state, updates)
+    if not isinstance(query_versions, list) or not query_versions:
+        raise ValueError("query_versions must be a non-empty list")
+    snapshots = update_report["steps"]
+    queries = []
+    for index, version in enumerate(query_versions):
+        if (not isinstance(version, int) or isinstance(version, bool)
+                or version < 0 or version >= len(snapshots)):
+            raise ValueError("each query version must name an available ordered snapshot")
+        step = snapshots[version]
+        queries.append({"query_index": index, "visible_version": version,
+                        "target_distance": step["dijkstra"]["target_distance"],
+                        "target_path": step["dijkstra"]["target_path"],
+                        "snapshot_edge_ids": [edge[0] for edge in step["state"]["edges"]]})
+    return {"contract": VERSIONED_QUERY_CONTRACT, "update_contract": CONTRACT,
+            "available_versions": list(range(len(snapshots))), "queries": queries,
+            "snapshot_policy": "query_reads_exact_declared_ordered_snapshot",
+            "work_policy": "full_dijkstra_recomputation_per_query", "automatic_action": "none",
+            "boundary": "not_a_concurrent_storage_protocol_or_dynamic_shortest_path_data_structure_or_amortized_bound"}
+
+
+def versioned_shortest_path_query_certificate(initial_state: object, updates: object, query_versions: object, report: object) -> bool:
+    """Replay updates and queries, rejecting changed snapshot visibility claims."""
+    if not isinstance(report, dict):
+        return False
+    try:
+        return report == versioned_shortest_path_query_report(initial_state, updates, query_versions)
     except (TypeError, ValueError):
         return False
