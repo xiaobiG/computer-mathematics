@@ -19,7 +19,9 @@ experiment: "relation-reachability/v1：记录逐中间点的传递闭包新增�
 
 ## 定义与不变量
 
-$$R\circ R=\{(x,z):\exists y,(x,y)\in R\land(y,z)\in R\}.$$ 
+$$
+R\circ R=\{(x,z):\exists y,(x,y)\in R\land(y,z)\in R\}.
+$$
 
 若 $A_R,A_S$ 是按同一域顺序编码的 0/1 邻接矩阵，则关系复合不是普通数值矩阵乘法，而是布尔半环乘法：
 
