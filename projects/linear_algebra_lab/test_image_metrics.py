@@ -8,6 +8,7 @@ from projects.linear_algebra_lab.image_metrics import (
     same_mse_structural_comparison_report, structural_similarity_certificate, structural_similarity_report,
     local_structural_similarity_certificate, local_structural_similarity_report,
     linear_rgb_error_certificate, linear_rgb_error_report,
+    cielab_delta_e76, srgb_to_cielab_d65,
     srgb_cielab_delta_e76_comparison, srgb_cielab_delta_e76_comparison_certificate,
     srgb_linear_luminance_comparison, srgb_linear_luminance_comparison_certificate, srgb_to_linear,
 )
@@ -141,6 +142,20 @@ class ImageMetricsTests(unittest.TestCase):
         ))
         with self.assertRaisesRegex(ValueError, "non-negative"):
             srgb_cielab_delta_e76_comparison(black, encoded_red, -1.0)
+
+    def test_public_srgb_lab_transform_exposes_achromatic_reference_and_distance(self):
+        black = srgb_to_cielab_d65((0.0, 0.0, 0.0))
+        white = srgb_to_cielab_d65((1.0, 1.0, 1.0))
+        self.assertEqual(black, (0.0, 0.0, 0.0))
+        self.assertAlmostEqual(white[0], 100.0, places=5)
+        self.assertAlmostEqual(white[1], 0.0, places=3)
+        self.assertAlmostEqual(white[2], 0.0, places=3)
+        self.assertAlmostEqual(cielab_delta_e76(black, white), cielab_delta_e76(white, black))
+        self.assertAlmostEqual(cielab_delta_e76((1.0, 2.0, 2.0), (1.0, 2.0, 5.0)), 3.0)
+        with self.assertRaisesRegex(ValueError, r"\[0, 1\]"):
+            srgb_to_cielab_d65((1.1, 0.0, 0.0))
+        with self.assertRaisesRegex(ValueError, "three finite"):
+            cielab_delta_e76((0.0, 0.0), (0.0, 0.0, 0.0))
 
     def test_randomized_svd_artifact_drives_a_numeric_quality_budget_review(self):
         pixels = [[5.0, 0.0], [0.0, 1.0]]

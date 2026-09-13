@@ -368,6 +368,13 @@ def _validate_srgb_encoded(reference, approximation):
                     raise ValueError("encoded sRGB values must lie in [0, 1]")
 
 
+def _validate_srgb_pixel(pixel):
+    if (not isinstance(pixel, (list, tuple)) or len(pixel) != 3
+            or any(not isinstance(value, (int, float)) or isinstance(value, bool) or not isfinite(value)
+                   or float(value) < 0.0 or float(value) > 1.0 for value in pixel)):
+        raise ValueError("encoded sRGB pixel must contain three finite values in [0, 1]")
+
+
 def srgb_to_linear(component):
     """Decode one normalized sRGB component using the declared standard curve."""
     if (not isinstance(component, (int, float)) or isinstance(component, bool)
@@ -411,6 +418,22 @@ def _encoded_srgb_to_cielab(pixel):
     return _xyz_d65_to_cielab(_linear_srgb_to_xyz_d65(tuple(srgb_to_linear(value) for value in pixel)))
 
 
+def srgb_to_cielab_d65(pixel):
+    """Convert one normalized encoded-sRGB pixel to the fixed CIE Lab D65 model."""
+    _validate_srgb_pixel(pixel)
+    return _encoded_srgb_to_cielab(pixel)
+
+
+def cielab_delta_e76(first, second):
+    """Return the Euclidean CIE 1976 Lab distance for two finite Lab triples."""
+    for value in (first, second):
+        if (not isinstance(value, (list, tuple)) or len(value) != 3
+                or any(not isinstance(component, (int, float)) or isinstance(component, bool)
+                       or not isfinite(component) for component in value)):
+            raise ValueError("CIE Lab values must contain three finite numbers")
+    return sqrt(sum((float(left) - float(right)) ** 2 for left, right in zip(first, second)))
+
+
 def srgb_cielab_delta_e76_comparison(reference, approximation, delta_e76_budget):
     """Compare encoded-sRGB pixels in the declared CIE Lab D65 coordinate model.
 
@@ -429,9 +452,9 @@ def srgb_cielab_delta_e76_comparison(reference, approximation, delta_e76_budget)
     for expected_row, actual_row in zip(reference, approximation):
         for expected, actual in zip(expected_row, actual_row):
             squared_rgb_error += sum((float(left) - float(right)) ** 2 for left, right in zip(expected, actual))
-            expected_lab = _encoded_srgb_to_cielab(expected)
-            actual_lab = _encoded_srgb_to_cielab(actual)
-            delta_es.append(sqrt(sum((left - right) ** 2 for left, right in zip(expected_lab, actual_lab))))
+            expected_lab = srgb_to_cielab_d65(expected)
+            actual_lab = srgb_to_cielab_d65(actual)
+            delta_es.append(cielab_delta_e76(expected_lab, actual_lab))
     samples = len(delta_es)
     budget = float(delta_e76_budget)
     mean_delta_e76 = sum(delta_es) / samples

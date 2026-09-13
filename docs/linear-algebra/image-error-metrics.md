@@ -122,7 +122,7 @@ $$
 \Delta E_{76}=\sqrt{(\Delta L^*)^2+(\Delta a^*)^2+(\Delta b^*)^2}
 $$
 
-的均值、最大值与预算。证书重算并绑定编码、白点与结论；例如黑色和编码红 $[.5,0,0]$ 在预算 40 下超标。模型来源为 [CIE 15:2018](https://cie.co.at/publications/colorimetry-4th-edition) 与 [ICC sRGB 登记](https://registry.color.org/rgb-registry/srgb)。它不是 ICC profile、色域映射、色适应、显示条件、CIEDE2000、视觉偏好或自动验收。
+的均值、最大值与预算。读者可用 `srgb_to_cielab_d65((1,1,1))` 核对约为 $(100,0,0)$，再用 `cielab_delta_e76` 手算距离；证书绑定编码、白点与结论。模型来源为 [CIE 15:2018](https://cie.co.at/publications/colorimetry-4th-edition) 与 [ICC sRGB 登记](https://registry.color.org/rgb-registry/srgb)。它不是 ICC profile、色域映射、色适应、显示条件、CIEDE2000、视觉偏好或自动验收。
 
 ## 失败案例与工程边界
 
