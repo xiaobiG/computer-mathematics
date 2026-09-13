@@ -159,3 +159,18 @@ def condensation_report(graph: Graph) -> dict[str, object]:
         "cross_edges_go_forward": cross_edges_go_forward,
         "valid": cross_edges_go_forward,
     }
+
+
+def condensation_report_certificate(graph: Graph, report: object) -> bool:
+    """Replay components, quotient edges, and Kahn order for a displayed report.
+
+    A bare ``valid`` flag cannot establish that the shown component partition
+    or topological order came from this graph.  Rebuilding the deterministic
+    teaching report binds all displayed quotient-DAG evidence together.
+    """
+    if not isinstance(report, dict):
+        return False
+    try:
+        return report == condensation_report(graph)
+    except (TypeError, ValueError):
+        return False

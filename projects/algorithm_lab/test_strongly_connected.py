@@ -1,7 +1,9 @@
+import copy
 import unittest
 
 from projects.algorithm_lab.strongly_connected import (
-    condensation_report, scc_partition_review, strongly_connected_components,
+    condensation_report, condensation_report_certificate,
+    scc_partition_review, strongly_connected_components,
 )
 
 
@@ -31,6 +33,10 @@ class StronglyConnectedTests(unittest.TestCase):
         self.assertEqual(component_of["c"], component_of["d"])
         self.assertNotEqual(component_of["a"], component_of["c"])
         self.assertEqual(len(report["topological_order"]), len(components))
+        self.assertTrue(condensation_report_certificate(graph, report))
+        altered = copy.deepcopy(report)
+        altered["cross_edges_go_forward"] = False
+        self.assertFalse(condensation_report_certificate(graph, altered))
 
     def test_direct_mutual_reachability_review_rejects_a_nonmaximal_partition(self):
         graph = {"a": ["b"], "b": []}

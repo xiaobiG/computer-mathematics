@@ -35,7 +35,8 @@ Kosaraju 算法先在原图 DFS，按完成时间排序；再在反图中按完�
 
 ```python
 from projects.algorithm_lab.strongly_connected import (
-    condensation_report, scc_partition_review, strongly_connected_components,
+    condensation_report, condensation_report_certificate,
+    scc_partition_review, strongly_connected_components,
 )
 
 graph = {"a": ["b"], "b": ["a", "c"], "c": ["d"], "d": ["c"], "e": []}
@@ -45,6 +46,7 @@ assert {frozenset(part) for part in parts} == {frozenset({"a", "b"}), frozenset(
 report = condensation_report(graph)
 assert report["valid"]
 assert len(report["topological_order"]) == len(parts)
+assert condensation_report_certificate(graph, report)
 assert scc_partition_review(graph, report["components"])["valid"]
 ```
 
@@ -52,7 +54,7 @@ assert scc_partition_review(graph, report["components"])["valid"]
 python -m unittest projects.algorithm_lab.test_strongly_connected
 ```
 
-`condensation_report` 用 Kahn 算法检查跨组件边按拓扑序前进；但把单向边 `a→b` 错并为 `{a,b}` 后，凝聚图仍是单点 DAG。小图 `scc_partition_review` 直接检查“同一分块当且仅当双向可达”；它限于 20 个顶点，是独立教学 oracle，不是生产算法。主算法仍为 $O(V+E)$ 时间和空间。
+`condensation_report` 用 Kahn 算法检查跨组件边按拓扑序前进；`condensation_report_certificate` 从原图重放组件、缩点边和拓扑顺序，避免把一个孤立的 `valid=True` 当证据。但把单向边 `a→b` 错并为 `{a,b}` 后，凝聚图仍是单点 DAG。小图 `scc_partition_review` 直接检查“同一分块当且仅当双向可达”；它限于 20 个顶点，是独立教学 oracle，不是生产算法。主算法仍为 $O(V+E)$ 时间和空间。
 
 ## 正确性与工程边界
 
