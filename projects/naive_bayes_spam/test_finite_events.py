@@ -26,8 +26,10 @@ class FiniteEventTests(unittest.TestCase):
         self.assertEqual(report.conditional_right_given_left, 0.5)
         self.assertEqual(report.independence_residual, 0.0)
         self.assertTrue(finite_event_certificate(self.two_coins, first_head, second_head, report))
+        altered = replace(report, union_probability=1.0)
+        self.assertFalse(finite_event_certificate(self.two_coins, first_head, second_head, altered))
         self.assertFalse(finite_event_certificate(
-            self.two_coins, first_head, second_head, replace(report, union_probability=1.0)))
+            self.two_coins, first_head, second_head, altered, tolerance=float("inf")))
 
     def test_rejects_invalid_space_unknown_events_and_zero_conditioning(self):
         with self.assertRaises(ValueError):

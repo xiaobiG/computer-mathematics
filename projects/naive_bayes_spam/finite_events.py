@@ -72,7 +72,8 @@ def finite_event_certificate(space, left, right, report, tolerance=1e-12):
     """Recompute event identities and reject an altered report."""
     if not isinstance(report, FiniteEventReport):
         return False
-    if not isinstance(tolerance, (int, float)) or isinstance(tolerance, bool) or tolerance < 0:
+    if (not isinstance(tolerance, (int, float)) or isinstance(tolerance, bool)
+            or not isfinite(tolerance) or tolerance < 0):
         return False
     try:
         expected = finite_event_report(space, left, right)
