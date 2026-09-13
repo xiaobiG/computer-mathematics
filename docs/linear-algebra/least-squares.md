@@ -97,15 +97,15 @@ assert max(abs(value) for value in report["qr_normal_equation_residual"]) < 1e-1
 assert least_squares_report_certificate(A, [1.0, 2.0, 2.0], report)["valid"]
 ```
 
-报告的两组 `*_normal_equation_residual` 都是 $A^Tr$：它们接近零，才说明相应路径确实达到最小二乘的一阶最优性条件。`least_squares_report_certificate` 会独立重算报告，同时分别检查两条路径的驻点条件与“报告的残差范数确由报告中的系数产生”；篡改一项指标即被拒绝。`least_squares_normal_equations` 有意调用带选主元的方程求解器，便于核对推导；`least_squares_qr` 以改进 Gram–Schmidt 得到 $A=QR$，计算 $Q^Tb$ 后对上三角 $R$ 回代，才是默认应选的数值路径。运行 `python -m unittest projects.linear_algebra_lab.test_main` 可验证小例解、两条路径的一致性、正交残差、秩亏列和宽矩阵边界。
+两组 `*_normal_equation_residual` 都是 $A^Tr$；证书重算系数、残差范数与驻点条件。正规方程路径只用于核对推导；改进 Gram–Schmidt 的 QR 路径才是本实验的默认选择。项目测试还覆盖秩亏与宽矩阵边界。
 
 构造正规方程或 QR 的密集成本都约为 $O(mn^2)$；随后求解 $n\times n$ 系统为 $O(n^3)$。QR 避免了正规方程将条件数近似平方的额外放大。
 
 ## 正确性证据与数值选择
 
-对列满秩的 $A$，凸二次目标只有一个驻点；$A^Tr=0$ 因而既是正规方程的残差，也是最小解的证书。示例报告同时检查正规方程与 QR 的该证书，并报告两组系数的距离。这个小而良态的例子中两条路径应相同；若特征近似共线，二者的数值结果可能开始分离，这正是应该选择 QR 或 SVD 的信号，而不是把差异平均掉。
+列满秩时凸二次目标只有一个驻点，故 $A^Tr=0$ 即为最小解证据。良态例中两条路径应相同；近共线时的差异是改用 QR/SVD 的信号。
 
-若列秩亏，$A^\mathsf TA$ 不可逆，最小二乘解通常不唯一；但最小残差的投影 $A\hat x$ 仍唯一。教学 QR 代码会显式拒绝这种输入，避免悄悄返回依赖列顺序的结果。SVD 则可通过丢弃零奇异值选择其中范数最小的解；这是一条额外的解选择规则，不能从正规方程本身自动得到。
+列秩亏时 $A^\mathsf TA$ 不可逆，投影 $A\hat x$ 仍唯一而系数通常不唯一；教学 QR 会拒绝它。SVD 的最小范数解是一条额外规则，不能从正规方程自动得到。
 
 ## 构造实验：先从任务写出 $A,b$，再选择验收不变量
 
@@ -128,9 +128,7 @@ assert projected["fit_path"] == "qr_projection_for_unreachable_target"
 assert rank_deficient["fit_path"] == "rank_revealing_qr_or_svd_required"
 ```
 
-`exact` 的 $b$ 在 $A$ 的列空间中，所以验收应是 $Ax=b$。`projected` 只改变最后一次观测，已不在同一条直线模型的列空间中；此时正确不变量不再是零残差，而是 $A^Tr\approx0$ 且残差被保留。第三个输入把两列写成同一方向，诊断拒绝假装 QR 能给出唯一坐标：即便目标可达，仍须先选择最小范数、稀疏性或其他额外规则。
-
-修改这些行之前，先用自然语言写下“每个特征允许怎样改变输出”和“我希望验收精确等式还是投影正交性”。如果你的模型只有一行、两列，诊断会标为欠定，而不是擅自把某个坐标设为零。这是从投影概念迁移到建模选择的关键一步。
+`exact` 验收 $Ax=b$；只改末次观测后的 `projected` 则保留非零残差并验收 $A^Tr\approx0$。重复列或宽矩阵必须先声明最小范数、稀疏性等规则，不能由 QR 擅自选坐标。
 
 ## 反例：QR 能继续计算，不代表系数已经可信
 
@@ -153,7 +151,24 @@ print(x_qr)  # 在 binary64 教学实现中约为 [1.0555, 0.9445]
 assert max(abs(sum(A[i][j] * r_qr[i] for i in range(3))) for j in range(2)) < 1e-12
 ```
 
-正规方程把小奇异方向的尺度平方，因而这个例子在 `1e-12` 的消元容差下先拒绝 $A^TA$；QR 路径仍产生一个满足 $A^Tr\approx0$ 的浮点驻点。然而两条几乎重复的列让系数已偏离精确值：残差小、驻点条件成立，都不能恢复丢失的可辨识性。这个实验不证明 QR 总是更准确，也不将这份改进 Gram–Schmidt 教学代码当作生产实现；它只说明应报告列共线、缩放和系数敏感性，并在需要最小范数或秩判定时交给成熟的 pivoted QR/SVD 库。
+正规方程在 `1e-12` 容差下先拒绝 $A^TA$；QR 仍给出 $A^Tr\approx0$，但系数已偏离 $(1,1)$。小残差不能恢复可辨识性；生产环境应报告共线与缩放，并交给 pivoted QR/SVD。
+
+## 岭正则化：不是“更稳地解原来的题”，而是换了题目
+
+对 $A=[(1,1),(2,2),(3,3)]^T,b=(1,2,4)^T$，普通最小二乘只能确定系数之和。岭回归改写目标为 $\lVert Ax-b\rVert_2^2+\lambda\lVert x\rVert_2^2$（$\lambda>0$），其条件是 $(A^TA+\lambda I)x=A^Tb$。因此秩亏时也唯一；唯一性来自“偏好小系数”，不是数据辨识了重复特征。
+
+```python
+from projects.linear_algebra_lab.main import ridge_regularization_report
+
+A = [[1.0, 1.0], [2.0, 2.0], [3.0, 3.0]]
+report = ridge_regularization_report(A, [1.0, 2.0, 4.0], regularization=1.0)
+
+assert report["solution"] == [17 / 29, 17 / 29]
+assert max(abs(value) for value in report["regularized_gradient"]) < 1e-12
+assert min(abs(value) for value in report["data_gradient"]) > 1e-3
+```
+
+岭解的原数据梯度不为零，正由 $\lambda x$ 抵消：这是不同目标，不是同一问题的数值修复。`regularization` 是模型选择；生产中使用 QR/SVD 型 ridge 实现。
 
 ## 失败案例与工程边界
 

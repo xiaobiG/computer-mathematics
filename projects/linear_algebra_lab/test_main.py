@@ -6,7 +6,7 @@ from projects.linear_algebra_lab.main import (
     compressed_image_search, compressed_image_search_certificate, least_squares_comparison_report, least_squares_normal_equations, least_squares_report_certificate, low_rank_parameter_report,
     gram_schmidt_stability_certificate, gram_schmidt_stability_report,
     matmul, matrix_composition_certificate, floating_associativity_report, floating_associativity_certificate,
-    norm, project, least_squares_qr, rank_k_approximation, rank_one_approximation,
+    norm, project, least_squares_qr, ridge_least_squares, ridge_regularization_report, rank_k_approximation, rank_one_approximation,
     elimination_invariant_certificate, pivot_trace_certificate, solve, solve_with_pivot_trace, truncated_svd_frobenius_error,
     truncated_svd_report, truncated_svd_report_certificate, numerical_rank_report,
     numerical_rank_scale_comparison, numerical_rank_scale_comparison_certificate,
@@ -182,6 +182,20 @@ class LinearAlgebraLabTests(unittest.TestCase):
         stationarity = [sum(matrix[row][column] * residual[row] for row in range(3)) for column in range(2)]
         self.assertTrue(all(abs(value) < 1e-12 for value in stationarity))
         self.assertGreater(abs(solution[0] - 1.0), 1e-2)
+
+    def test_ridge_changes_the_rank_deficient_problem_to_a_unique_stationary_fit(self):
+        matrix = [[1.0, 1.0], [2.0, 2.0], [3.0, 3.0]]
+        target = [1.0, 2.0, 4.0]
+        solution, residual = ridge_least_squares(matrix, target, regularization=1.0)
+        report = ridge_regularization_report(matrix, target, regularization=1.0)
+        self.assertAlmostEqual(solution[0], 17 / 29)
+        self.assertAlmostEqual(solution[1], 17 / 29)
+        self.assertEqual(residual, report["residual"])
+        self.assertTrue(all(abs(value) < 1e-12 for value in report["regularized_gradient"]))
+        self.assertTrue(all(abs(value) > 1e-3 for value in report["data_gradient"]))
+        self.assertAlmostEqual(report["squared_residual_loss"] + report["squared_coefficient_penalty"], report["regularized_objective"])
+        with self.assertRaises(ValueError):
+            ridge_least_squares(matrix, target, regularization=0.0)
 
     def test_rank_one_matrix_is_reconstructed(self):
         matrix = [[3.0, 6.0], [4.0, 8.0]]

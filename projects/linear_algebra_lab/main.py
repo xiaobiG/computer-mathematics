@@ -518,6 +518,60 @@ def least_squares_qr(matrix, target, epsilon=EPSILON):
     return solution, _least_squares_residual(matrix, target, solution)
 
 
+def ridge_least_squares(matrix, target, regularization, epsilon=EPSILON):
+    """Solve ``min ||Ax-b||^2 + λ||x||^2`` through its shifted normal system.
+
+    This compact implementation makes the changed objective visible; it is not
+    a production recommendation to form normal equations.  Unlike the QR
+    teaching path, it accepts rank-deficient and wide matrices: for λ > 0 the
+    shifted system is mathematically nonsingular.
+    """
+    if (not matrix or not matrix[0] or len(target) != len(matrix)
+            or any(len(row) != len(matrix[0]) for row in matrix)):
+        raise ValueError("matrix must be non-empty rectangular and match target")
+    if (epsilon <= 0 or not isfinite(epsilon) or regularization <= epsilon
+            or not isfinite(regularization)):
+        raise ValueError("epsilon and regularization must be finite, with regularization above epsilon")
+    if any(not isfinite(value) for row in matrix for value in row) or any(not isfinite(value) for value in target):
+        raise ValueError("matrix and target must be finite")
+    rows, columns = len(matrix), len(matrix[0])
+    shifted_normal_matrix = [
+        [sum(matrix[row][left] * matrix[row][right] for row in range(rows))
+         + (regularization if left == right else 0.0)
+         for right in range(columns)]
+        for left in range(columns)
+    ]
+    normal_target = [sum(matrix[row][column] * target[row] for row in range(rows))
+                     for column in range(columns)]
+    solution = solve(shifted_normal_matrix, normal_target, epsilon)
+    return solution, _least_squares_residual(matrix, target, solution)
+
+
+def ridge_regularization_report(matrix, target, regularization, epsilon=EPSILON):
+    """Expose the distinct objective and first-order condition of ridge fit."""
+    solution, residual = ridge_least_squares(matrix, target, regularization, epsilon)
+    residual_norm = norm(residual)
+    coefficient_norm = norm(solution)
+    # A^T(Ax-b) is the squared data-loss gradient, up to the common factor 2.
+    data_gradient = [-value for value in _normal_equation_residual(matrix, residual)]
+    penalty_gradient = [regularization * value for value in solution]
+    regularized_gradient = [data + penalty for data, penalty in zip(data_gradient, penalty_gradient)]
+    squared_residual_loss = residual_norm ** 2
+    squared_coefficient_penalty = regularization * coefficient_norm ** 2
+    return {
+        "solution": solution,
+        "residual": residual,
+        "residual_norm": residual_norm,
+        "coefficient_norm": coefficient_norm,
+        "squared_residual_loss": squared_residual_loss,
+        "squared_coefficient_penalty": squared_coefficient_penalty,
+        "regularized_objective": squared_residual_loss + squared_coefficient_penalty,
+        "data_gradient": data_gradient,
+        "penalty_gradient": penalty_gradient,
+        "regularized_gradient": regularized_gradient,
+    }
+
+
 def least_squares_comparison_report(matrix, target, epsilon=EPSILON):
     """Compare normal equations and QR using the same residual certificate."""
     normal_solution, normal_residual = least_squares_normal_equations(matrix, target, epsilon)
