@@ -51,6 +51,8 @@ class ImageMetricsTests(unittest.TestCase):
         report = structural_similarity_report(pixels, pixels)
         self.assertAlmostEqual(report.ssim, 1.0)
         self.assertTrue(structural_similarity_certificate(pixels, pixels, report))
+        with self.assertRaisesRegex(ValueError, "at least two"):
+            structural_similarity_report([[128.0]], [[128.0]])
 
     def test_global_ssim_detects_structure_change_and_tampering(self):
         reference = [[0.0, 255.0], [0.0, 255.0]]
@@ -92,6 +94,8 @@ class ImageMetricsTests(unittest.TestCase):
         ))
         with self.assertRaisesRegex(ValueError, "divide"):
             local_structural_similarity_report(reference, approximation, 3, 2)
+        with self.assertRaisesRegex(ValueError, "at least two"):
+            local_structural_similarity_report(reference, approximation, 1, 1)
 
     def test_equal_rgb_mse_can_have_different_linear_luminance_error(self):
         reference = [[[0.0, 0.0, 0.0]]]

@@ -256,11 +256,13 @@ def structural_similarity_report(reference, approximation, peak=255.0, k1=0.01, 
     left = [float(value) for row in reference for value in row]
     right = [float(value) for row in approximation for value in row]
     samples = len(left)
+    if samples < 2:
+        raise ValueError("SSIM requires at least two samples to define sample variance and covariance")
     mean_left, mean_right = sum(left) / samples, sum(right) / samples
     divisor = samples - 1
-    variance_left = 0.0 if divisor == 0 else sum((value - mean_left) ** 2 for value in left) / divisor
-    variance_right = 0.0 if divisor == 0 else sum((value - mean_right) ** 2 for value in right) / divisor
-    covariance = 0.0 if divisor == 0 else sum(
+    variance_left = sum((value - mean_left) ** 2 for value in left) / divisor
+    variance_right = sum((value - mean_right) ** 2 for value in right) / divisor
+    covariance = sum(
         (x - mean_left) * (y - mean_right) for x, y in zip(left, right)
     ) / divisor
     c1, c2 = (k1 * float(peak)) ** 2, (k2 * float(peak)) ** 2
