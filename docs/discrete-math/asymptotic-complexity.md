@@ -74,33 +74,25 @@ def operation_counts(size):
     }
 
 
-def two_sum_sorted_trace(values, target):
-    """返回一对下标和比较次数；输入必须非降序。"""
-    if any(values[index] > values[index + 1] for index in range(len(values) - 1)):
-        raise ValueError("values must be sorted")
-    left, right, comparisons = 0, len(values) - 1, 0
-    while left < right:
-        comparisons += 1
-        total = values[left] + values[right]
-        if total == target:
-            return (left, right), comparisons
-        if total < target:
-            left += 1
-        else:
-            right -= 1
-    return None, comparisons
+from projects.algorithm_lab.complexity_counts import (
+    operation_counts,
+    two_sum_sorted_certificate,
+    two_sum_sorted_report,
+)
 
 
 assert operation_counts(4) == {
     "linear_scan": 4, "all_unordered_pairs": 6, "all_subsets": 16,
 }
 assert operation_counts(8)["all_subsets"] == 16 * operation_counts(4)["all_subsets"]
-pair, comparisons = two_sum_sorted_trace([1, 3, 4, 7, 11, 18], target=15)
-assert pair == (2, 4)
-assert comparisons <= 5
+values = [1, 3, 4, 7, 11, 18]
+report = two_sum_sorted_report(values, target=15)
+assert report["pair"] == [2, 4]
+assert report["comparisons"] <= 5
+assert two_sum_sorted_certificate(values, 15, report)
 ```
 
-运行 `python -m unittest projects.algorithm_lab.test_complexity_counts` 可验证同一实现。`operation_counts` 用精确公式展示规模从 4 翻倍到 8 时：线性扫描翻倍、子集枚举增至 16 倍；全对枚举为 $n(n-1)/2$，趋近四倍。它不是性能基准，而是防止把单次计时误当增长率的可复核模型。
+运行 `python -m unittest projects.algorithm_lab.test_complexity_counts` 可验证同一实现。`operation_counts` 用精确公式展示规模从 4 翻倍到 8 时：线性扫描翻倍、子集枚举增至 16 倍；全对枚举为 $n(n-1)/2$，趋近四倍。双指针报告还保存每次区间、和与舍弃端点；证书重放“和过小舍左、过大舍右”、比较上界与操作模型，篡改任一步或把计数写成墙钟结论都会失败。这是可复核计数，不是性能基准。
 
 ## 双指针为何只有线性次数
 
