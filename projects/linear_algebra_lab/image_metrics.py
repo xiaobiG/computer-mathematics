@@ -81,6 +81,17 @@ class LocalStructuralSimilarityReport:
     worst_window_ssim: float
 
 
+@dataclass(frozen=True)
+class LinearRgbErrorReport:
+    """Compare equal-channel RGB error with fixed linear-luminance weighting."""
+
+    samples: int
+    channel_mse: tuple[float, float, float]
+    rgb_mse: float
+    linear_luminance_mse: float
+    luminance_coefficients: tuple[float, float, float]
+
+
 def _validate(reference, approximation, peak):
     if not isinstance(peak, (int, float)) or isinstance(peak, bool) or not isfinite(peak) or peak <= 0:
         raise ValueError("peak must be a finite positive number")
@@ -253,6 +264,61 @@ def local_structural_similarity_certificate(
         return report == local_structural_similarity_report(
             reference, approximation, window_rows, window_columns, peak, k1, k2,
         )
+    except ValueError:
+        return False
+
+
+def _validate_linear_rgb(reference, approximation):
+    if (not isinstance(reference, (list, tuple)) or not reference or not isinstance(approximation, (list, tuple))
+            or len(reference) != len(approximation) or not reference[0]):
+        raise ValueError("color images must be non-empty matrices with the same shape")
+    width = len(reference[0])
+    if any(not isinstance(row, (list, tuple)) or len(row) != width for row in reference):
+        raise ValueError("reference color image must be rectangular")
+    if any(not isinstance(row, (list, tuple)) or len(row) != width for row in approximation):
+        raise ValueError("approximation color image must have the same rectangular shape")
+    for image in (reference, approximation):
+        for row in image:
+            for pixel in row:
+                if (not isinstance(pixel, (list, tuple)) or len(pixel) != 3
+                        or any(not isinstance(value, (int, float)) or isinstance(value, bool) or not isfinite(value)
+                               for value in pixel)):
+                    raise ValueError("each color pixel must contain three finite linear-RGB values")
+
+
+def linear_rgb_error_report(reference, approximation):
+    """Report arithmetic RGB MSE and Rec. 709 linear-luminance MSE.
+
+    Inputs are *linear* RGB triples.  Encoded sRGB must be linearized before
+    applying these coefficients; this teaching metric is not a general color
+    appearance model.
+    """
+    _validate_linear_rgb(reference, approximation)
+    coefficients = (0.2126, 0.7152, 0.0722)
+    channel_squared_errors = [0.0, 0.0, 0.0]
+    luminance_squared_error = 0.0
+    samples = 0
+    for expected_row, actual_row in zip(reference, approximation):
+        for expected, actual in zip(expected_row, actual_row):
+            errors = [float(left) - float(right) for left, right in zip(expected, actual)]
+            for index, error in enumerate(errors):
+                channel_squared_errors[index] += error * error
+            luminance_error = sum(weight * error for weight, error in zip(coefficients, errors))
+            luminance_squared_error += luminance_error * luminance_error
+            samples += 1
+    channel_mse = tuple(value / samples for value in channel_squared_errors)
+    return LinearRgbErrorReport(
+        samples, channel_mse, sum(channel_mse) / 3.0,
+        luminance_squared_error / samples, coefficients,
+    )
+
+
+def linear_rgb_error_certificate(reference, approximation, report):
+    """Recompute a declared linear-RGB color-space comparison."""
+    if not isinstance(report, LinearRgbErrorReport):
+        return False
+    try:
+        return report == linear_rgb_error_report(reference, approximation)
     except ValueError:
         return False
 

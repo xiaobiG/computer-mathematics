@@ -7,6 +7,7 @@ from projects.linear_algebra_lab.image_metrics import (
     randomized_svd_image_quality_review_certificate, same_mse_structural_comparison_certificate,
     same_mse_structural_comparison_report, structural_similarity_certificate, structural_similarity_report,
     local_structural_similarity_certificate, local_structural_similarity_report,
+    linear_rgb_error_certificate, linear_rgb_error_report,
 )
 from projects.linear_algebra_lab.randomized_svd import randomized_svd_report
 
@@ -87,6 +88,19 @@ class ImageMetricsTests(unittest.TestCase):
         ))
         with self.assertRaisesRegex(ValueError, "divide"):
             local_structural_similarity_report(reference, approximation, 3, 2)
+
+    def test_equal_rgb_mse_can_have_different_linear_luminance_error(self):
+        reference = [[[0.0, 0.0, 0.0]]]
+        red_error = [[[10.0, 0.0, 0.0]]]
+        green_error = [[[0.0, 10.0, 0.0]]]
+        red = linear_rgb_error_report(reference, red_error)
+        green = linear_rgb_error_report(reference, green_error)
+        self.assertAlmostEqual(red.rgb_mse, green.rgb_mse)
+        self.assertLess(red.linear_luminance_mse, green.linear_luminance_mse)
+        self.assertTrue(linear_rgb_error_certificate(reference, red_error, red))
+        self.assertFalse(linear_rgb_error_certificate(reference, red_error, replace(red, rgb_mse=0.0)))
+        with self.assertRaisesRegex(ValueError, "three finite"):
+            linear_rgb_error_report(reference, [[[0.0, 0.0]]])
 
     def test_randomized_svd_artifact_drives_a_numeric_quality_budget_review(self):
         pixels = [[5.0, 0.0], [0.0, 1.0]]

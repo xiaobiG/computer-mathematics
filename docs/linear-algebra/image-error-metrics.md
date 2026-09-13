@@ -88,11 +88,11 @@ assert review.mse_budget_status == "within_mse_budget"
 assert review.automatic_action == "none"
 ```
 
-同一份上游重构在 `mse_budget=0.2` 下会变为 `exceeds_mse_budget`。这说明“可接受的数值误差”是应用声明的约束，而不是 PSNR 自己给出的产品决定；篡改上游范围、SVD 重构、参考图或质量结论都会被拒绝。即使预算内也只表示逐像素 MSE 合格，不能自动推出视觉质量、编码后文件大小、检索效果或部署安全性。
+`mse_budget=0.2` 会拒绝同一重构；预算是应用声明，不能推出视觉、文件大小、检索或部署结论。
 
 ## 正确性与复杂度
 
-每个像素恰好贡献一次 $e_{ij}^2$ 与 $|e_{ij}|$，故累加器分别等于定义中的求和与最大值；除以样本数和开平方便给出 MSE、RMSE。只要 MSE 正，PSNR 的两种写法由 $\mathrm{RMSE}^2=\mathrm{MSE}$ 与对数规则严格等价。MSE 为零时不做除零，而是按定义报告无穷 PSNR。
+每个像素贡献一次 $e_{ij}^2,|e_{ij}|$，故累加给出 MSE 与最大误差；$\mathrm{RMSE}^2=\mathrm{MSE}$ 给出两种 PSNR 写法。MSE 为零时报告无穷 PSNR。
 
 这验证度量实现，不证明低秩算法最优；随机 SVD 的实际误差仍须另测，MSE 预算也不是感知或任务承诺。
 
@@ -116,10 +116,26 @@ assert report.worst_window_ssim < report.global_ssim
 
 窗口尺寸必须整除图像，避免遗漏边缘。它只定位固定灰度平铺的数值弱点，不是滑动、多尺度或色彩感知 SSIM，更不等于人眼或任务质量。
 
+## 线性 RGB：相同通道 MSE 不等于相同亮度误差
+
+在线性 RGB 中，$Y=0.2126R+0.7152G+0.0722B$。红色与绿色通道各偏 10 时，逐通道平均 MSE 相同，亮度误差却不同：
+
+```python
+from projects.linear_algebra_lab.image_metrics import linear_rgb_error_report
+
+reference = [[[0.0, 0.0, 0.0]]]
+red = linear_rgb_error_report(reference, [[[10.0, 0.0, 0.0]]])
+green = linear_rgb_error_report(reference, [[[0.0, 10.0, 0.0]]])
+assert red.rgb_mse == green.rgb_mse
+assert red.linear_luminance_mse < green.linear_luminance_mse
+```
+
+该报告只接受线性 RGB；编码 sRGB 必须先线性化。它说明度量依赖颜色空间，不是色彩外观、显示环境或人眼感知模型。
+
 ## 失败案例与工程边界
 
 - **相同 MSE、不同可见性**：孤立的大错误和分散噪声可有相同 MSE；固定窗口只能定位，不能判定感知。
-- **编码与颜色空间**：峰值、RGB/线性光/亮度、裁剪和量化都会改变结论；本实验只处理一张灰度数值矩阵。
+- **编码与量化**：峰值、裁剪和量化都会改变结论；线性 RGB 的亮度加权也不等于色彩感知。
 - **任务错位**：PSNR 或 SSIM 更高不保证识别、检索、公平性或安全性更好。
 
 ## 常见误区
@@ -139,9 +155,9 @@ assert report.worst_window_ssim < report.global_ssim
 ## 练习答案提示
 
 1. 平方误差均为 1，故 MSE 为 1、RMSE 为 1、最大绝对误差也为 1；先确认像素数是 4。
-2. Frobenius 范数平方是全部误差平方和，除以像素数后开平方即 RMSE；面积增为四倍时，同样的逐像素误差会让原始 Frobenius 范数变为两倍。
-3. 每行报告应包含行像素数、平方误差和与该行 MSE；证书要重算聚合值，篡改任一行后应拒绝而非只比较最终均值。
-4. PSNR 测逐像素对数误差，最大误差测最坏局部偏差，文件大小测存储，主观评审和检索指标分别测感知与任务质量，不能互相替代。
+2. Frobenius 平方是误差平方和；面积四倍时，相同像素误差的范数变两倍。
+3. 行报告须重算每行与聚合值，不能只信最终均值。
+4. PSNR、最坏误差、文件大小、主观评审和检索分别回答数值、局部、存储、感知与任务问题。
 
 ## 延伸
 
