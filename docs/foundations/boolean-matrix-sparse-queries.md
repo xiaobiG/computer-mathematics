@@ -4,7 +4,7 @@ description: 从关系复合推导布尔矩阵乘法，在同一输入上比较�
 courseLevel: "1（关系、矩阵与图算法桥接）"
 prerequisites: "有限关系与邻接矩阵、关系复合与可达闭包"
 estimatedMinutes: 60
-experiment: "布尔复合、稀疏扫描与位集合批次查询的可重放计数"
+experiment: "布尔复合、位集合批次查询与冻结工作负载的本机运行时测量"
 ---
 
 # 布尔矩阵乘法与稀疏图查询：两步可达为何不是普通乘法
@@ -91,12 +91,30 @@ assert bitset_batch_relation_query_certificate(
 
 这是固定字宽模型；真实速度还取决于布局、运行时和更新。
 
+## 从操作数到本机测量：同一工作负载才可比较
+
+操作计数解释算法结构，不等于纳秒时间。`relation_batch_runtime_measurement` 在同一冻结关系、源批次和重复次数上分别运行稀疏两跳核与位集合缓存核；每轮先核对输出，再保存原始 `perf_counter_ns` 样本与中位数：
+
+```python
+from projects.foundations_lab.relations import relation_batch_runtime_measurement
+
+report = relation_batch_runtime_measurement(
+    ["a", "b", "c"], [["a", "b"], ["b", "c"]], [["b", "c"], ["c", "a"]],
+    ["a", "a", "b"], repetitions=7,
+)
+assert report["verification"]["sparse_and_bitset_outputs_match_each_repetition"]
+print(report["sparse_two_hop_median_ns"], report["bitset_cached_median_ns"])
+```
+
+报告同时记录 Python 实现/版本与平台、预热次数、全部样本和 `automatic_action="none"`。`perf_counter_ns` 只保证短时段的高分辨率差值，并不让跨机器、负载、解释器版本或并发情形的中位数可直接比较；[Python 时间文档](https://docs.python.org/3/library/time.html#time.perf_counter_ns)也明确其参考点没有含义。故它是可复跑的**测量协议**，不是摊还复杂度证明、吞吐量承诺或并发缓存正确性。
+
 ## 失败案例与工程边界
 
 - **普通乘法当可达性。** 它计路径数，不是存在性。
 - **稀疏或位集合永远更快。** 构造、缓存和更新会改变计数。
 - **忽略矩阵顺序或闭包层次。** 域顺序决定语义；两步不等于闭包。
 - **操作计数当吞吐量。** CPU、布局和运行时仍会改变速度。
+- **一次计时选表示。** 先固定批次、预热、重复与环境，再报告样本而非只报最快一次。
 
 ## 常见误区
 
@@ -109,14 +127,14 @@ assert bitset_batch_relation_query_certificate(
 1. 手算 $a\to b\to c$ 的布尔平方。
 2. 为什么稀疏扫描只枚举已存在的两段边？
 3. **编码**：篡改扫描/缓存计数或复合对，确认证书拒绝。
-4. **开放**：为共同关注查询比较三种表示，写明批次和更新率。
+4. **开放**：为共同关注查询比较三种表示，写明批次、更新率与测量环境。
 
 ## 练习答案提示
 
 1. 选中间点 b；存在即可写 1。
 2. 外层枚举已有 $(x,y)$，内层枚举 y 的真实后继。
 3. 从输入重建结果、扫描和缓存，不能只查字段。
-4. 对比存储、重复批次与更新成本。
+4. 对比存储、重复批次、更新成本与本机测量范围。
 
 ## 下一步
 

@@ -1,11 +1,17 @@
 """Finite binary relations and their adjacency-matrix representations for teaching."""
 from __future__ import annotations
 
+import platform
+import sys
+from statistics import median
+from time import perf_counter_ns
+
 
 CONTRACT = "finite-relation-matrix/v1"
 BOOLEAN_COMPOSITION_CONTRACT = "boolean-relation-composition/v1"
 BITSET_BATCH_CONTRACT = "bitset-batch-relation-query/v1"
 CACHE_INVALIDATION_CONTRACT = "relation-bitset-cache-invalidation/v1"
+RUNTIME_MEASUREMENT_CONTRACT = "relation-batch-runtime-measurement/v1"
 
 
 def _domain(value):
@@ -208,6 +214,103 @@ def bitset_batch_relation_query_certificate(domain, left_pairs, right_pairs, que
         )
     except ValueError:
         return False
+
+
+def _batch_query_inputs(domain, left_pairs, right_pairs, query_sources):
+    members = _domain(domain)
+    left, right = _pairs(left_pairs, members), _pairs(right_pairs, members)
+    if (not isinstance(query_sources, list) or not query_sources
+            or any(not isinstance(source, str) or source not in members for source in query_sources)):
+        raise ValueError("query_sources must be a non-empty list of domain members")
+    left_outgoing = {member: [] for member in members}
+    right_outgoing = {member: [] for member in members}
+    for source, middle in left:
+        left_outgoing[source].append(middle)
+    for middle, target in right:
+        right_outgoing[middle].append(target)
+    return members, left_outgoing, right_outgoing
+
+
+def _sparse_two_hop_batch_outputs(members, left_outgoing, right_outgoing, query_sources):
+    return [
+        sorted({target for middle in left_outgoing[source] for target in right_outgoing[middle]})
+        for source in query_sources
+    ]
+
+
+def _bitset_cached_batch_outputs(members, left_outgoing, right_outgoing, query_sources):
+    positions = {member: index for index, member in enumerate(members)}
+    rows = {
+        middle: sum(1 << positions[target] for target in right_outgoing[middle])
+        for middle in members
+    }
+    cache = {}
+    outputs = []
+    for source in query_sources:
+        if source not in cache:
+            mask = 0
+            for middle in left_outgoing[source]:
+                mask |= rows[middle]
+            cache[source] = mask
+        else:
+            mask = cache[source]
+        outputs.append([member for member in members if mask & (1 << positions[member])])
+    return outputs
+
+
+def relation_batch_runtime_measurement(domain, left_pairs, right_pairs, query_sources, repetitions=7, warmup_runs=1, clock_ns=None):
+    """Measure two declared finite query kernels on this runtime only.
+
+    The report deliberately records raw samples and environment metadata instead
+    of declaring a winner.  `clock_ns` exists only so tests can inspect the
+    timing contract; ordinary readers use Python's monotonic performance clock.
+    """
+    if (not isinstance(repetitions, int) or isinstance(repetitions, bool) or repetitions < 3
+            or not isinstance(warmup_runs, int) or isinstance(warmup_runs, bool) or warmup_runs < 0):
+        raise ValueError("repetitions must be at least 3 and warmup_runs must be non-negative integers")
+    if clock_ns is not None and not callable(clock_ns):
+        raise ValueError("clock_ns must be callable when supplied")
+    members, left_outgoing, right_outgoing = _batch_query_inputs(domain, left_pairs, right_pairs, query_sources)
+    for _ in range(warmup_runs):
+        _sparse_two_hop_batch_outputs(members, left_outgoing, right_outgoing, query_sources)
+        _bitset_cached_batch_outputs(members, left_outgoing, right_outgoing, query_sources)
+    clock = perf_counter_ns if clock_ns is None else clock_ns
+    sparse_samples, bitset_samples = [], []
+    expected_outputs = None
+    for _ in range(repetitions):
+        start = clock()
+        sparse_outputs = _sparse_two_hop_batch_outputs(members, left_outgoing, right_outgoing, query_sources)
+        end = clock()
+        sparse_samples.append(end - start)
+        start = clock()
+        bitset_outputs = _bitset_cached_batch_outputs(members, left_outgoing, right_outgoing, query_sources)
+        end = clock()
+        bitset_samples.append(end - start)
+        if sparse_outputs != bitset_outputs:
+            raise AssertionError("sparse and bitset timing kernels must agree")
+        expected_outputs = sparse_outputs
+    if any(sample < 0 for sample in sparse_samples + bitset_samples):
+        raise ValueError("clock_ns must not move backwards within a measurement")
+    return {
+        "contract": RUNTIME_MEASUREMENT_CONTRACT,
+        "query_sources": list(query_sources),
+        "repetitions": repetitions,
+        "warmup_runs": warmup_runs,
+        "clock": "time.perf_counter_ns" if clock_ns is None else "injected_test_clock",
+        "environment": {
+            "python_implementation": platform.python_implementation(),
+            "python_version": sys.version.split()[0],
+            "platform": platform.platform(),
+        },
+        "outputs": expected_outputs,
+        "verification": {"sparse_and_bitset_outputs_match_each_repetition": True},
+        "sparse_two_hop_elapsed_ns": sparse_samples,
+        "bitset_cached_elapsed_ns": bitset_samples,
+        "sparse_two_hop_median_ns": median(sparse_samples),
+        "bitset_cached_median_ns": median(bitset_samples),
+        "interpretation": "local_runtime_measurement_not_cross_machine_throughput_or_concurrent_cache_guarantee",
+        "automatic_action": "none",
+    }
 
 
 def relation_cache_invalidation_report(domain, left_pairs, right_before, right_after, query_sources, word_bits):

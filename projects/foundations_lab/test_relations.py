@@ -4,6 +4,7 @@ import unittest
 from projects.foundations_lab.relations import (
     bitset_batch_relation_query_certificate, bitset_batch_relation_query_report,
     relation_cache_invalidation_certificate, relation_cache_invalidation_report,
+    relation_batch_runtime_measurement,
     boolean_relation_composition_certificate, boolean_relation_composition_report,
     finite_relation_certificate, finite_relation_report, relation_reachability_certificate, relation_reachability_report,
 )
@@ -85,3 +86,26 @@ class RelationTests(unittest.TestCase):
         self.assertTrue(relation_cache_invalidation_certificate(domain, left, before, after, ["a", "a", "c"], 2, report))
         report["old_cache_valid_for_version_1"] = True
         self.assertFalse(relation_cache_invalidation_certificate(domain, left, before, after, ["a", "a", "c"], 2, report))
+
+    def test_runtime_measurement_records_samples_environment_and_matching_outputs(self):
+        ticks = iter([100, 110, 200, 220, 300, 330, 400, 440, 500, 550, 600, 660])
+        report = relation_batch_runtime_measurement(
+            ["a", "b", "c"], [["a", "b"], ["b", "c"]], [["b", "c"], ["c", "a"]],
+            ["a", "a", "b"], repetitions=3, warmup_runs=0, clock_ns=lambda: next(ticks),
+        )
+        self.assertEqual(report["clock"], "injected_test_clock")
+        self.assertEqual(report["sparse_two_hop_elapsed_ns"], [10, 30, 50])
+        self.assertEqual(report["bitset_cached_elapsed_ns"], [20, 40, 60])
+        self.assertEqual(report["sparse_two_hop_median_ns"], 30)
+        self.assertEqual(report["bitset_cached_median_ns"], 40)
+        self.assertEqual(report["outputs"], [["c"], ["c"], ["a"]])
+        self.assertTrue(report["verification"]["sparse_and_bitset_outputs_match_each_repetition"])
+        self.assertEqual(report["automatic_action"], "none")
+        with self.assertRaisesRegex(ValueError, "at least 3"):
+            relation_batch_runtime_measurement(["a"], [], [], ["a"], repetitions=2)
+        with self.assertRaisesRegex(ValueError, "backwards"):
+            backwards_ticks = iter([2, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
+            relation_batch_runtime_measurement(
+                ["a"], [], [], ["a"], repetitions=3, warmup_runs=0,
+                clock_ns=lambda: next(backwards_ticks),
+            )
