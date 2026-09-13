@@ -1,6 +1,8 @@
 import unittest
 
 from projects.naive_bayes_spam.beta_bernoulli import (
+    beta_binomial_predictive_certificate,
+    beta_binomial_predictive_report,
     beta_bernoulli_certificate,
     beta_bernoulli_report,
     map_estimate,
@@ -43,6 +45,29 @@ class BetaBernoulliTests(unittest.TestCase):
             posterior_parameters([2])
         with self.assertRaises(ValueError):
             map_estimate([], 1, 1)
+
+    def test_batch_posterior_predictive_keeps_parameter_uncertainty(self):
+        report = beta_binomial_predictive_report([1], future_trials=2, alpha=1, beta=1)
+        self.assertEqual(report["posterior"], (2, 1))
+        self.assertAlmostEqual(sum(report["success_count_probabilities"]), 1.0)
+        for actual, expected in zip(report["success_count_probabilities"], (1 / 6, 1 / 3, 1 / 2)):
+            self.assertAlmostEqual(actual, expected)
+        self.assertAlmostEqual(report["predictive_mean"], 4 / 3)
+        self.assertAlmostEqual(report["predictive_variance"], 5 / 9)
+        self.assertAlmostEqual(report["plugin_binomial_variance"], 4 / 9)
+        self.assertAlmostEqual(report["variance_increase_from_parameter_uncertainty"], 1 / 9)
+        self.assertTrue(report["certificate"]["valid"])
+        self.assertTrue(beta_binomial_predictive_certificate([1], 2, 1, 1, report)["valid"])
+        tampered = dict(report)
+        tampered["predictive_variance"] = 4 / 9
+        self.assertFalse(beta_binomial_predictive_certificate([1], 2, 1, 1, tampered)["valid"])
+        tampered = dict(report)
+        tampered["observations"] = (0,)
+        self.assertFalse(beta_binomial_predictive_certificate([1], 2, 1, 1, tampered)["valid"])
+        with self.assertRaises(ValueError):
+            beta_binomial_predictive_report([1], future_trials=-1)
+        with self.assertRaises(ValueError):
+            beta_binomial_predictive_report([1], future_trials=1, alpha=float("nan"))
 
 
 if __name__ == "__main__":
