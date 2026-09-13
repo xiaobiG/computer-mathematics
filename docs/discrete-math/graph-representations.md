@@ -87,6 +87,28 @@ assert graph_representation_bfs_certificate(5, edges, False, 0, report)
 
 这份证书绑定距离、出队顺序、扫描计数和表示本身。它仍然是小规模、固定邻居排序的教学审计，不是不同语言或硬件之间的墙钟基准。
 
+## 加权图反例：0 不能同时代表“无边”和“零权边”
+
+无权邻接矩阵把 `0` 解释为无边没有问题，因为存在边统一写作 `1`。一旦矩阵单元存的是权重，零却是合法的边成本。例如有向边 $0\to1$ 的权重为 $0$、$1\to2$ 的权重为 $4$ 时，若仍用 `0` 填充“无边”，矩阵中的 `matrix[0][1]` 与 `matrix[0][2]` 都是 0，却分别表示“零权边”和“根本无边”。原图已无法从矩阵恢复。
+
+```python
+from projects.algorithm_lab.graph_representations import (
+    weighted_matrix_sentinel_certificate,
+    weighted_matrix_sentinel_report,
+)
+
+edges = [[0, 1, 0.0], [1, 2, 4.0]]
+report = weighted_matrix_sentinel_report(3, edges, directed=True)
+
+assert report["weighted_adjacency_matrix"][0][1] == 0.0
+assert report["weighted_adjacency_matrix"][0][2] is None  # 明确的“无边”哨兵
+assert report["zero_sentinel_matrix"][0][1] == report["zero_sentinel_matrix"][0][2] == 0.0
+assert report["zero_as_no_edge_is_lossy"]
+assert weighted_matrix_sentinel_certificate(3, edges, True, report)
+```
+
+这里用 `None` 表示无边；也可采用 $+\infty$（尤其在最短路初始化中），但必须把“边存在性”与“权重数值”分开。报告将歧义边对、两种矩阵和原边表绑定，篡改“0 方案无损”的结论会被证书拒绝。它不选择真实系统的稀疏格式，也不规定负权或多重边该如何建模。
+
 ## 推导：操作决定成本，而非表示名称
 
 设顶点 $u$ 的度为 $\deg(u)$。未排序邻接表的单次查边 `u -> v` 最坏检查 $\deg(u)$ 个邻居，邻接矩阵只读取 $A_{uv}$，即 $O(1)$。但枚举 `u` 的全部邻居时，列表只读这 $\deg(u)$ 个真实邻居，而矩阵必须测试 $V$ 个列位置：

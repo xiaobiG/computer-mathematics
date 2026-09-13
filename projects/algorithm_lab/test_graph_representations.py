@@ -6,6 +6,8 @@ from projects.algorithm_lab.graph_representations import (
     graph_representation_bfs_report,
     graph_representations_certificate,
     graph_representations_report,
+    weighted_matrix_sentinel_certificate,
+    weighted_matrix_sentinel_report,
 )
 
 
@@ -58,3 +60,15 @@ class GraphRepresentationTests(unittest.TestCase):
             graph_representations_report(3, [[0, 0]], True, [])
         with self.assertRaisesRegex(ValueError, "in range"):
             graph_representations_report(3, [], True, [[0, 3]])
+
+    def test_zero_is_not_a_safe_no_edge_sentinel_for_weighted_matrices(self):
+        report = weighted_matrix_sentinel_report(3, [[0, 1, 0.0], [1, 2, 4.0]], True)
+        self.assertIsNone(report["weighted_adjacency_matrix"][0][2])
+        self.assertEqual(report["weighted_adjacency_matrix"][0][1], 0.0)
+        self.assertEqual(report["zero_sentinel_matrix"][0][1], 0.0)
+        self.assertEqual(report["ambiguous_pairs"], [[0, 1]])
+        self.assertTrue(report["zero_as_no_edge_is_lossy"])
+        self.assertTrue(weighted_matrix_sentinel_certificate(3, [[0, 1, 0.0], [1, 2, 4.0]], True, report))
+        altered = copy.deepcopy(report)
+        altered["zero_as_no_edge_is_lossy"] = False
+        self.assertFalse(weighted_matrix_sentinel_certificate(3, [[0, 1, 0.0], [1, 2, 4.0]], True, altered))
