@@ -346,6 +346,17 @@ for (const path of allMarkdownFiles) {
   }
 }
 
+// Exercises are part of the runnable learning contract, not informal API
+// suggestions.  This lesson formerly named a helper that does not exist,
+// leaving readers unable to start its step-size experiment.  Keep the exact
+// public entry point and the report field used by the exercise coupled here.
+const differentiationLesson = await readFile(join(docsRoot, 'numerical-computing', 'numerical-differentiation.md'), 'utf8')
+if (differentiationLesson.includes('`scan_steps`')
+    || !differentiationLesson.includes('`central_difference_report`')
+    || !differentiationLesson.includes('`samples`')) {
+  errors.push('numerical-computing/numerical-differentiation.md: 步长扫描练习必须指向 central_difference_report 的 samples')
+}
+
 // These public progress numbers are intentionally checked against the source
 // tree.  Otherwise adding a lesson can silently leave the dashboard claiming
 // an older course count, which makes a learning roadmap look more complete or
