@@ -60,3 +60,18 @@ def compare_similarity_metrics(query, candidates):
         "same_top_choice": cosine_ranking[0] == distance_ranking[0],
         "decision_boundary": "choose_cosine_for_direction_only; choose_euclidean_when_magnitude_is_meaningful",
     }
+
+
+def similarity_metrics_certificate(query, candidates, report):
+    """Independently rebuild a finite ranking comparison and its scope label.
+
+    A valid result means only that the displayed rankings and decision boundary
+    follow the declared vectors and tie policy.  It deliberately does not
+    decide which metric a product should use.
+    """
+    if not isinstance(report, dict):
+        return False
+    try:
+        return report == compare_similarity_metrics(query, candidates)
+    except (KeyError, TypeError, ValueError):
+        return False

@@ -136,7 +136,10 @@ assert cosine_similarity([1, 0], [0, 1]) == 0.0
 “余弦忽略长度”不能自动推出“余弦更好”。下面让同一查询和同一批候选分别按方向与绝对差异排序：
 
 ```python
-from projects.linear_algebra_lab.similarity_metrics import compare_similarity_metrics
+from projects.linear_algebra_lab.similarity_metrics import (
+    compare_similarity_metrics,
+    similarity_metrics_certificate,
+)
 
 report = compare_similarity_metrics(
     [1.0, 0.0],
@@ -149,6 +152,10 @@ report = compare_similarity_metrics(
 assert report["cosine_ranking"] == ["scaled", "near"]
 assert report["euclidean_ranking"] == ["near", "scaled"]
 assert not report["same_top_choice"]
+assert similarity_metrics_certificate([1.0, 0.0], [
+    {"label": "near", "vector": [1.0, 0.1]},
+    {"label": "scaled", "vector": [100.0, 0.0]},
+], report)
 ```
 
 `scaled` 与查询完全同向，所以余弦相似度是 $1$；但它离查询的欧氏距离为 $99$。`near` 的方向略微偏离，余弦相似度小于 $1$，但其欧氏距离只有 $0.1$。于是：
@@ -156,7 +163,7 @@ assert not report["same_top_choice"]
 - 要找“使用比例相同、总量可以不同”的对象，例如词频方向或配比特征，`scaled` 是合理首选；
 - 要找“方向和绝对量都接近”的对象，例如预算、传感器读数或物理位置，`near` 更合理。
 
-这个函数故意只展示两份排序，不替业务决定唯一正确答案。把查询或候选向量改掉，先预测哪一种排序会变，再运行测试；若向量含零、维度不一致或标签重复，函数会拒绝输入，而不是伪造一份排名。
+这个函数只展示两份排序，不替业务决定答案。`similarity_metrics_certificate` 从相同输入重算分数、排序和边界；篡改排名或范围会失败，但不推断业务语义。零向量、维度不一致或重复标签会被拒绝。
 
 ## 常见误区
 
