@@ -171,6 +171,10 @@ export default defineConfig({
               link: "/discrete-math/asymptotic-complexity",
             },
             {
+              text: "动态数组的摊还分析：容量翻倍为何仍是常数",
+              link: "/discrete-math/amortized-dynamic-array",
+            },
+            {
               text: "图、树、二分图与拓扑排序",
               link: "/discrete-math/graph-foundations-topological-sort",
             },

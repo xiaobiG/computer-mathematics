@@ -8,7 +8,7 @@
 | --- | --- | --- | --- |
 | 0 · 预备 | 函数、有限求和与程序索引 | 读懂规格、循环区间与计数 | [符号、函数、求和与 Python](/foundations/functions-summation-python) |
 | 1 · 核心 | 逻辑、集合、关系与图表示 | 用量词和结构准确描述问题 | [命题逻辑、量词与归纳法](/discrete-math/logic-induction-proofs) → [集合、关系、等价类与偏序](/discrete-math/sets-relations-orders) |
-| 2 · 推导与算法 | 循环不变量、BFS/DFS、最短路 | 证明算法正确并分析复杂度 | [循环不变量](/discrete-math/loop-invariants) → [BFS](/discrete-math/breadth-first-search) → [Dijkstra 交互轨迹实验](/discrete-math/dijkstra) |
+| 2 · 推导与算法 | 循环不变量、摊还分析、BFS/DFS、最短路 | 证明算法正确并分析复杂度 | [循环不变量](/discrete-math/loop-invariants) → [动态数组的摊还分析](/discrete-math/amortized-dynamic-array) → [BFS](/discrete-math/breadth-first-search) → [Dijkstra 交互轨迹实验](/discrete-math/dijkstra) |
 | 3 · 工程与前沿 | 负边、图更新、网络流、归约与测试 | 在前提变化时选择、修复或审计算法 | [Bellman–Ford](/discrete-math/bellman-ford) → [增量最短路](/discrete-math/incremental-shortest-path) → [批量最短路更新](/discrete-math/ordered-shortest-path-updates) → [最大流最小割](/discrete-math/max-flow-min-cut) → [算法实验室](/projects/algorithm-lab) |
 
 可以从熟悉的层级开始，但图算法前请先补齐循环不变量与图表示；专题首页的每篇元信息会给出更细的前置条件。
@@ -29,6 +29,7 @@
 - [图、树、二分图与拓扑排序](/discrete-math/graph-foundations-topological-sort)：图表示、DFS、树不变量、二分染色与依赖环；
 - [图的两种存储：邻接表与邻接矩阵](/discrete-math/graph-representations)：同一边表如何变成两种内存表示，并按操作成本选择；
 - [循环不变量](/discrete-math/loop-invariants)：二分查找为何不会漏掉答案；
+- [动态数组的摊还分析](/discrete-math/amortized-dynamic-array)：容量翻倍、势能函数与任意 append 前缀的严格复制成本上界；
 - [Dijkstra](/discrete-math/dijkstra)：非负边权为何能贪心，以及负权边为何失败；页面内可逐步操作最小堆与松弛轨迹实验；
 - [BFS](/discrete-math/breadth-first-search)：队列分层不变量与无权图最短路；
 - [DFS](/discrete-math/depth-first-search)：发现/完成时间、显式栈与环检测边界；
