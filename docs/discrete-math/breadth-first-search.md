@@ -57,6 +57,20 @@ assert bfs_shortest_path_certificate(graph, "s", distances, parents, events)["va
 
 ## 失败案例与工程边界
 
+## 可运行反例：延迟标记会制造重复工作
+
+菱形图 $s\to a,s\to b,a\to t,b\to t$ 中，若只在节点**出队**时才标记，$a,b$ 都会发现尚未出队的 $t$，于是 $t$ 被入队两次，且同时出现两个父候选。这不是“另一条最短路径”的正确保留方式：标准 BFS 应在第一次入队时固定一个父节点，保证每个顶点只占一个队列位置。
+
+\`\`\`python
+from projects.algorithm_lab.bfs_trace import late_marking_bfs_report
+
+report = late_marking_bfs_report({"s": ["a", "b"], "a": ["t"], "b": ["t"], "t": []}, "s")
+assert report["enqueue_counts"]["t"] == 2
+assert report["parent_candidates"]["t"] == ["a", "b"]
+\`\`\`
+
+报告与证书故意重放这个反例，不把它作为可用算法。它只证明延迟标记会失去“首次发现的唯一父节点”和一次入队的空间语义；正确的入队标记 BFS 仍以已有轨迹为准。
+
 BFS 最小化的是**边数**，不是时间、距离或金额。若边 $s\to t$ 权重 100、$s\to a\to t$ 权重各 1，BFS 会选一条边的昂贵路径；非负权图应使用 [Dijkstra](/discrete-math/dijkstra)。超大图还需考虑双向 BFS、外存队列和节点 ID 去重。
 
 ## 常见误区

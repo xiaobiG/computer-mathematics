@@ -43,6 +43,39 @@ def bfs_trace(graph: Graph, start: Node) -> tuple[dict[Node, int], list[BfsEvent
     return distances, events
 
 
+def late_marking_bfs_report(graph: Graph, start: Node) -> dict[str, object]:
+    """Expose why marking only when dequeuing permits duplicate enqueues."""
+    queue = deque([start])
+    visited: set[Node] = set()
+    enqueue_counts: dict[Node, int] = {start: 1}
+    parent_candidates: dict[Node, list[Node]] = {start: []}
+    dequeue_order: list[Node] = []
+    skipped_duplicates: list[Node] = []
+    while queue:
+        node = queue.popleft()
+        if node in visited:
+            skipped_duplicates.append(node)
+            continue
+        visited.add(node)
+        dequeue_order.append(node)
+        for neighbor in graph.get(node, []):
+            if neighbor not in visited:
+                queue.append(neighbor)
+                enqueue_counts[neighbor] = enqueue_counts.get(neighbor, 0) + 1
+                parent_candidates.setdefault(neighbor, []).append(node)
+    duplicates = {node: count for node, count in enqueue_counts.items() if count > 1}
+    return {
+        "start": start, "enqueue_counts": enqueue_counts,
+        "parent_candidates": parent_candidates, "dequeue_order": dequeue_order,
+        "skipped_duplicates": skipped_duplicates, "duplicate_enqueues": duplicates,
+        "interpretation": "late_marking_allows_multiple_same_layer_predecessors_to_enqueue_one_node",
+    }
+
+
+def late_marking_bfs_certificate(graph: Graph, start: Node, report: object) -> bool:
+    return isinstance(report, dict) and report == late_marking_bfs_report(graph, start)
+
+
 def bfs_shortest_path_certificate(
     graph: Graph,
     start: Node,

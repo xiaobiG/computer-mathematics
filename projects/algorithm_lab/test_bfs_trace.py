@@ -6,6 +6,8 @@ from projects.algorithm_lab.bfs_trace import (
     bfs_trace,
     bfs_trace_with_parents,
     shortest_path,
+    late_marking_bfs_certificate,
+    late_marking_bfs_report,
 )
 
 
@@ -47,6 +49,16 @@ class BfsTraceTests(unittest.TestCase):
         self.assertFalse(certificate["parent_paths_match_distances"])
         self.assertFalse(certificate["events_replay"])
         self.assertFalse(certificate["valid"])
+
+    def test_late_marking_exposes_duplicate_enqueue_in_a_diamond(self):
+        graph = {"s": ["a", "b"], "a": ["t"], "b": ["t"], "t": []}
+        report = late_marking_bfs_report(graph, "s")
+        self.assertEqual(report["enqueue_counts"]["t"], 2)
+        self.assertEqual(report["parent_candidates"]["t"], ["a", "b"])
+        self.assertEqual(report["skipped_duplicates"], ["t"])
+        self.assertTrue(late_marking_bfs_certificate(graph, "s", report))
+        report["duplicate_enqueues"] = {}
+        self.assertFalse(late_marking_bfs_certificate(graph, "s", report))
 
 
 if __name__ == "__main__":
