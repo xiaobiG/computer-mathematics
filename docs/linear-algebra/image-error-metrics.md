@@ -11,7 +11,7 @@ experiment: "消费已验证的随机 SVD 重构，计算 MSE、RMSE、PSNR、�
 
 ## 学习目标
 
-读完后，你能把两张同形灰度图的差写成 MSE、RMSE、PSNR 与最大绝对误差；从 Frobenius 范数推导它们的关系；运行可重放的误差报告；并能说明为何高 PSNR 既不是视觉质量证明，也不是下游任务正确性的证明。
+读完后，你能把两张同形灰度图的差写成 MSE、RMSE、PSNR 与最大绝对误差；并能解释全局 SSIM 与固定局部窗口为何回答不同问题。
 
 ## 从一个计算问题开始
 
@@ -94,15 +94,33 @@ assert review.automatic_action == "none"
 
 每个像素恰好贡献一次 $e_{ij}^2$ 与 $|e_{ij}|$，故累加器分别等于定义中的求和与最大值；除以样本数和开平方便给出 MSE、RMSE。只要 MSE 正，PSNR 的两种写法由 $\mathrm{RMSE}^2=\mathrm{MSE}$ 与对数规则严格等价。MSE 为零时不做除零，而是按定义报告无穷 PSNR。
 
-这验证的是**度量实现**，不是低秩算法的最优性。只有精确截断 SVD 才有特定秩约束下 Frobenius 最优的定理；有限迭代的教学压缩器必须把实际误差另外测量。上面的跨课评审还验证“报告来自可重放的随机 SVD”，但不把 MSE 预算升级为感知或任务层面的承诺。
+这验证度量实现，不证明低秩算法最优；随机 SVD 的实际误差仍须另测，MSE 预算也不是感知或任务承诺。
+
+## 局部窗口：全局 SSIM 不能定位缺陷
+
+全局 SSIM 不能指出坏区域。实验按完整、不重叠的固定窗口报告整图分数、各窗口分数与最差坐标：
+
+```python
+from projects.linear_algebra_lab.image_metrics import local_structural_similarity_report
+
+reference = [[128.0] * 4 for _ in range(4)]
+approximation = [[128.0] * 4 for _ in range(4)]
+for row in range(2):
+    for column in range(2):
+        approximation[row][column] = 0.0
+
+report = local_structural_similarity_report(reference, approximation, 2, 2)
+assert (report.worst_window_row, report.worst_window_column) == (0, 0)
+assert report.worst_window_ssim < report.global_ssim
+```
+
+窗口尺寸必须整除图像，避免遗漏边缘。它只定位固定灰度平铺的数值弱点，不是滑动、多尺度或色彩感知 SSIM，更不等于人眼或任务质量。
 
 ## 失败案例与工程边界
 
-- **相同 MSE、不同视觉效果**：一个孤立的 255 像素错误与分散的小噪声可以有相同 MSE，却可能有不同可见性。
-- **峰值不明**：把 `[0,1]` 浮点图像错误地按 $P=255$ 报 PSNR，会得到没有意义的高数值；峰值必须随编码契约传入。
-- **逐通道问题**：彩色图像究竟在 RGB、线性光还是亮度空间测误差，会改变结论；本实验只处理一个灰度矩阵。
-- **裁剪和量化**：低秩重构可越出 `[0,255]`；输出前的裁剪、舍入和编码会形成另一份误差报告。
-- **任务错位**：更高 PSNR 不保证人更易辨认物体，也不保证分类、检索、公平性或安全检查更好。
+- **相同 MSE、不同可见性**：孤立的大错误和分散噪声可有相同 MSE；固定窗口只能定位，不能判定感知。
+- **编码与颜色空间**：峰值、RGB/线性光/亮度、裁剪和量化都会改变结论；本实验只处理一张灰度数值矩阵。
+- **任务错位**：PSNR 或 SSIM 更高不保证识别、检索、公平性或安全性更好。
 
 ## 常见误区
 

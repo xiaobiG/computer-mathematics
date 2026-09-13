@@ -6,6 +6,7 @@ from projects.linear_algebra_lab.image_metrics import (
     image_quality_certificate, image_quality_report, randomized_svd_image_quality_review,
     randomized_svd_image_quality_review_certificate, same_mse_structural_comparison_certificate,
     same_mse_structural_comparison_report, structural_similarity_certificate, structural_similarity_report,
+    local_structural_similarity_certificate, local_structural_similarity_report,
 )
 from projects.linear_algebra_lab.randomized_svd import randomized_svd_report
 
@@ -69,6 +70,23 @@ class ImageMetricsTests(unittest.TestCase):
         ))
         with self.assertRaisesRegex(ValueError, "matching MSE"):
             same_mse_structural_comparison_report(reference, brightness_shift, reference)
+
+    def test_local_tiles_locate_a_defect_hidden_by_a_better_global_score(self):
+        reference = [[128.0] * 4 for _ in range(4)]
+        approximation = [[128.0] * 4 for _ in range(4)]
+        for row in range(2):
+            for column in range(2):
+                approximation[row][column] = 0.0
+        report = local_structural_similarity_report(reference, approximation, 2, 2)
+        self.assertEqual((report.worst_window_row, report.worst_window_column), (0, 0))
+        self.assertLess(report.worst_window_ssim, report.global_ssim)
+        self.assertEqual(len(report.windows), 4)
+        self.assertTrue(local_structural_similarity_certificate(reference, approximation, 2, 2, report))
+        self.assertFalse(local_structural_similarity_certificate(
+            reference, approximation, 2, 2, replace(report, worst_window_row=2),
+        ))
+        with self.assertRaisesRegex(ValueError, "divide"):
+            local_structural_similarity_report(reference, approximation, 3, 2)
 
     def test_randomized_svd_artifact_drives_a_numeric_quality_budget_review(self):
         pixels = [[5.0, 0.0], [0.0, 1.0]]

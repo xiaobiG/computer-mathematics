@@ -59,6 +59,28 @@ class SameMseStructuralComparison:
     automatic_action: str
 
 
+@dataclass(frozen=True)
+class LocalStructuralSimilarityWindow:
+    """One fixed tile's location and independently computed SSIM."""
+
+    row: int
+    column: int
+    ssim: float
+
+
+@dataclass(frozen=True)
+class LocalStructuralSimilarityReport:
+    """Contrast a whole-image score with non-overlapping local SSIM tiles."""
+
+    window_rows: int
+    window_columns: int
+    global_ssim: float
+    windows: tuple[LocalStructuralSimilarityWindow, ...]
+    worst_window_row: int
+    worst_window_column: int
+    worst_window_ssim: float
+
+
 def _validate(reference, approximation, peak):
     if not isinstance(peak, (int, float)) or isinstance(peak, bool) or not isfinite(peak) or peak <= 0:
         raise ValueError("peak must be a finite positive number")
@@ -186,6 +208,53 @@ def structural_similarity_certificate(reference, approximation, report, peak=255
         return False
     return all(isclose(getattr(report, field), getattr(expected, field), rel_tol=tolerance, abs_tol=tolerance)
                for field in ("reference_mean", "approximation_mean", "reference_variance", "approximation_variance", "covariance", "ssim")) and report.samples == expected.samples
+
+
+def local_structural_similarity_report(
+    reference, approximation, window_rows, window_columns, peak=255.0, k1=0.01, k2=0.03,
+):
+    """Report global SSIM beside an exact non-overlapping local tiling.
+
+    The tile shape is deliberately part of the contract and must divide the
+    image shape.  This small teaching diagnostic is not the overlapping,
+    weighted, multiscale SSIM used by perceptual-image benchmarks.
+    """
+    _validate(reference, approximation, peak)
+    if (not isinstance(window_rows, int) or isinstance(window_rows, bool)
+            or not isinstance(window_columns, int) or isinstance(window_columns, bool)
+            or window_rows <= 0 or window_columns <= 0):
+        raise ValueError("window dimensions must be positive integers")
+    rows, columns = len(reference), len(reference[0])
+    if (window_rows > rows or window_columns > columns
+            or rows % window_rows != 0 or columns % window_columns != 0):
+        raise ValueError("window dimensions must divide the image shape")
+    windows = []
+    for row in range(0, rows, window_rows):
+        for column in range(0, columns, window_columns):
+            reference_tile = [values[column:column + window_columns] for values in reference[row:row + window_rows]]
+            approximation_tile = [values[column:column + window_columns] for values in approximation[row:row + window_rows]]
+            tile_ssim = structural_similarity_report(reference_tile, approximation_tile, peak, k1, k2).ssim
+            windows.append(LocalStructuralSimilarityWindow(row, column, tile_ssim))
+    worst = min(windows, key=lambda item: item.ssim)
+    return LocalStructuralSimilarityReport(
+        window_rows, window_columns,
+        structural_similarity_report(reference, approximation, peak, k1, k2).ssim,
+        tuple(windows), worst.row, worst.column, worst.ssim,
+    )
+
+
+def local_structural_similarity_certificate(
+    reference, approximation, window_rows, window_columns, report, peak=255.0, k1=0.01, k2=0.03,
+):
+    """Rebuild fixed local tiles, including their worst-location claim."""
+    if not isinstance(report, LocalStructuralSimilarityReport):
+        return False
+    try:
+        return report == local_structural_similarity_report(
+            reference, approximation, window_rows, window_columns, peak, k1, k2,
+        )
+    except ValueError:
+        return False
 
 
 def same_mse_structural_comparison_report(
