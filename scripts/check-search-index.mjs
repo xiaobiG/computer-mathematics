@@ -15,6 +15,7 @@ const requiredCoursePhrases = [
   "lambda",
 ];
 const codeOnlyPhrase = "encoded_red";
+const answerOnlyPhrase = "温度依传感器分辨率选绝对/相对阈值";
 
 const candidates = (await readdir(chunksDirectory)).filter((name) =>
   /^@localSearchIndexroot\..+\.js$/.test(name),
@@ -43,5 +44,8 @@ if (absentPhrase) {
 if (source.includes(codeOnlyPhrase)) {
   throw new Error("fenced code unexpectedly remains in local search: " + codeOnlyPhrase);
 }
+if (source.includes(answerOnlyPhrase)) {
+  throw new Error("exercise-answer hint unexpectedly remains in local search: " + answerOnlyPhrase);
+}
 
-console.log("本地搜索索引校验通过：" + (bytes / 1024).toFixed(1) + " KiB，课程正文与公式可搜索，围栏代码与辅助页面已排除。");
+console.log("本地搜索索引校验通过：" + (bytes / 1024).toFixed(1) + " KiB，课程正文、公式与练习题可搜索，围栏代码、答案提示与辅助页面已排除。");

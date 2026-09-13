@@ -10,6 +10,15 @@ const series = [
   { text: "密码学的模运算与数论", link: "/number-theory-crypto/" },
 ];
 
+function omitSecondLevelSection(source: string, heading: string) {
+  const marker = new RegExp(`^##\\s+${heading}\\s*$`, "m");
+  const match = marker.exec(source);
+  if (!match) return source;
+  const afterHeading = source.slice(match.index + match[0].length);
+  const nextHeading = afterHeading.search(/^##\s+/m);
+  return source.slice(0, match.index) + (nextHeading === -1 ? "" : afterHeading.slice(nextHeading));
+}
+
 export default defineConfig({
   lang: "zh-CN",
   title: "计算机数学",
@@ -501,7 +510,12 @@ export default defineConfig({
           // repeated import, assertion, and fixture crowds out prose. Keep
           // the lesson's narrative, headings, inline code and TeX instead.
           const withoutFencedCode = src.replace(/(^|\n)```[^\n]*\n[\s\S]*?^```[ \t]*(?=\n|$)/gm, "$1");
-          const searchableSource = withoutFencedCode
+          // Answer hints are useful only after a reader has attempted the
+          // exercise. Searching them leaks solutions into snippets and creates
+          // a low-value document for every course; the rendered page retains
+          // them in full.
+          const withoutAnswerHints = omitSecondLevelSection(withoutFencedCode, "练习答案提示");
+          const searchableSource = withoutAnswerHints
             .replace(/\$\$([\s\S]*?)\$\$/g, (_match, formula: string) =>
               `<span class="search-math">${escapeFormula(formula)}</span>`,
             )
