@@ -2,6 +2,8 @@ import unittest
 
 from projects.algorithm_lab.recurrence_trace import (
     binary_search_worst_case_steps,
+    merge_sort_comparison_bound_certificate,
+    merge_sort_comparison_bound_report,
     merge_sort_levels,
     merge_sort_tree_certificate,
     merge_sort_tree_report,
@@ -48,8 +50,24 @@ class RecurrenceTraceTests(unittest.TestCase):
         values = [5, 1, 4, 2, 3, 0, 7, 6]
         ordered, comparisons = merge_sort_with_comparisons(values)
         self.assertEqual(ordered, sorted(values))
-        self.assertLessEqual(comparisons, len(values) * 3)
+        self.assertLessEqual(
+            comparisons,
+            merge_sort_comparison_bound_report(len(values))["recurrence_worst_case_comparisons"],
+        )
         self.assertEqual(values, [5, 1, 4, 2, 3, 0, 7, 6])
+
+    def test_arbitrary_size_worst_case_comparison_recurrence_matches_closed_form(self):
+        report = merge_sort_comparison_bound_report(6)
+        self.assertEqual(report["split_sizes"], (3, 3))
+        self.assertEqual(report["recurrence_worst_case_comparisons"], 11)
+        self.assertEqual(report["closed_form_worst_case_comparisons"], 11)
+        self.assertTrue(all(report["certificate"].values()))
+        self.assertTrue(merge_sort_comparison_bound_certificate(6, report))
+        changed = dict(report)
+        changed["closed_form_worst_case_comparisons"] = 12
+        self.assertFalse(merge_sort_comparison_bound_certificate(6, changed))
+        with self.assertRaises(ValueError):
+            merge_sort_comparison_bound_report(0)
 
 
 if __name__ == "__main__":

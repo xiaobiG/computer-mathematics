@@ -11,6 +11,7 @@ Item = TypeVar("Item")
 
 
 MERGE_SORT_TREE_CONTRACT = "merge-sort-recursion-tree/v1"
+MERGE_SORT_COMPARISON_CONTRACT = "merge-sort-worst-case-comparisons/v1"
 
 
 @dataclass(frozen=True)
@@ -97,6 +98,55 @@ def merge_sort_tree_certificate(size: int, report: object) -> bool:
     if not isinstance(report, dict):
         return False
     return report == merge_sort_tree_report(size)
+
+
+def merge_sort_worst_case_comparisons(size: int) -> int:
+    """Return the exact worst-case number of element comparisons for merge sort.
+
+    For a split into sizes ``floor(n / 2)`` and ``ceil(n / 2)``, a merge uses
+    at most ``n - 1`` comparisons.  The recurrence is valid for every positive
+    integer size, unlike the symmetric recursion-tree work model above.
+    """
+    if not isinstance(size, int) or isinstance(size, bool) or size < 1:
+        raise ValueError("size must be a positive integer")
+    if size == 1:
+        return 0
+    left_size = size // 2
+    right_size = size - left_size
+    return (merge_sort_worst_case_comparisons(left_size)
+            + merge_sort_worst_case_comparisons(right_size) + size - 1)
+
+
+def merge_sort_comparison_bound_report(size: int) -> dict[str, object]:
+    """Make the arbitrary-size comparison recurrence and closed form auditable."""
+    recurrence_value = merge_sort_worst_case_comparisons(size)
+    height = (size - 1).bit_length()  # ceil(log2(size)), also exact for size 1.
+    closed_form_value = size * height - (1 << height) + 1
+    left_size = size // 2 if size > 1 else None
+    right_size = size - left_size if left_size is not None else None
+    return {
+        "contract": MERGE_SORT_COMPARISON_CONTRACT,
+        "size": size,
+        "split_sizes": None if left_size is None else (left_size, right_size),
+        "ceil_log2_size": height,
+        "recurrence_worst_case_comparisons": recurrence_value,
+        "closed_form_worst_case_comparisons": closed_form_value,
+        "certificate": {
+            "base_case_is_zero": size != 1 or recurrence_value == 0,
+            "split_is_floor_and_ceil": size == 1 or left_size + right_size == size and right_size - left_size in (0, 1),
+            "recurrence_matches_closed_form": recurrence_value == closed_form_value,
+        },
+    }
+
+
+def merge_sort_comparison_bound_certificate(size: int, report: object) -> bool:
+    """Rebuild the arbitrary-size bound and reject altered recurrence claims."""
+    if not isinstance(report, dict):
+        return False
+    try:
+        return report == merge_sort_comparison_bound_report(size)
+    except ValueError:
+        return False
 
 
 def merge_sort_with_comparisons(values: list[Item]) -> tuple[list[Item], int]:
