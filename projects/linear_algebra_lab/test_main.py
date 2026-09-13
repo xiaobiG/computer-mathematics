@@ -46,6 +46,12 @@ class LinearAlgebraLabTests(unittest.TestCase):
     def test_matrix_shape_error(self):
         with self.assertRaises(ValueError):
             matmul([[1, 2]], [[1, 2]])
+        with self.assertRaises(ValueError):
+            matmul([[float("nan")]], [[1.0]])
+        with self.assertRaises(ValueError):
+            matmul([[True]], [[1]])
+        with self.assertRaisesRegex(ValueError, "overflowed"):
+            matmul([[1e308]], [[1e308]])
 
     def test_pivoting_solves_small_leading_value(self):
         answer = solve([[1e-16, 1], [1, 1]], [1, 2])

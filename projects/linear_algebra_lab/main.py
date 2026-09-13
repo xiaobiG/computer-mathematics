@@ -7,16 +7,24 @@ EPSILON = 1e-12
 
 
 def matmul(left, right):
-    """Return left @ right for non-empty rectangular nested lists."""
-    if not left or not right or not left[0] or not right[0]:
+    """Return left @ right for finite real non-empty rectangular matrices."""
+    if (not isinstance(left, list) or not isinstance(right, list)
+            or not left or not right or not isinstance(left[0], list)
+            or not isinstance(right[0], list) or not left[0] or not right[0]):
         raise ValueError("matrices must be non-empty")
     left_width = len(left[0])
     right_width = len(right[0])
-    if (any(len(row) != left_width for row in left)
-            or any(len(row) != right_width for row in right)):
+    if (any(not isinstance(row, list) or len(row) != left_width for row in left)
+            or any(not isinstance(row, list) or len(row) != right_width for row in right)):
         raise ValueError("matrices must be rectangular")
     if left_width != len(right):
         raise ValueError("incompatible matrix shapes")
+    if any(
+        not isinstance(value, (int, float)) or isinstance(value, bool)
+        or (isinstance(value, float) and not isfinite(value))
+        for matrix in (left, right) for row in matrix for value in row
+    ):
+        raise ValueError("matrix entries must be finite real numbers")
     output = []
     for row in range(len(left)):
         output_row = []
@@ -27,6 +35,8 @@ def matmul(left, right):
             total = 0
             for index in range(left_width):
                 total += left[row][index] * right[index][column]
+                if isinstance(total, float) and not isfinite(total):
+                    raise ValueError("matrix product overflowed to a non-finite value")
             output_row.append(total)
         output.append(output_row)
     return output
