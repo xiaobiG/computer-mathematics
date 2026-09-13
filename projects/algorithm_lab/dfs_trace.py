@@ -55,6 +55,48 @@ def dfs_trace_certificate(
         return False
 
 
+def dfs_interval_report(graph: Graph, start: Node) -> dict[str, object]:
+    """Make DFS discovery/finish interval nesting a replayable invariant.
+
+    For any two vertices reached in one depth-first traversal, their intervals
+    are either nested (one is an ancestor in the DFS forest) or disjoint.
+    This does not classify every graph edge: a directed edge can connect two
+    completed, disjoint subtrees, so ancestry belongs to the traversal tree,
+    not to every adjacency-list relation.
+    """
+    times, events = dfs_trace(graph, start)
+    nodes = tuple(times)
+    relations = []
+    for index, left in enumerate(nodes):
+        left_discover, left_finish = times[left]
+        for right in nodes[index + 1:]:
+            right_discover, right_finish = times[right]
+            if left_discover < right_discover and right_finish < left_finish:
+                relation = "left_ancestor_of_right"
+            elif right_discover < left_discover and left_finish < right_finish:
+                relation = "right_ancestor_of_left"
+            elif left_finish < right_discover or right_finish < left_discover:
+                relation = "disjoint"
+            else:
+                raise AssertionError("DFS intervals must be nested or disjoint")
+            relations.append({"left": left, "right": right, "relation": relation})
+    return {
+        "times": times,
+        "events": tuple(events),
+        "pair_relations": tuple(relations),
+        "intervals_nested_or_disjoint": True,
+        "edge_classification": "not_inferred_from_intervals_alone",
+    }
+
+
+def dfs_interval_certificate(graph: Graph, start: Node, report: object) -> bool:
+    """Replay all intervals and pair relations instead of trusting a true flag."""
+    try:
+        return isinstance(report, dict) and report == dfs_interval_report(graph, start)
+    except (AssertionError, TypeError, ValueError):
+        return False
+
+
 def _validate_graph(graph: Graph, start: Node) -> None:
     """Reject incomplete adjacency maps before any traversal contract starts."""
     if start not in graph:

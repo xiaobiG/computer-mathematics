@@ -33,7 +33,7 @@ experiment: "运行显式栈 DFS，验证发现/完成时间、环图不重复�
 
 ```python
 from projects.algorithm_lab.dfs_trace import (
-    dfs_trace, dfs_trace_certificate,
+    dfs_interval_certificate, dfs_interval_report, dfs_trace, dfs_trace_certificate,
     directed_cycle_certificate, directed_cycle_report,
 )
 
@@ -41,6 +41,10 @@ graph = {"a": ["b", "c"], "b": ["d"], "c": [], "d": []}
 times, events = dfs_trace(graph, "a")
 assert all(discovered < finished for discovered, finished in times.values())
 assert dfs_trace_certificate(graph, "a", times, events)
+
+intervals = dfs_interval_report(graph, "a")
+assert intervals["intervals_nested_or_disjoint"]
+assert dfs_interval_certificate(graph, "a", intervals)
 
 cycle_report = directed_cycle_report({"a": ["b"], "b": ["c"], "c": ["a"]}, "a")
 assert cycle_report["cycle"] == ("a", "b", "c", "a")
@@ -52,6 +56,12 @@ python -m unittest projects.algorithm_lab.test_dfs_trace
 ```
 
 每个顶点至多发现/完成一次，每条邻接边至多检查一次，所以邻接表下时间为 $O(V+E)$、额外空间为 $O(V)$。事件数恰为已访问顶点数的两倍，这也成为项目测试的守恒量。`dfs_trace_certificate` 从原图和起点重新运行显式栈契约，并要求发现/完成时间与每个事件后的栈快照完全一致；篡改时间戳、邻接顺序或栈快照会被拒绝。`directed_cycle_report` 使用“节点 + 下一个邻居索引”的显式栈保留灰色祖先链；遇到灰边时沿父指针回溯并返回闭合环，`directed_cycle_certificate` 会独立重放该证据。这是对一次有限执行的审计，不能替代“可达顶点为何必被访问”的归纳证明。
+
+## 时间区间：祖先嵌套与子树分离
+
+给每个点写区间 $I(u)=[d(u),f(u)]$。深度优先的“先进入、处理完所有后继再退出”保证任意两个已访问点的区间只能有两种形状：一个严格包含另一个，或两者完全相离；不可能出现 $d(u)<d(v)<f(u)<f(v)$ 这样的交叉。包含对应 DFS 树中的祖先—后代关系，相离表示两个已经分开的子搜索。
+
+`dfs_interval_report` 枚举所有顶点对并重放这一性质。例如菱形图中 $a$ 包含 $d$ 的时间区间，而兄弟子树根 $b,c$ 的区间相离，即使图中仍有边 $c\to d$。因此区间关系**不能单独给每条原图边分类**；它刻画 DFS 树的祖先结构，不等价于“图中存在边”。报告固定 `edge_classification="not_inferred_from_intervals_alone"`，避免将时间戳误用为完整边分类器。
 
 ## 正确性与复杂度
 
@@ -76,14 +86,16 @@ python -m unittest projects.algorithm_lab.test_dfs_trace
 1. **基础题**：为一条长度 4 的链写出发现与完成时间的相对次序。
 2. **推导题**：证明事件数等于两倍已访问顶点数。
 3. **编码题**：篡改一条 `DfsEvent` 的时间或栈快照，确认 `dfs_trace_certificate` 拒绝；再篡改 `directed_cycle_report` 的闭合环，确认 `directed_cycle_certificate` 拒绝。
-4. **开放题**：设计百万节点图的 DFS 资源预算，说明内存、输入流和遍历顺序的取舍。
+4. **推导题**：证明 $d(u)<d(v)<f(u)$ 时必有 $f(v)<f(u)$；解释这为何是祖先关系而非任意图边。
+5. **开放题**：设计百万节点图的 DFS 资源预算，说明内存、输入流和遍历顺序的取舍。
 
 ## 练习答案提示
 
 1. 链上的发现时间从起点依次递增，完成时间从末点反向递增；只需比较相对顺序，不依赖具体时钟起值。
 2. 每个已访问顶点恰有一次发现事件和一次完成事件；归纳检查新发现点不会重复、完成只在其邻居任务结束后发生。
 3. 先确认重放证书能拒绝时间/栈篡改；环报告维护灰色栈和父指针，遇到灰色邻居时沿父指针回溯到该邻居，再反向输出并补上起点即可形成闭合有向环。
-4. 显式栈避免递归限制；预算应分别估计顶点状态、边输入、栈深与排序代价，并说明流式输入为何会限制回溯。
+4. $v$ 在 $u$ 未完成时被发现，故其完整子搜索必须先完成；只对 DFS 树祖先成立，交叉边不会改变树关系。
+5. 显式栈避免递归限制；预算应分别估计顶点状态、边输入、栈深与排序代价，并说明流式输入为何会限制回溯。
 
 ## 延伸
 

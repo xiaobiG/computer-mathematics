@@ -3,6 +3,8 @@ import unittest
 from dataclasses import replace
 
 from projects.algorithm_lab.dfs_trace import (
+    dfs_interval_certificate,
+    dfs_interval_report,
     dfs_trace,
     dfs_trace_certificate,
     directed_cycle_certificate,
@@ -57,6 +59,19 @@ class DfsTraceTests(unittest.TestCase):
         self.assertFalse(report["has_cycle"])
         self.assertIsNone(report["back_edge"])
         self.assertIsNone(report["cycle"])
+
+    def test_discovery_finish_intervals_are_nested_or_disjoint(self):
+        graph = {"a": ["b", "c"], "b": ["d"], "c": ["d"], "d": []}
+        report = dfs_interval_report(graph, "a")
+        relations = {(item["left"], item["right"]): item["relation"] for item in report["pair_relations"]}
+        self.assertEqual(relations[("a", "d")], "left_ancestor_of_right")
+        self.assertEqual(relations[("b", "c")], "disjoint")
+        self.assertTrue(report["intervals_nested_or_disjoint"])
+        self.assertEqual(report["edge_classification"], "not_inferred_from_intervals_alone")
+        self.assertTrue(dfs_interval_certificate(graph, "a", report))
+        altered = dict(report)
+        altered["intervals_nested_or_disjoint"] = False
+        self.assertFalse(dfs_interval_certificate(graph, "a", altered))
 
 
 if __name__ == "__main__":
