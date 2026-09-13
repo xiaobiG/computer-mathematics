@@ -1,9 +1,10 @@
 ---
 title: 公钥身份与密钥生命周期：验签前还要验证什么
 description: 将公钥身份绑定、上下文、轮换与撤销建成可审计的协议状态，而非只检查一次数学验签等式。
+search: false
 courseLevel: "3（密码协议与工程边界）"
 prerequisites: "RSA、数字签名、哈希与消息认证码"
-estimatedMinutes: 55
+estimatedMinutes: 70
 experiment: "审计发布者身份、公钥标识、有效期、撤销状态与签名上下文的验证顺序"
 ---
 
@@ -11,7 +12,7 @@ experiment: "审计发布者身份、公钥标识、有效期、撤销状态与�
 
 ## 学习目标
 
-你将能区分“签名在某公钥下有效”与“该公钥属于预期发布者”；写出密钥标识、用途、有效期、轮换和撤销的验证顺序；解释上下文绑定为何阻止跨协议误用；并说明这些协议状态不能由裸 RSA 等式替代。
+你将能区分“签名在某公钥下有效”与“该公钥属于预期发布者”；写出密钥标识、用途、有效期、轮换、撤销新鲜度的验证顺序；解释上下文绑定为何阻止跨协议误用；并说明这些协议状态不能由裸 RSA 等式替代。
 
 ## 从“验签通过”开始
 
@@ -45,17 +46,43 @@ $$R=(\text{issuer},\text{key\_id},\text{algorithm},\text{purpose},\text{not\_bef
 python -m unittest projects.crypto_toybox.test_signatures
 ```
 
+## 撤销不是“可用/不可用”：状态也会过期
+
+OCSP 的 `thisUpdate` 表示响应者最近确认状态正确的时间，`nextUpdate` 表示更晚信息应可获得的期限；过了 `nextUpdate` 的响应不应仍被当作可靠。CRL 同样以 `nextUpdate` 表示下一份列表最迟应签发的时间。[RFC 6960 §2.4](https://www.rfc-editor.org/rfc/rfc6960.html#section-2.4) 与 [RFC 5280 §5.1.2.5](https://www.rfc-editor.org/rfc/rfc5280.html#section-5.1.2.5) 规定这些语义。
+
+在教学时间线中，令 $M$ 为目标匹配、$A$ 为响应者已授权、$G$ 为 `status=good`，令 $u,n$ 分别为 `thisUpdate`,`nextUpdate`；状态证据可写成
+
+$$
+F=M\land A\land G\land(u\leq t\leq n).
+$$
+
+```python
+from projects.crypto_toybox.revocation_freshness import (
+    revocation_status_freshness_certificate,
+    revocation_status_freshness_report,
+)
+
+response = {"issuer": "example-updates", "key_id": "release-key-2026", "status": "good",
+            "this_update": 100, "produced_at": 101, "next_update": 120, "signer_authorized": True}
+report = revocation_status_freshness_report("example-updates", "release-key-2026", response, 110)
+assert report["decision"] == "fresh_good_status_for_policy_only"
+assert revocation_status_freshness_certificate("example-updates", "release-key-2026", response, 110, report)
+```
+
+运行 `python -m unittest projects.crypto_toybox.test_revocation_freshness`。时间是虚构刻度，`signer_authorized` 也是外部输入；报告不解析 OCSP/CRL、不验响应签名、不联网。其价值是让“过期、unknown、目标不匹配和无授权响应者都不能默许”为可重放规则。
+
 ## 正确性与边界
 
 若第 1–3 步成立，验签公钥被绑定到预期身份、用途和有效状态；第 4 步再证明该身份对应的私钥认可了精确编码后的消息。任一步失败都应拒绝，而不是“只要数学验签成功就继续”。轮换时，新旧密钥可在预先定义的重叠期共存；撤销优先于有效期，避免已泄露私钥在形式上尚未到期时仍被接受。
 
-这不是关于真实世界身份的数学证明：信任锚、证书颁发、撤销分发、时钟、日志可用性和客户端更新本身都有威胁模型。更不能把 `key_id`、显示名称或可下载的公钥当成身份认证。
+这不是关于真实世界身份的数学证明：信任锚、证书颁发、撤销分发、时钟、日志可用性和客户端更新本身都有威胁模型。更不能把 `key_id`、显示名称或可下载的公钥当成身份认证；也不能把旧的 `good` 状态当作当前没有撤销。
 
 ## 失败案例与工程边界
 
 - **公钥替换。** 只从消息中读取公钥会允许攻击者附带自己的有效签名。
 - **上下文缺失。** 同一签名格式可能在“测试批准”和“生产发布”之间被重放。
 - **只看有效期。** 已撤销密钥即使仍在时间范围内也不应接受。
+- **缓存旧的 good 状态。** 超过 `nextUpdate` 后仍当作新鲜，会漏掉撤销传播延迟。
 - **硬编码永不过期密钥。** 轮换和泄露响应会变得不可操作。
 - **自制撤销或填充。** 这些是协议和实现安全问题，应使用成熟标准与库。
 
