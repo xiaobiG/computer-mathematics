@@ -13,6 +13,86 @@ def _validate(probability: float, sample_size: int, trials: int) -> None:
         raise ValueError("sample_size and trials must be integers greater than one")
 
 
+def _normal_coverage_inputs(
+    true_mean: object, standard_deviation: object, sample_size: object,
+    trials: object, seed: object, z_value: object,
+) -> tuple[float, float, int, int, int, float]:
+    if (isinstance(true_mean, bool) or not isinstance(true_mean, (int, float))
+            or not isfinite(true_mean)):
+        raise ValueError("true_mean must be finite")
+    if (isinstance(standard_deviation, bool) or not isinstance(standard_deviation, (int, float))
+            or not isfinite(standard_deviation) or standard_deviation <= 0):
+        raise ValueError("standard_deviation must be finite and positive")
+    if (any(not isinstance(value, int) or isinstance(value, bool) or value <= 1
+            for value in (sample_size, trials))):
+        raise ValueError("sample_size and trials must be integers greater than one")
+    if not isinstance(seed, int) or isinstance(seed, bool):
+        raise ValueError("seed must be an integer")
+    if (isinstance(z_value, bool) or not isinstance(z_value, (int, float))
+            or not isfinite(z_value) or z_value <= 0):
+        raise ValueError("z_value must be finite and positive")
+    return (
+        float(true_mean), float(standard_deviation), sample_size, trials,
+        seed, float(z_value),
+    )
+
+
+def normal_mean_coverage_report(
+    true_mean: float = 10.0, standard_deviation: float = 4.0,
+    sample_size: int = 80, trials: int = 1000, seed: int = 7, z_value: float = 1.96,
+) -> dict[str, float | int | dict[str, bool]]:
+    """Replay a finite normal-mean coverage experiment with sample SD intervals.
+
+    This fixed-seed simulation illustrates the long-run interpretation of an
+    interval rule.  It does not prove nominal coverage outside the declared
+    normal, independent-observation classroom model.
+    """
+    mean, deviation, size, repetitions, random_seed, z = _normal_coverage_inputs(
+        true_mean, standard_deviation, sample_size, trials, seed, z_value,
+    )
+    rng, covered, total_width = Random(random_seed), 0, 0.0
+    for _ in range(repetitions):
+        sample = [rng.gauss(mean, deviation) for _ in range(size)]
+        sample_mean = sum(sample) / size
+        sample_deviation = sqrt(sum((value - sample_mean) ** 2 for value in sample) / (size - 1))
+        margin = z * sample_deviation / sqrt(size)
+        covered += sample_mean - margin <= mean <= sample_mean + margin
+        total_width += 2 * margin
+    coverage = covered / repetitions
+    return {
+        "true_mean": mean,
+        "standard_deviation": deviation,
+        "sample_size": size,
+        "trials": repetitions,
+        "seed": random_seed,
+        "z_value": z,
+        "covered_intervals": covered,
+        "normal_mean_interval_coverage": coverage,
+        "average_interval_width": total_width / repetitions,
+        "model": "iid_normal_observations_with_sample_standard_deviation",
+        "certificate": {
+            "coverage_is_plausible_for_declared_normal_model": .90 <= coverage <= .99,
+            "interval_width_is_positive": total_width > 0.0,
+        },
+    }
+
+
+def normal_mean_coverage_report_certificate(
+    true_mean: object, standard_deviation: object, sample_size: object,
+    trials: object, seed: object, z_value: object, report: object,
+) -> bool:
+    """Rebuild the fixed-seed sample-SD intervals and reject changed claims."""
+    if not isinstance(report, dict):
+        return False
+    try:
+        expected = normal_mean_coverage_report(
+            true_mean, standard_deviation, sample_size, trials, seed, z_value,
+        )
+    except (TypeError, ValueError):
+        return False
+    return report == expected
+
+
 def bernoulli_mean_report(
     probability: float, sample_size: int, trials: int = 3000, seed: int = 0,
 ) -> dict[str, float | int | dict[str, bool]]:

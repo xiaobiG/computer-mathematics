@@ -1,9 +1,12 @@
+import copy
 import unittest
 
 from projects.naive_bayes_spam.sampling_limit_laws import (
     bernoulli_mean_report,
     duplicated_bernoulli_mean_report,
     duplicated_bernoulli_mean_report_certificate,
+    normal_mean_coverage_report,
+    normal_mean_coverage_report_certificate,
     sample_size_scaling_report,
 )
 
@@ -20,6 +23,15 @@ class SamplingLimitLawTests(unittest.TestCase):
         self.assertAlmostEqual(report["expected_standard_error_ratio"], 2.0)
         self.assertTrue(report["certificate"]["larger_sample_has_smaller_empirical_standard_error"])
         self.assertTrue(report["certificate"]["observed_ratio_matches_inverse_sqrt_scaling"])
+
+    def test_normal_sample_sd_coverage_is_replayed_and_tamper_evident(self):
+        report = normal_mean_coverage_report(10.0, 4.0, 80, 1000, 7, 1.96)
+        self.assertTrue(report["certificate"]["coverage_is_plausible_for_declared_normal_model"])
+        self.assertTrue(report["certificate"]["interval_width_is_positive"])
+        self.assertTrue(normal_mean_coverage_report_certificate(10.0, 4.0, 80, 1000, 7, 1.96, report))
+        tampered = copy.deepcopy(report)
+        tampered["normal_mean_interval_coverage"] = 1.0
+        self.assertFalse(normal_mean_coverage_report_certificate(10.0, 4.0, 80, 1000, 7, 1.96, tampered))
 
     def test_duplicated_records_expose_the_missing_independence_factor(self):
         report = duplicated_bernoulli_mean_report(.5, 100, duplicates_per_draw=2, trials=4000, seed=13)
@@ -41,3 +53,7 @@ class SamplingLimitLawTests(unittest.TestCase):
             sample_size_scaling_report(0.5, 100, 25)
         with self.assertRaises(ValueError):
             duplicated_bernoulli_mean_report(.5, 20, duplicates_per_draw=1)
+        with self.assertRaises(ValueError):
+            normal_mean_coverage_report(0.0, 0.0, 80)
+        with self.assertRaises(ValueError):
+            normal_mean_coverage_report(0.0, 1.0, 1)

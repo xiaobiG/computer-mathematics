@@ -108,57 +108,21 @@ $n$ 增大后 $t$ 临界值趋近 1.96。这个区间针对的是**总体均值*
 
 ## 可运行实验：长期覆盖率而非单次直觉
 
-以下代码模拟许多次实验。为避免假装有完整 $t$ 分布库，示例用较大样本的 1.96 正态近似；它的目的正是检验“区间规则的长期频率”这一解释。
+以下报告模拟许多次实验。为避免假装有完整 $t$ 分布库，它用较大样本的 1.96 正态近似；目的正是检验“区间规则的长期频率”。
 
 ```python
-from math import sqrt
-from random import Random
+from projects.naive_bayes_spam.sampling_limit_laws import (
+    normal_mean_coverage_report,
+    normal_mean_coverage_report_certificate,
+)
 
-
-def mean(values):
-    return sum(values) / len(values)
-
-
-def sample_sd(values):
-    if len(values) < 2:
-        raise ValueError("至少需要两个样本")
-    m = mean(values)
-    return sqrt(sum((x - m) ** 2 for x in values) / (len(values) - 1))
-
-
-def normal_mean_ci(values, z=1.96):
-    """大样本均值的近似置信区间。"""
-    m = mean(values)
-    margin = z * sample_sd(values) / sqrt(len(values))
-    return m - margin, m + margin
-
-
-def bootstrap_percentile_ci(values, repeats=4000, seed=0):
-    if len(values) < 2 or repeats < 100:
-        raise ValueError("样本至少为 2，重复次数至少为 100")
-    rng = Random(seed)
-    n = len(values)
-    estimates = sorted(
-        mean([values[rng.randrange(n)] for _ in range(n)])
-        for _ in range(repeats)
-    )
-    return estimates[int(0.025 * repeats)], estimates[int(0.975 * repeats)]
-
-
-def coverage_experiment(true_mean=10.0, sd=4.0, n=80, trials=1000, seed=7):
-    rng = Random(seed)
-    covered = 0
-    for _ in range(trials):
-        sample = [rng.gauss(true_mean, sd) for _ in range(n)]
-        low, high = normal_mean_ci(sample)
-        covered += low <= true_mean <= high
-    return covered / trials
-
-
-print(round(coverage_experiment(), 3))  # 通常接近 0.95，不会恰好等于它
+report = normal_mean_coverage_report(10.0, 4.0, sample_size=80, trials=1000, seed=7)
+assert report["certificate"]["coverage_is_plausible_for_declared_normal_model"]
+assert normal_mean_coverage_report_certificate(10.0, 4.0, 80, 1000, 7, 1.96, report)
+print(round(report["normal_mean_interval_coverage"], 3))  # 接近 0.95，不会恰好等于它
 ```
 
-把 `n` 改为 8，并把生成分布改成少数极端值很大的混合分布，观察覆盖率如何偏离 0.95。模拟不是证明，但它能让统计假设的后果变得可见。
+报告会从固定种子、样本标准差区间和全部试验重放覆盖率；篡改覆盖率、样本量或模型标签都会失败。把 `sample_size` 改为 8，或将生成机制改成重尾混合分布时，不能再沿用这份证书；模拟不是证明，但能让统计假设的后果变得可见。
 
 ## 两组差异与实验设计
 
@@ -207,7 +171,7 @@ assert review["automatic_action"] == "none"
 
 1. 在独立同分布假设下，完整推导 $\mathrm{Var}(\bar X)=\sigma^2/n$，并指出哪一步会被相关样本破坏。
 2. 假设 $s=12,n=144$，用 1.96 近似计算均值的 95% 区间半宽。若半宽希望减半，样本量要变为多少？
-3. 修改 `coverage_experiment`，比较 $n=10,30,100$ 的经验覆盖率；说明为什么每次运行不必恰好为 0.95。
+3. 修改 `normal_mean_coverage_report` 的 `sample_size`，比较 $n=10,30,100$ 的经验覆盖率；说明为什么每次运行不必恰好为 0.95。
 4. 为“每位用户有多次点击”的 A/B 测试设计重采样单位，并解释逐点击 bootstrap 为什么会过度自信。
 5. 找一则包含“误差范围”的调查报道：写清它的目标总体、抽样框、区间对象与可能的非抽样误差。
 6. 用 `two_sample_mean_interval` 生成区间，再分别给出一个低于、穿过和高于区间的最小效应；解释三个 `interpretation` 为何都不能自动行动。
