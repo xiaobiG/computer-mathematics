@@ -4,6 +4,7 @@ from __future__ import annotations
 
 CONTRACT = "finite-relation-matrix/v1"
 BOOLEAN_COMPOSITION_CONTRACT = "boolean-relation-composition/v1"
+BITSET_BATCH_CONTRACT = "bitset-batch-relation-query/v1"
 
 
 def _domain(value):
@@ -111,5 +112,98 @@ def boolean_relation_composition_certificate(domain, left_pairs, right_pairs, re
         return False
     try:
         return report == boolean_relation_composition_report(domain, left_pairs, right_pairs)
+    except ValueError:
+        return False
+
+
+def bitset_batch_relation_query_report(domain, left_pairs, right_pairs, query_sources, word_bits):
+    """Compare repeated sparse two-hop queries to cached Boolean bitset rows.
+
+    The bitset path models fixed-width machine words even though Python stores
+    the packed rows as arbitrary-size integers.  It exposes query batching and
+    cache reuse, rather than claiming wall-clock performance for any runtime.
+    """
+    members = _domain(domain)
+    left, right = _pairs(left_pairs, members), _pairs(right_pairs, members)
+    if (not isinstance(query_sources, list) or not query_sources
+            or any(not isinstance(source, str) or source not in members for source in query_sources)):
+        raise ValueError("query_sources must be a non-empty list of domain members")
+    if (not isinstance(word_bits, int) or isinstance(word_bits, bool) or not 1 <= word_bits <= 64):
+        raise ValueError("word_bits must be an integer from 1 to 64")
+    outgoing_left = {member: [] for member in members}
+    outgoing_right = {member: [] for member in members}
+    for source, middle in left:
+        outgoing_left[source].append(middle)
+    for middle, target in right:
+        outgoing_right[middle].append(target)
+    index = {member: position for position, member in enumerate(members)}
+    right_row_bitsets = {}
+    for middle in members:
+        mask = 0
+        for target in outgoing_right[middle]:
+            mask |= 1 << index[target]
+        right_row_bitsets[middle] = mask
+    words_per_row = (len(members) + word_bits - 1) // word_bits
+    cache = {}
+    batch_outputs = []
+    sparse_scans = 0
+    modeled_word_ors = 0
+    cache_hits = 0
+    for source in query_sources:
+        sparse_targets = set()
+        for middle in outgoing_left[source]:
+            for target in outgoing_right[middle]:
+                sparse_scans += 1
+                sparse_targets.add(target)
+        if source in cache:
+            cache_hits += 1
+            mask = cache[source]
+            cache_hit = True
+        else:
+            mask = 0
+            for middle in outgoing_left[source]:
+                mask |= right_row_bitsets[middle]
+                modeled_word_ors += words_per_row
+            cache[source] = mask
+            cache_hit = False
+        bitset_targets = [member for member in members if mask & (1 << index[member])]
+        if sparse_targets != set(bitset_targets):
+            raise AssertionError("sparse and bitset paths must agree")
+        batch_outputs.append({
+            "query_source": source,
+            "reachable_targets": bitset_targets,
+            "cache_hit": cache_hit,
+        })
+    return {
+        "contract": BITSET_BATCH_CONTRACT,
+        "domain": members,
+        "left_pairs": [list(pair) for pair in left],
+        "right_pairs": [list(pair) for pair in right],
+        "query_sources": list(query_sources),
+        "word_bits": word_bits,
+        "right_row_bitsets": [right_row_bitsets[member] for member in members],
+        "batch_outputs": batch_outputs,
+        "verification": {"sparse_and_bitset_outputs_match": True},
+        "work": {
+            "query_count": len(query_sources),
+            "unique_source_count": len(cache),
+            "sparse_two_hop_scans": sparse_scans,
+            "bitset_row_construction_bit_writes": len(right),
+            "bitset_modeled_word_ors_after_construction": modeled_word_ors,
+            "modeled_words_per_row": words_per_row,
+            "bitset_cache_hits": cache_hits,
+        },
+        "interpretation": "fixed_word_operation_model_for_this_batch_not_wall_clock_or_dynamic_update_guarantee",
+    }
+
+
+def bitset_batch_relation_query_certificate(domain, left_pairs, right_pairs, query_sources, word_bits, report):
+    """Rebuild packed rows, batch outputs and modeled work counters."""
+    if not isinstance(report, dict):
+        return False
+    try:
+        return report == bitset_batch_relation_query_report(
+            domain, left_pairs, right_pairs, query_sources, word_bits,
+        )
     except ValueError:
         return False

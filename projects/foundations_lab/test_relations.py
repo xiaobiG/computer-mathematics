@@ -2,6 +2,7 @@ import copy
 import unittest
 
 from projects.foundations_lab.relations import (
+    bitset_batch_relation_query_certificate, bitset_batch_relation_query_report,
     boolean_relation_composition_certificate, boolean_relation_composition_report,
     finite_relation_certificate, finite_relation_report, relation_reachability_certificate, relation_reachability_report,
 )
@@ -44,3 +45,30 @@ class RelationTests(unittest.TestCase):
         self.assertFalse(boolean_relation_composition_certificate(
             ["a", "b", "c"], [["a", "b"], ["b", "c"]], [["b", "a"], ["c", "a"]], altered,
         ))
+
+    def test_bitset_batch_reuses_repeated_source_and_matches_sparse_outputs(self):
+        report = bitset_batch_relation_query_report(
+            ["a", "b", "c", "d"],
+            [["a", "b"], ["a", "c"], ["b", "d"]],
+            [["b", "a"], ["b", "d"], ["c", "d"], ["d", "c"]],
+            ["a", "a", "b"], 2,
+        )
+        self.assertEqual([item["reachable_targets"] for item in report["batch_outputs"]], [["a", "d"], ["a", "d"], ["c"]])
+        self.assertEqual(report["work"]["bitset_cache_hits"], 1)
+        self.assertEqual(report["work"]["unique_source_count"], 2)
+        self.assertTrue(report["verification"]["sparse_and_bitset_outputs_match"])
+        self.assertTrue(bitset_batch_relation_query_certificate(
+            ["a", "b", "c", "d"], [["a", "b"], ["a", "c"], ["b", "d"]],
+            [["b", "a"], ["b", "d"], ["c", "d"], ["d", "c"]], ["a", "a", "b"], 2, report,
+        ))
+        altered = copy.deepcopy(report); altered["work"]["bitset_cache_hits"] = 0
+        self.assertFalse(bitset_batch_relation_query_certificate(
+            ["a", "b", "c", "d"], [["a", "b"], ["a", "c"], ["b", "d"]],
+            [["b", "a"], ["b", "d"], ["c", "d"], ["d", "c"]], ["a", "a", "b"], 2, altered,
+        ))
+
+    def test_bitset_batch_contract_rejects_unknown_source_or_invalid_word_width(self):
+        with self.assertRaises(ValueError):
+            bitset_batch_relation_query_report(["a"], [], [], ["missing"], 8)
+        with self.assertRaises(ValueError):
+            bitset_batch_relation_query_report(["a"], [], [], ["a"], 0)
