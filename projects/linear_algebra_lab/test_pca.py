@@ -47,6 +47,12 @@ class Pca2DTests(unittest.TestCase):
             pca_2d_report([[1.0], [2.0]])
         with self.assertRaises(ValueError):
             pca_2d_report([[1.0, float("nan")], [2.0, 3.0]])
+        with self.assertRaises(ValueError):
+            pca_2d_report(((1.0, 2.0), (3.0, 4.0)))
+        with self.assertRaises(ValueError):
+            pca_2d_report([[True, 0.0], [1.0, 2.0]])
+        with self.assertRaises(ValueError):
+            pca_2d_report(None)  # type: ignore[arg-type]
 
     def test_centering_comparison_separates_mean_offset_from_variation(self):
         rows = [[100.0, -1.0], [100.0, 0.0], [100.0, 1.0]]

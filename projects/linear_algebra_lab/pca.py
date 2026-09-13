@@ -24,7 +24,11 @@ class Pca2DReport:
 
 
 def _validate_rows(rows: list[list[float]]) -> None:
-    if len(rows) < 2 or any(len(row) != 2 for row in rows):
+    # This is deliberately a small teaching API rather than an array protocol:
+    # accepting arbitrary iterables would make the later two-pass computation
+    # depend on whether an iterator had already been consumed.
+    if (not isinstance(rows, list) or len(rows) < 2
+            or any(not isinstance(row, list) or len(row) != 2 for row in rows)):
         raise ValueError("two-dimensional PCA requires at least two 2-D rows")
     if any(not isinstance(value, (int, float)) or isinstance(value, bool) or not isfinite(value)
            for row in rows for value in row):
