@@ -38,10 +38,53 @@ def finite_relation_report(domain, pairs):
     members, edges = _domain(domain), _pairs(pairs, domain)
     edge_set = set(edges)
     matrix = [[1 if (left, right) in edge_set else 0 for right in members] for left in members]
-    reflexive = all((member, member) in edge_set for member in members)
-    symmetric = all((right, left) in edge_set for left, right in edge_set)
-    transitive = all((left, final) in edge_set for left, middle in edge_set for middle2, final in edge_set if middle == middle2)
-    return {"contract": CONTRACT, "domain": members, "pairs": [list(pair) for pair in edges], "adjacency_matrix": matrix, "properties": {"reflexive": reflexive, "symmetric": symmetric, "transitive": transitive, "equivalence_relation": reflexive and symmetric and transitive}, "matrix_order": members}
+    missing_reflexive_member = next(
+        (member for member in members if (member, member) not in edge_set), None,
+    )
+    asymmetric_pair = next(
+        (
+            (left, right)
+            for left in members
+            for right in members
+            if (left, right) in edge_set and (right, left) not in edge_set
+        ),
+        None,
+    )
+    missing_transitive_triple = next(
+        (
+            (left, middle, final)
+            for left in members
+            for middle in members
+            for final in members
+            if (left, middle) in edge_set
+            and (middle, final) in edge_set
+            and (left, final) not in edge_set
+        ),
+        None,
+    )
+    reflexive = missing_reflexive_member is None
+    symmetric = asymmetric_pair is None
+    transitive = missing_transitive_triple is None
+    return {
+        "contract": CONTRACT,
+        "domain": members,
+        "pairs": [list(pair) for pair in edges],
+        "adjacency_matrix": matrix,
+        "properties": {
+            "reflexive": reflexive,
+            "symmetric": symmetric,
+            "transitive": transitive,
+            "equivalence_relation": reflexive and symmetric and transitive,
+        },
+        "witnesses": {
+            "missing_reflexive_member": missing_reflexive_member,
+            "asymmetric_pair": list(asymmetric_pair) if asymmetric_pair is not None else None,
+            "missing_transitive_triple": (
+                list(missing_transitive_triple) if missing_transitive_triple is not None else None
+            ),
+        },
+        "matrix_order": members,
+    }
 
 
 def finite_relation_certificate(domain, pairs, report):

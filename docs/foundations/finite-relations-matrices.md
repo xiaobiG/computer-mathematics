@@ -25,6 +25,22 @@ $$M_{ij}=\begin{cases}1,&(d_i,d_j)\in R\\0,&\text{otherwise.}\end{cases}$$
 
 自反要求所有 $(d,d)$ 在 $R$；对称要求 $(x,y)\in R\Rightarrow(y,x)\in R$；传递要求 $(x,y),(y,z)\in R\Rightarrow(x,z)\in R$。矩阵的对角线对应自反性；对称关系的矩阵关于主对角线对称。
 
+## 分步推导：从布尔矩阵平方定位传递性反例
+
+传递性不是“矩阵里看起来有很多 1”，而是两步关系从不产生原关系缺少的对。令布尔乘法中的加法为 OR、乘法为 AND：
+
+$$
+(M\odot M)_{ij}=\bigvee_k(M_{ik}\land M_{kj}).
+$$
+
+它为 1 当且仅当存在 $d_k$ 使 $d_iRd_k$ 且 $d_kRd_j$。因此有限关系传递当且仅当
+
+$$
+M\odot M\le M
+$$
+
+（逐格比较）。若左边某格为 1、右边为 0，就有一个具体三元组 $(d_i,d_k,d_j)$：前两条关系存在，而应有的 $(d_i,d_j)$ 缺失。这不是要把每个关系都“修复”为传递关系；它只精确说明当前关系为何不满足这个性质。
+
 ## 可运行实验
 
 ```python
@@ -35,10 +51,24 @@ pairs = [["a", "a"], ["b", "b"], ["a", "b"], ["b", "a"]]
 report = finite_relation_report(domain, pairs)
 assert report["adjacency_matrix"] == [[1, 1], [1, 1]]
 assert report["properties"]["equivalence_relation"]
+assert report["witnesses"]["missing_transitive_triple"] is None
 assert finite_relation_certificate(domain, pairs, report)
 ```
 
-运行 `python -m unittest projects.foundations_lab.test_relations`。合同拒绝重复成员、重复关系对和域外元素；证书重建矩阵与性质，篡改矩阵单元或传递性结论都会失败。
+对一个失败关系，报告不再只返回 `transitive=False`，还保留最先按声明的成员顺序找到的反例：
+
+```python
+domain = ["a", "b", "c"]
+pairs = [["a", "b"], ["b", "c"]]
+report = finite_relation_report(domain, pairs)
+
+assert report["witnesses"]["missing_reflexive_member"] == "a"
+assert report["witnesses"]["asymmetric_pair"] == ["a", "b"]
+assert report["witnesses"]["missing_transitive_triple"] == ["a", "b", "c"]
+assert finite_relation_certificate(domain, pairs, report)
+```
+
+运行 `python -m unittest projects.foundations_lab.test_relations`。合同拒绝重复成员、重复关系对和域外元素；证书重建矩阵、性质和所有见证，篡改矩阵单元、传递性结论或三元组都会失败。见证只证明有限输入的一个失败原因，不推断无限集合、关系的业务语义或“应当补上”哪一条边。
 
 ## 正确性与复杂度
 
@@ -48,7 +78,7 @@ assert finite_relation_certificate(domain, pairs, report)
 
 - **交换坐标。** $(a,b)$ 与 $(b,a)$ 在一般关系中不同；有向边也是如此。
 - **忽略矩阵顺序。** 同一 0/1 数组若成员顺序变了，关系语义也变了。
-- **把缺少传递边当错误。** 这只说明该关系不是传递的；不是所有关系都应是等价关系。
+- **把缺少传递边当错误。** 见证 $(x,y,z)$ 只说明 $(x,y),(y,z)$ 存在而 $(x,z)$ 缺失；不是所有关系都应是等价关系。
 - **大而稀疏的域。** 本课程矩阵适合小规模可视化，不替代生产图存储。
 
 ## 常见误区
@@ -61,17 +91,17 @@ assert finite_relation_certificate(domain, pairs, report)
 ## 练习
 
 1. 为 $D=\{1,2,3\}$ 的“小于等于”关系写出矩阵，并判断三种性质。
-2. 给出一个自反且对称、但不传递的关系。
+2. 给出一个自反且对称、但不传递的关系，并写出报告应返回的缺失传递三元组。
 3. 为什么同一关系对列表可用邻接表或邻接矩阵编码？
 4. 将一个无向图转换为对称关系，说明循环边如何影响对角线。
 
 ## 练习答案提示
 
 1. 它自反、传递，通常不对称；按元素顺序填上三角形。
-2. 例如含所有自环、$(a,b),(b,a),(b,c),(c,b)$，但不含 $(a,c)$。
+2. 例如含所有自环、$(a,b),(b,a),(b,c),(c,b)$，但不含 $(a,c)$；三元组可取 $(a,b,c)$，因为前两对存在而 $(a,c)$ 缺失。
 3. 两者都保留同一对集合，只是查询和枚举的时间/空间成本不同。
 4. 每条无向边写成两个方向；自环恰好对应一个对角元素。
 
 ## 延伸
 
-[集合与数组形状](/foundations/sets-array-shapes)复习成员与坐标；[图的两种存储](/discrete-math/graph-representations)比较邻接表与邻接矩阵；[集合、关系、等价类与偏序](/discrete-math/sets-relations-orders)继续研究关系的数学结构。
+[集合与数组形状](/foundations/sets-array-shapes)复习成员与坐标；[关系复合与可达闭包](/foundations/relation-composition-reachability)把这里的一次布尔平方推广到任意路径长度；[图的两种存储](/discrete-math/graph-representations)比较邻接表与邻接矩阵；[集合、关系、等价类与偏序](/discrete-math/sets-relations-orders)继续研究关系的数学结构。

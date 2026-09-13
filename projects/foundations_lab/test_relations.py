@@ -22,8 +22,24 @@ class RelationTests(unittest.TestCase):
         domain, pairs = ["a", "b", "c"], [["a", "b"], ["b", "c"]]
         report = finite_relation_report(domain, pairs)
         self.assertFalse(report["properties"]["transitive"])
+        self.assertEqual(report["witnesses"]["missing_reflexive_member"], "a")
+        self.assertEqual(report["witnesses"]["asymmetric_pair"], ["a", "b"])
+        self.assertEqual(report["witnesses"]["missing_transitive_triple"], ["a", "b", "c"])
         changed = copy.deepcopy(report); changed["adjacency_matrix"][0][2] = 1
         self.assertFalse(finite_relation_certificate(domain, pairs, changed))
+        changed = copy.deepcopy(report); changed["witnesses"]["missing_transitive_triple"] = None
+        self.assertFalse(finite_relation_certificate(domain, pairs, changed))
+
+    def test_property_witnesses_follow_declared_member_order(self):
+        report = finite_relation_report(
+            ["a", "b", "c"],
+            [["b", "c"], ["a", "b"]],
+        )
+        self.assertEqual(report["witnesses"]["asymmetric_pair"], ["a", "b"])
+        self.assertEqual(
+            report["witnesses"]["missing_transitive_triple"], ["a", "b", "c"]
+        )
+        self.assertTrue(finite_relation_certificate(["a", "b", "c"], [["b", "c"], ["a", "b"]], report))
 
     def test_contract_rejects_duplicate_or_outside_pairs(self):
         with self.assertRaises(ValueError): finite_relation_report(["a"], [["a", "a"], ["a", "a"]])
