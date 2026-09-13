@@ -150,6 +150,20 @@ assert unbounded_power_tail_certificate(2.0, [1.0, 9.0, 99.0], finite)
 assert not unbounded_power_tail_report(1.0, [1.0, 9.0, 99.0])["converges"]
 ```
 
+## 无界变量变换：必须携带雅可比
+
+对 $(1+x)^{-p},p>1$，$x=t/(1-t)$、$dx=dt/(1-t)^2$，得到 $\int_0^1(1-t)^{p-2}dt$：
+
+```python
+from projects.floating_point_museum.integration import unbounded_power_transform_report
+
+report = unbounded_power_transform_report(2.0, [.5, .9, .99])
+assert report["tail_bounds"][-1] == .01
+assert report["direct_truncated_integrals"] == report["transformed_truncated_integrals"]
+```
+
+仅验证声明的解析换元；不判定黑盒可积性或保证一般求积。
+
 这不是一般无界积分器；它只说明有限区间求积还必须有独立尾界、变量变换或专门理论，不能由“大到够用”的截断自行证明。
 
 ## 失败案例与工程边界

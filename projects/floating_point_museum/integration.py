@@ -10,6 +10,7 @@ from typing import Callable
 Function = Callable[[float], float]
 ENDPOINT_POWER_CONTRACT = "endpoint-power-improper-integral/v1"
 UNBOUNDED_POWER_TAIL_CONTRACT = "unbounded-power-tail-integral/v1"
+UNBOUNDED_POWER_TRANSFORM_CONTRACT = "unbounded-power-transform/v1"
 
 
 def _validate_interval(a: float, b: float, segments: int) -> None:
@@ -346,5 +347,36 @@ def unbounded_power_tail_certificate(exponent: float, cutoffs: list[float], repo
         return False
     try:
         return report == unbounded_power_tail_report(exponent, cutoffs)
+    except (TypeError, ValueError):
+        return False
+
+
+def unbounded_power_transform_report(exponent: float, transformed_cutoffs: list[float]) -> dict[str, object]:
+    """Compare x=t/(1-t) against direct truncation for the declared power tail."""
+    if (not isinstance(exponent, (int, float)) or isinstance(exponent, bool)
+            or not isfinite(exponent) or exponent <= 1.0):
+        raise ValueError("exponent must be finite and greater than one")
+    if (not isinstance(transformed_cutoffs, list) or not transformed_cutoffs
+            or any(not isinstance(t, (int, float)) or isinstance(t, bool) or not 0.0 < t < 1.0 for t in transformed_cutoffs)
+            or any(left >= right for left, right in zip(transformed_cutoffs, transformed_cutoffs[1:]))):
+        raise ValueError("transformed_cutoffs must be strictly increasing values in (0, 1)")
+    p = float(exponent)
+    direct_cutoffs = [float(t) / (1.0 - float(t)) for t in transformed_cutoffs]
+    limit = 1.0 / (p - 1.0)
+    transformed_values = [((1.0 - (1.0 - t) ** (p - 1.0)) / (p - 1.0)) for t in transformed_cutoffs]
+    direct = unbounded_power_tail_report(p, direct_cutoffs)
+    return {"contract": UNBOUNDED_POWER_TRANSFORM_CONTRACT, "exponent": p,
+            "transform": "x=t/(1-t); dx=dt/(1-t)^2", "transformed_integrand": f"(1-t)^({p - 2.0})",
+            "transformed_cutoffs": tuple(float(t) for t in transformed_cutoffs), "direct_cutoffs": tuple(direct_cutoffs),
+            "direct_truncated_integrals": direct["truncated_integrals"], "transformed_truncated_integrals": tuple(transformed_values),
+            "limit": limit, "tail_bounds": tuple(limit - value for value in transformed_values),
+            "boundary": "analytic_power_family_and_declared_bijection_only; not_black_box_integrability_or_general_change_of_variables", "automatic_action": "none"}
+
+
+def unbounded_power_transform_certificate(exponent: float, transformed_cutoffs: list[float], report: object) -> bool:
+    if not isinstance(report, dict):
+        return False
+    try:
+        return report == unbounded_power_transform_report(exponent, transformed_cutoffs)
     except (TypeError, ValueError):
         return False

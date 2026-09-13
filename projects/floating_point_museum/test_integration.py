@@ -12,6 +12,8 @@ from projects.floating_point_museum.integration import (
     refinement_report,
     unbounded_power_tail_certificate,
     unbounded_power_tail_report,
+    unbounded_power_transform_certificate,
+    unbounded_power_transform_report,
 )
 
 
@@ -102,3 +104,15 @@ class IntegrationTests(unittest.TestCase):
         self.assertFalse(unbounded_power_tail_certificate(2.0, [1.0, 9.0, 99.0], changed))
         with self.assertRaises(ValueError):
             unbounded_power_tail_report(2.0, [9.0, 1.0])
+
+    def test_declared_transform_matches_direct_unbounded_power_truncation(self):
+        report = unbounded_power_transform_report(2.0, [.5, .9, .99])
+        self.assertEqual(report["direct_cutoffs"], (1.0, 9.000000000000002, 98.99999999999991))
+        for direct, transformed in zip(report["direct_truncated_integrals"], report["transformed_truncated_integrals"]):
+            self.assertAlmostEqual(direct, transformed)
+        self.assertAlmostEqual(report["tail_bounds"][-1], .01)
+        self.assertTrue(unbounded_power_transform_certificate(2.0, [.5, .9, .99], report))
+        report["transform"] = "identity"
+        self.assertFalse(unbounded_power_transform_certificate(2.0, [.5, .9, .99], report))
+        with self.assertRaises(ValueError):
+            unbounded_power_transform_report(1.0, [.5])
