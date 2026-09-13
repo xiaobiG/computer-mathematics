@@ -47,3 +47,5 @@ class PrimalityTests(unittest.TestCase):
             miller_rabin_round(561, 1)
         with self.assertRaises(ValueError):
             miller_rabin_report(561, [])
+        with self.assertRaisesRegex(ValueError, "distinct"):
+            miller_rabin_report(561, [2, 2])

@@ -72,6 +72,10 @@ def miller_rabin_report(candidate: int, bases: list[int] | tuple[int, ...]) -> d
         return {"probably_prime": False, "rounds": [], "witnesses": [], "certificate": {"valid": True}}
     if not isinstance(bases, (list, tuple)) or not bases:
         raise ValueError("provide at least one explicit Miller-Rabin base")
+    for base in bases:
+        _require_integer(base, "base")
+    if len(set(bases)) != len(bases):
+        raise ValueError("bases must be distinct; repeated rounds do not add Miller-Rabin evidence")
     rounds = [miller_rabin_round(candidate, base) for base in bases]
     witnesses = [round_.base for round_ in rounds if not round_.passes]
     return {
