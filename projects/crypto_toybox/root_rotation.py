@@ -6,11 +6,18 @@ from projects.crypto_toybox.transparency_log import append_only_certificate
 
 
 CONTRACT = "trust-root-rotation-audit/v2"
+RECOVERY_COMPATIBILITY_CONTRACT = "root-rotation-recovery-compatibility/v1"
 
 
 def _nonnegative_int(value: object, name: str) -> int:
     if not isinstance(value, int) or isinstance(value, bool) or value < 0:
         raise ValueError(f"{name} 必须是非负整数")
+    return value
+
+
+def _nonempty_string(value: object, name: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{name} 必须是非空字符串")
     return value
 
 
@@ -193,3 +200,138 @@ def root_rotation_log_link_review(rotation_report: object, append_log_report: ob
         "cryptographic_verification": "not_performed",
         "identity_binding": "not_established_by_log_entries",
     }
+
+
+def _positive_versions(value: object, name: str) -> list[int]:
+    if (not isinstance(value, list) or not value
+            or any(not isinstance(item, int) or isinstance(item, bool) or item < 1 for item in value)
+            or len(set(value)) != len(value)):
+        raise ValueError(f"{name} 必须是互异的正整数列表")
+    return list(value)
+
+
+def _client_recovery_state(value: object) -> dict[str, object]:
+    required = {
+        "client_id", "trusted_root_ids", "stored_epoch", "supported_policy_versions",
+        "recovery_operator_ids", "minimum_distinct_recovery_operators",
+    }
+    if not isinstance(value, dict) or set(value) != required:
+        raise ValueError("client 必须声明标识、根、纪元、格式与恢复运营者")
+    recovery_operators = _root_ids(value["recovery_operator_ids"], "recovery_operator_ids")
+    recovery_threshold = _nonnegative_int(
+        value["minimum_distinct_recovery_operators"], "minimum_distinct_recovery_operators",
+    )
+    if not 1 <= recovery_threshold <= len(recovery_operators):
+        raise ValueError("minimum_distinct_recovery_operators 必须在 1 到恢复运营者数量之间")
+    return {
+        "client_id": _nonempty_string(value["client_id"], "client_id"),
+        "trusted_root_ids": _root_ids(value["trusted_root_ids"], "trusted_root_ids"),
+        "stored_epoch": _nonnegative_int(value["stored_epoch"], "stored_epoch"),
+        "supported_policy_versions": _positive_versions(value["supported_policy_versions"], "supported_policy_versions"),
+        "recovery_operator_ids": recovery_operators,
+        "minimum_distinct_recovery_operators": recovery_threshold,
+    }
+
+
+def _emergency_recovery_plan(value: object, current_roots: set[str]) -> dict[str, object]:
+    required = {
+        "policy_format_version", "compromised_root_ids", "recovery_claim_operator_ids", "out_of_band_channel_declared",
+    }
+    if not isinstance(value, dict) or set(value) != required:
+        raise ValueError("emergency_plan 必须声明格式、受损根、恢复声明和带外通道")
+    format_version = _nonnegative_int(value["policy_format_version"], "policy_format_version")
+    if format_version < 1:
+        raise ValueError("policy_format_version 必须为正整数")
+    compromised = _root_ids(value["compromised_root_ids"], "compromised_root_ids")
+    if not set(compromised).issubset(current_roots):
+        raise ValueError("compromised_root_ids 必须属于当前根集合")
+    channel = value["out_of_band_channel_declared"]
+    if not isinstance(channel, bool):
+        raise ValueError("out_of_band_channel_declared 必须是布尔值")
+    return {
+        "policy_format_version": format_version,
+        "compromised_root_ids": compromised,
+        "recovery_claim_operator_ids": _root_ids(value["recovery_claim_operator_ids"], "recovery_claim_operator_ids"),
+        "out_of_band_channel_declared": channel,
+    }
+
+
+def root_rotation_recovery_compatibility_report(
+    rotation_report: object, clients: object, emergency_plan: object,
+) -> dict[str, object]:
+    """Replay fictional emergency-recovery compatibility without applying it.
+
+    A client must already pin its recovery authorities and understand the
+    declared policy format.  This reports why a particular client needs manual
+    recovery; it is neither an updater nor an authorization mechanism.
+    """
+    if not trust_root_rotation_certificate(rotation_report)["valid"]:
+        raise ValueError("rotation_report 必须是有效的根轮换策略产物")
+    if not isinstance(clients, list) or not clients:
+        raise ValueError("clients 必须是非空列表")
+    normalized_clients = [_client_recovery_state(client) for client in clients]
+    if len({client["client_id"] for client in normalized_clients}) != len(normalized_clients):
+        raise ValueError("client_id 不能重复")
+    current_roots = set(rotation_report["trust_state"]["root_ids"])
+    plan = _emergency_recovery_plan(emergency_plan, current_roots)
+    proposal = rotation_report["proposal"]
+    approval_claims = set(proposal["approval_claims"])
+    compromised = set(plan["compromised_root_ids"])
+    client_reports = []
+    for client in normalized_clients:
+        covered_approvals = sorted(approval_claims & set(client["trusted_root_ids"]))
+        covered_recovery_operators = sorted(
+            set(plan["recovery_claim_operator_ids"]) & set(client["recovery_operator_ids"])
+        )
+        checks = {
+            "policy_format_supported": plan["policy_format_version"] in client["supported_policy_versions"],
+            "epoch_advances_client_state": proposal["new_epoch"] > client["stored_epoch"],
+            "client_covers_current_root_threshold_claims": len(covered_approvals) >= rotation_report["trust_state"]["threshold"],
+            "regular_approval_avoids_declared_compromised_roots": not bool(approval_claims & compromised),
+            "out_of_band_channel_declared": plan["out_of_band_channel_declared"],
+            "client_covers_recovery_operator_threshold": (
+                len(covered_recovery_operators) >= client["minimum_distinct_recovery_operators"]
+            ),
+        }
+        if not checks["policy_format_supported"]:
+            decision = "manual_recovery_required_unsupported_policy_format"
+        elif not checks["epoch_advances_client_state"]:
+            decision = "manual_recovery_required_client_epoch_state"
+        elif all((checks["out_of_band_channel_declared"], checks["client_covers_recovery_operator_threshold"])):
+            decision = "manual_recovery_with_declared_authorities"
+        else:
+            decision = "manual_recovery_missing_declared_authority_coverage"
+        client_reports.append({
+            "client": client,
+            "covered_current_approval_root_ids": covered_approvals,
+            "covered_recovery_operator_ids": covered_recovery_operators,
+            "checks": checks,
+            "decision": decision,
+            "automatic_apply": False,
+        })
+    return {
+        "contract": RECOVERY_COMPATIBILITY_CONTRACT,
+        "rotation_policy_decision": rotation_report["decision"],
+        "transition": {
+            "from_epoch": rotation_report["trust_state"]["epoch"],
+            "to_epoch": proposal["new_epoch"],
+            "approval_claim_root_ids": sorted(approval_claims),
+        },
+        "emergency_plan": plan,
+        "client_reports": client_reports,
+        "automatic_apply": False,
+        "cryptographic_verification": "not_performed",
+        "interpretation": "fictional_client_compatibility_and_predeclared_recovery_authority_review_only",
+    }
+
+
+def root_rotation_recovery_compatibility_certificate(
+    rotation_report: object, clients: object, emergency_plan: object, report: object,
+) -> bool:
+    """Rebuild the compatibility review and reject changed client decisions."""
+    if not isinstance(report, dict):
+        return False
+    try:
+        return report == root_rotation_recovery_compatibility_report(rotation_report, clients, emergency_plan)
+    except (KeyError, ValueError):
+        return False

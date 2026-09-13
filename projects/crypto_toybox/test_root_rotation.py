@@ -2,6 +2,8 @@ import unittest
 
 from projects.crypto_toybox.root_rotation import (
     root_rotation_log_link_review,
+    root_rotation_recovery_compatibility_certificate,
+    root_rotation_recovery_compatibility_report,
     trust_root_rotation_certificate,
     trust_root_rotation_report,
 )
@@ -29,6 +31,56 @@ def proposal(**overrides):
 
 
 class TrustRootRotationTests(unittest.TestCase):
+    def test_emergency_recovery_separates_client_format_and_predeclared_authority_coverage(self):
+        rotation = trust_root_rotation_report(state(), proposal())
+        clients = [
+            {
+                "client_id": "modern", "trusted_root_ids": ["root-a", "root-b", "root-c"], "stored_epoch": 4,
+                "supported_policy_versions": [1, 2], "recovery_operator_ids": ["recovery-a", "recovery-b"],
+                "minimum_distinct_recovery_operators": 2,
+            },
+            {
+                "client_id": "legacy", "trusted_root_ids": ["root-a", "root-b", "root-c"], "stored_epoch": 4,
+                "supported_policy_versions": [1], "recovery_operator_ids": ["recovery-a", "recovery-b"],
+                "minimum_distinct_recovery_operators": 2,
+            },
+            {
+                "client_id": "isolated", "trusted_root_ids": ["root-a"], "stored_epoch": 4,
+                "supported_policy_versions": [2], "recovery_operator_ids": ["recovery-a", "recovery-c"],
+                "minimum_distinct_recovery_operators": 2,
+            },
+        ]
+        plan = {
+            "policy_format_version": 2, "compromised_root_ids": ["root-a"],
+            "recovery_claim_operator_ids": ["recovery-a", "recovery-b"], "out_of_band_channel_declared": True,
+        }
+        report = root_rotation_recovery_compatibility_report(rotation, clients, plan)
+        by_id = {item["client"]["client_id"]: item for item in report["client_reports"]}
+        self.assertEqual(by_id["modern"]["decision"], "manual_recovery_with_declared_authorities")
+        self.assertFalse(by_id["modern"]["checks"]["regular_approval_avoids_declared_compromised_roots"])
+        self.assertEqual(by_id["legacy"]["decision"], "manual_recovery_required_unsupported_policy_format")
+        self.assertEqual(by_id["isolated"]["decision"], "manual_recovery_missing_declared_authority_coverage")
+        self.assertFalse(report["automatic_apply"])
+        self.assertTrue(root_rotation_recovery_compatibility_certificate(rotation, clients, plan, report))
+
+    def test_emergency_recovery_certificate_rejects_tampering_or_unpinned_incident_root(self):
+        rotation = trust_root_rotation_report(state(), proposal())
+        clients = [{
+            "client_id": "modern", "trusted_root_ids": ["root-a", "root-b"], "stored_epoch": 4,
+            "supported_policy_versions": [2], "recovery_operator_ids": ["recovery-a", "recovery-b"],
+            "minimum_distinct_recovery_operators": 2,
+        }]
+        plan = {
+            "policy_format_version": 2, "compromised_root_ids": ["root-a"],
+            "recovery_claim_operator_ids": ["recovery-a", "recovery-b"], "out_of_band_channel_declared": True,
+        }
+        report = root_rotation_recovery_compatibility_report(rotation, clients, plan)
+        report["client_reports"][0]["decision"] = "accept"
+        self.assertFalse(root_rotation_recovery_compatibility_certificate(rotation, clients, plan, report))
+        plan["compromised_root_ids"] = ["unknown-root"]
+        with self.assertRaises(ValueError):
+            root_rotation_recovery_compatibility_report(rotation, clients, plan)
+
     def test_append_only_log_artifact_flows_into_root_rotation_manual_review(self):
         rotation = trust_root_rotation_report(state(), proposal())
         log = append_only_report(
