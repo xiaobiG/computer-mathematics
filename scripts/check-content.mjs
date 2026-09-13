@@ -322,6 +322,7 @@ for (const path of files) {
   // narrow so ordinary TeX notation is not constrained by a fragile parser.
   const formulaTypos = [
     ['遗漏反斜杠的 qquad', /(^|[^\\])qquad/],
+    ['遗漏反斜杠的 quad', /(^|[^\\A-Za-z])quad(?=\s+[A-Za-z])/],
     ['求和下标与因子粘连的 \\sum_up_', /\\sum_up_/],
     ['遗漏反斜杠的 operatorname', /(^|[^\\])operatorname\{/],
     ['遗漏反斜杠的 Delta', /(^|[^\\])Delta(?:_|\{)/],

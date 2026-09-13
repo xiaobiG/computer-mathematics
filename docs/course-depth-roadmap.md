@@ -697,3 +697,7 @@ v5.0–v5.2 已完成三种不同的读者构造：最小二乘把观察翻译�
 [透明日志的 Merkle 证明](/number-theory-crypto/transparency-logs)曾能重放一份追加列表，[信任根轮换](/number-theory-crypto/trust-root-rotation)则只接收 `witness_evidence_available` 布尔值，两门课之间没有实际证据流。`root_rotation_log_link_review` 现在接收两份已验证的上游产物：根轮换策略报告和追加日志报告；它从旧/新根集合导出新增根，检查 `key:<root-id>` 是否真正覆盖在未改写的新日志条目中。
 
 这条连接会改变下游结论：删掉新增根条目得到“缺少日志条目的人工复核”，覆盖完整得到“带策略与追加日志证据的人工复核”，篡改日志则不能进入下游。无论哪一种都固定 `automatic_apply=False`、`cryptographic_verification="not_performed"` 和无身份绑定：日志追加不是批准签名、密钥身份、独立见证或真实根管理系统。
+
+## v6.09：将“可解析”与“数学命令完整”分开检查
+
+[QR 分解与正交投影](/linear-algebra/orthogonal-projection-qr) 的近共线向量样例曾把两处 `\quad` 写成普通 `quad`。KaTeX 仍会接受该表达式，却把本应是间距的命令显示为四个数学字母；这是单纯编译成功无法发现的语义退化。本版恢复两个间距命令，并在内容门禁中加入“独立 `quad` 后接公式项”的窄检查，避免误伤正常的 `\qquad` 或正文词汇。完整的 KaTeX 编译检查仍负责更广泛的公式语法。
