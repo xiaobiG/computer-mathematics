@@ -42,6 +42,14 @@ class JointEvidenceMonitoringTests(unittest.TestCase):
         self.assertFalse(report["signals"]["labeled_performance"])
         self.assertTrue(report["needs_review"])
 
+    def test_labeled_performance_signal_can_exist_without_input_signal(self):
+        current = snapshot(["ham", "ham", "prize", "prize"], [.1, .9, .2, .8], [1, 0, 1, 0])
+        report = joint_evidence_report(self.reference, current, accuracy_drop_threshold=.25)
+        self.assertFalse(report["signals"]["input_distribution"])
+        self.assertTrue(report["signals"]["labeled_performance"])
+        self.assertEqual(report["causal_interpretation"], "not_established")
+        self.assertTrue(joint_evidence_certificate(self.reference, current, report))
+
     def test_certificate_rejects_causal_claim_and_mismatched_observation_count(self):
         current = copy.deepcopy(self.reference)
         report = joint_evidence_report(self.reference, current)

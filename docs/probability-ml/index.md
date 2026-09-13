@@ -47,7 +47,7 @@
 - [概率再校准：验证集把分数变回概率](/probability-ml/recalibration)：用独立验证集拟合 Platt scaling，避免测试集泄漏；
 - [数据漂移监控：何时不应再相信校准概率](/probability-ml/data-drift-monitoring)：用 PSI 与总变差距离报告输入变化，并把告警限定为人工审查触发器；
 - [带标签窗口：审计分类性能与概率退化](/probability-ml/labeled-window-performance-degradation)：在延迟标签到达后并列检查混淆矩阵、准确率区间、Brier 分数和对数损失；
-- [联合证据：输入漂移与带标签性能如何一起审计](/probability-ml/joint-input-label-evidence)：将两类同窗口信号并列保留，并明确拒绝因果和自动行动声明；
+- [联合证据：输入漂移与带标签性能如何一起审计](/probability-ml/joint-input-label-evidence)：从带平滑 PSI 与带标签损失的独立计算出发，将两类同窗口信号并列保留，并明确拒绝因果和自动行动声明；
 - [子群体性能：先检查样本量，再解释指标](/probability-ml/subgroup-performance-uncertainty)：样本不足时拒绝组级结论，并用证书绑定最低样本量政策；
 - [分组校准：总体可信，为什么局部仍可能失真](/probability-ml/subgroup-calibration-uncertainty)：用固定分箱和 ECE 识别总体平均掩盖的局部概率偏差；
 - [冻结窗口的校准比较：先定义，再看差异](/probability-ml/frozen-window-calibration-comparison)：用预先命名窗口和固定政策比较校准差异，只产生复核信号；

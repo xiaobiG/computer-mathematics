@@ -3,7 +3,7 @@ title: 联合证据：输入漂移与带标签性能如何一起审计
 description: 将同一观测窗口的输入类别变化与延迟标签性能并列报告，避免把同时出现的信号误解为因果关系。
 courseLevel: "3（监控证据、延迟标签与工程边界）"
 prerequisites: "数据漂移监控、带标签窗口性能审计、概率校准"
-estimatedMinutes: 55
+estimatedMinutes: 65
 experiment: "以同一窗口的类别、概率和标签生成联合证据报告与重放证书"
 ---
 
@@ -29,9 +29,78 @@ $$
 
 这里 $S$ 仅代表“需要复核”。即便 $S_{input}=S_{outcome}=1$，报告仍固定写入 `causal_interpretation: "not_established"` 与 `automatic_action: "none"`。
 
+## 把同一窗口拆成两条可计算的证据
+
+设参考窗口和当前窗口都含四条观测。参考类别为 `ham, ham, prize, prize`；当前类别为 `invoice, invoice, prize, prize`。每个类别都必须和同一行的预测概率 $p_i$、最终标签 $y_i$ 一起保存，而不是在两份无关报表中各取一列。
+
+对类别全集 $\mathcal C$，实现先以平滑常数 $\alpha$ 计算两个频率：
+
+$$
+r_c=\frac{n_c^{(ref)}+\alpha}{n^{(ref)}+\alpha|\mathcal C|},\qquad
+q_c=\frac{n_c^{(cur)}+\alpha}{n^{(cur)}+\alpha|\mathcal C|}.
+$$
+
+因此新出现的 `invoice` 不会产生无穷大的对数；每个类别对输入信号的贡献和总 PSI 是
+
+$$
+\operatorname{PSI}_c=(q_c-r_c)\log\frac{q_c}{r_c},\qquad
+\operatorname{PSI}=\sum_{c\in\mathcal C}\operatorname{PSI}_c.
+$$
+
+这一步完全没有使用标签，所以它只能说明 $P(X)$ 的已观测类别频率变了。结果侧反而只从同一窗口的 $(p_i,y_i)$ 计算。以固定阈值 $0.5$ 得到 $\hat y_i=\mathbf1[p_i\ge0.5]$，再计算
+
+$$
+\operatorname{accuracy}=\frac1n\sum_i\mathbf1[\hat y_i=y_i],\qquad
+\operatorname{Brier}=\frac1n\sum_i(p_i-y_i)^2,
+$$
+
+以及二元对数损失
+
+$$
+\operatorname{logloss}=-\frac1n\sum_i\left[y_i\log p_i+(1-y_i)\log(1-p_i)\right].
+$$
+
+代码会在端点附近裁剪 $p_i$，使这项保持有限；这是一项数值保护，不是对极端预测的统计辩护。只有“PSI 达阈值”和“准确率下降或对数损失上升达阈值”各自成立时，才分别置位两个信号。
+
+## 同一组类别，三种不同结论
+
+| 当前窗口变化 | $S_{input}$ | $S_{outcome}$ | 合理的下一问 |
+| --- | --- | --- | --- |
+| `invoice` 增多，但预测和标签仍与参考窗口一致 | 1 | 0 | 新来源是否被正确采集、覆盖和分桶？ |
+| 类别频率不变，但概率与标签的关系变差 | 0 | 1 | 标签、概念、阈值或预测管道是否改变？ |
+| 类别变化且性能变差 | 1 | 1 | 两类变化是否在相同人群、时间和版本下复现？ |
+
+第三行应被优先复核，但不能把“同时”替换成“因此”。例如新来源、标注规范变化和未记录人群迁移都可以共同造成这两种现象；当前报告没有随机化、干预或混杂控制，因而没有因果识别能力。
+
 ## 可运行实验与证书
 
 ```python
+from projects.naive_bayes_spam.joint_evidence_monitoring import (
+    JOINT_EVIDENCE_CONTRACT_VERSION,
+    joint_evidence_certificate,
+    joint_evidence_report,
+)
+from projects.naive_bayes_spam.labeled_window_monitoring import (
+    LABELED_WINDOW_CONTRACT_VERSION,
+)
+
+def snapshot(categories, probabilities, labels):
+    return {
+        "contract_version": JOINT_EVIDENCE_CONTRACT_VERSION,
+        "categories": categories,
+        "labeled_window": {
+            "contract_version": LABELED_WINDOW_CONTRACT_VERSION,
+            "probabilities": probabilities,
+            "labels": labels,
+        },
+    }
+
+reference = snapshot(
+    ["ham", "ham", "prize", "prize"], [.9, .1, .8, .2], [1, 0, 1, 0]
+)
+current = snapshot(
+    ["invoice", "invoice", "prize", "prize"], [.1, .9, .2, .8], [1, 0, 1, 0]
+)
 report = joint_evidence_report(reference, current)
 assert report["causal_interpretation"] == "not_established"
 assert report["policy"]["automatic_action"] == "none"
@@ -59,7 +128,7 @@ python -m unittest \
 - **“同一窗口就能证明因果。”** 同一窗口只减少了错误拼接证据的风险。
 - **“联合信号必须自动重训。”** 报告明确禁止这种自动行动。
 - **“没有 PSI 信号就没有性能风险。”** $P(Y\mid X)$ 可在 $P(X)$ 稳定时变化。
-- **“PSI 和损失可相加为一个通用风险分。”** 它们量纲、阈值与业务含义不同，应并列解释。
+- **“PSI 和损失可相加为一个通用风险分。”** 它们量纲、阈值与业务含义不同，应并列解释；当前合同刻意只用逻辑或连接两个信号。
 
 ## 练习
 
