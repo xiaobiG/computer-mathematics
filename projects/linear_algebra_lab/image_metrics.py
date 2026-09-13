@@ -92,6 +92,25 @@ class LinearRgbErrorReport:
     luminance_coefficients: tuple[float, float, float]
 
 
+SRGB_LINEAR_LUMINANCE_CONTRACT = "srgb-linear-luminance-comparison/v1"
+
+
+@dataclass(frozen=True)
+class SrgbLinearLuminanceComparison:
+    """Show the metric change caused by decoding encoded sRGB before arithmetic."""
+
+    contract: str
+    samples: int
+    srgb_breakpoint: float
+    luminance_coefficients: tuple[float, float, float]
+    luminance_mse_budget: float
+    encoded_as_linear_luminance_mse: float
+    decoded_linear_luminance_mse: float
+    encoded_budget_status: str
+    decoded_budget_status: str
+    automatic_action: str
+
+
 def _validate(reference, approximation, peak):
     if not isinstance(peak, (int, float)) or isinstance(peak, bool) or not isfinite(peak) or peak <= 0:
         raise ValueError("peak must be a finite positive number")
@@ -319,6 +338,77 @@ def linear_rgb_error_certificate(reference, approximation, report):
         return False
     try:
         return report == linear_rgb_error_report(reference, approximation)
+    except ValueError:
+        return False
+
+
+def _validate_srgb_encoded(reference, approximation):
+    _validate_linear_rgb(reference, approximation)
+    for image in (reference, approximation):
+        for row in image:
+            for pixel in row:
+                if any(float(value) < 0.0 or float(value) > 1.0 for value in pixel):
+                    raise ValueError("encoded sRGB values must lie in [0, 1]")
+
+
+def srgb_to_linear(component):
+    """Decode one normalized sRGB component using the declared standard curve."""
+    if (not isinstance(component, (int, float)) or isinstance(component, bool)
+            or not isfinite(component) or component < 0.0 or component > 1.0):
+        raise ValueError("encoded sRGB component must be finite and lie in [0, 1]")
+    value = float(component)
+    return value / 12.92 if value <= 0.04045 else ((value + 0.055) / 1.055) ** 2.4
+
+
+def _decode_srgb_image(image):
+    return [
+        [tuple(srgb_to_linear(component) for component in pixel) for pixel in row]
+        for row in image
+    ]
+
+
+def srgb_linear_luminance_comparison(reference, approximation, luminance_mse_budget):
+    """Compare a wrong encoded-space luminance calculation with decoded linear RGB.
+
+    The finite inputs are normalized *encoded sRGB* triples.  The first value
+    deliberately treats those code values as if they were linear; the second
+    decodes the same pixels before applying Rec. 709 linear-luminance weights.
+    A declared numeric budget makes the changed engineering conclusion visible,
+    but never authorizes an automatic quality decision.
+    """
+    _validate_srgb_encoded(reference, approximation)
+    if (not isinstance(luminance_mse_budget, (int, float)) or isinstance(luminance_mse_budget, bool)
+            or not isfinite(luminance_mse_budget) or luminance_mse_budget < 0.0):
+        raise ValueError("luminance_mse_budget must be a finite non-negative number")
+    encoded_report = linear_rgb_error_report(reference, approximation)
+    decoded_report = linear_rgb_error_report(
+        _decode_srgb_image(reference), _decode_srgb_image(approximation),
+    )
+    budget = float(luminance_mse_budget)
+    encoded_status = "within_luminance_mse_budget" if encoded_report.linear_luminance_mse <= budget else "exceeds_luminance_mse_budget"
+    decoded_status = "within_luminance_mse_budget" if decoded_report.linear_luminance_mse <= budget else "exceeds_luminance_mse_budget"
+    return SrgbLinearLuminanceComparison(
+        SRGB_LINEAR_LUMINANCE_CONTRACT,
+        encoded_report.samples,
+        0.04045,
+        encoded_report.luminance_coefficients,
+        budget,
+        encoded_report.linear_luminance_mse,
+        decoded_report.linear_luminance_mse,
+        encoded_status,
+        decoded_status,
+        "none",
+    )
+
+
+def srgb_linear_luminance_comparison_certificate(reference, approximation, report):
+    """Recompute both paths and reject changed transfer, metric, or conclusion fields."""
+    if not isinstance(report, SrgbLinearLuminanceComparison):
+        return False
+    try:
+        return report == srgb_linear_luminance_comparison(
+            reference, approximation, report.luminance_mse_budget,
+        )
     except ValueError:
         return False
 

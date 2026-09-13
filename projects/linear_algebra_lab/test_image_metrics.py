@@ -8,6 +8,7 @@ from projects.linear_algebra_lab.image_metrics import (
     same_mse_structural_comparison_report, structural_similarity_certificate, structural_similarity_report,
     local_structural_similarity_certificate, local_structural_similarity_report,
     linear_rgb_error_certificate, linear_rgb_error_report,
+    srgb_linear_luminance_comparison, srgb_linear_luminance_comparison_certificate, srgb_to_linear,
 )
 from projects.linear_algebra_lab.randomized_svd import randomized_svd_report
 
@@ -101,6 +102,26 @@ class ImageMetricsTests(unittest.TestCase):
         self.assertFalse(linear_rgb_error_certificate(reference, red_error, replace(red, rgb_mse=0.0)))
         with self.assertRaisesRegex(ValueError, "three finite"):
             linear_rgb_error_report(reference, [[[0.0, 0.0]]])
+
+    def test_srgb_decoding_changes_the_declared_luminance_budget_conclusion(self):
+        reference = [[[0.0, 0.0, 0.0]]]
+        approximation = [[[0.5, 0.0, 0.0]]]
+        report = srgb_linear_luminance_comparison(reference, approximation, luminance_mse_budget=0.005)
+        self.assertEqual(report.contract, "srgb-linear-luminance-comparison/v1")
+        self.assertAlmostEqual(srgb_to_linear(0.04045), 0.04045 / 12.92)
+        self.assertGreater(report.encoded_as_linear_luminance_mse, report.luminance_mse_budget)
+        self.assertLess(report.decoded_linear_luminance_mse, report.luminance_mse_budget)
+        self.assertEqual(report.encoded_budget_status, "exceeds_luminance_mse_budget")
+        self.assertEqual(report.decoded_budget_status, "within_luminance_mse_budget")
+        self.assertEqual(report.automatic_action, "none")
+        self.assertTrue(srgb_linear_luminance_comparison_certificate(reference, approximation, report))
+        self.assertFalse(srgb_linear_luminance_comparison_certificate(
+            reference, approximation, replace(report, decoded_budget_status="exceeds_luminance_mse_budget"),
+        ))
+        with self.assertRaisesRegex(ValueError, r"\[0, 1\]"):
+            srgb_linear_luminance_comparison(reference, [[[1.1, 0.0, 0.0]]], 0.005)
+        with self.assertRaisesRegex(ValueError, "non-negative"):
+            srgb_linear_luminance_comparison(reference, approximation, -1.0)
 
     def test_randomized_svd_artifact_drives_a_numeric_quality_budget_review(self):
         pixels = [[5.0, 0.0], [0.0, 1.0]]

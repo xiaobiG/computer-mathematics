@@ -15,7 +15,7 @@ experiment: "消费已验证的随机 SVD 重构，计算 MSE、RMSE、PSNR、�
 
 ## 从一个计算问题开始
 
-低秩压缩器重构出一张 $m\times n$ 图像 $\hat A$，并报告 $\|A-\hat A\|_F=20$。这个 `20` 到底大不大？它随像素数量增长，无法直接比较 $32\times32$ 缩略图和 $4K$ 图像；它也没有说明最坏的一个像素偏了多少。需要把同一份逐像素残差转换成按样本归一、且与像素峰值相关的指标。
+低秩压缩器报告 $\|A-\hat A\|_F=20$。它随像素数增长，不能跨尺寸比较，也不暴露最坏像素；须转换为按样本归一的指标。
 
 ## 定义：从残差到四种报告数
 
@@ -34,7 +34,7 @@ $$
 =10\log_{10}\frac{P^2}{\mathrm{MSE}}.
 $$
 
-MSE 是平均平方误差，较重惩罚大偏差；RMSE 恢复原像素量纲；$E_\infty$ 暴露最坏点；PSNR 是 RMSE 相对于表示范围的对数刻度。完全相同的图像 MSE 为零，PSNR 写作 $+\infty$，而不是选一个任意大的有限数字。
+MSE 重惩罚大偏差，RMSE 恢复量纲，$E_\infty$ 暴露最坏点；PSNR 是对数刻度。MSE 为零时 PSNR 为 $+\infty$。
 
 ## 分步推导：Frobenius 误差如何变成 MSE
 
@@ -73,7 +73,7 @@ assert image_quality_certificate(reference, approximation, report)
 
 ## 跨课实验：审计随机 SVD 的实际像素误差
 
-不要从随机 SVD 报告里手工复制 `approximation`，否则质量课无法知道它来自哪个 seed、过采样、幂迭代和截断秩。`randomized_svd_image_quality_review` 先验证完整上游报告可对同一参考矩阵重放，再用它的实际重构计算指标并与读者声明的 MSE 预算比较：
+`randomized_svd_image_quality_review` 先重放上游 SVD 产物，再把实际重构与声明的 MSE 预算比较：
 
 ```python
 from projects.linear_algebra_lab.image_metrics import randomized_svd_image_quality_review
@@ -88,13 +88,11 @@ assert review.mse_budget_status == "within_mse_budget"
 assert review.automatic_action == "none"
 ```
 
-`mse_budget=0.2` 会拒绝同一重构；预算是应用声明，不能推出视觉、文件大小、检索或部署结论。
+`mse_budget=0.2` 会拒绝同一重构；它不推出视觉或部署结论。
 
 ## 正确性与复杂度
 
-每个像素贡献一次 $e_{ij}^2,|e_{ij}|$，故累加给出 MSE 与最大误差；$\mathrm{RMSE}^2=\mathrm{MSE}$ 给出两种 PSNR 写法。MSE 为零时报告无穷 PSNR。
-
-这验证度量实现，不证明低秩算法最优；随机 SVD 的实际误差仍须另测，MSE 预算也不是感知或任务承诺。
+逐像素累加 $e_{ij}^2,|e_{ij}|$ 得到 MSE 与最大误差；MSE 为零时 PSNR 为无穷。这验证度量，不证明低秩最优、感知或任务质量。
 
 ## 局部窗口：全局 SSIM 不能定位缺陷
 
@@ -114,7 +112,7 @@ assert (report.worst_window_row, report.worst_window_column) == (0, 0)
 assert report.worst_window_ssim < report.global_ssim
 ```
 
-窗口尺寸必须整除图像，避免遗漏边缘。它只定位固定灰度平铺的数值弱点，不是滑动、多尺度或色彩感知 SSIM，更不等于人眼或任务质量。
+窗口尺寸必须整除图像；固定灰度平铺只定位数值弱点，不代表感知或任务质量。
 
 ## 线性 RGB：相同通道 MSE 不等于相同亮度误差
 
@@ -130,7 +128,38 @@ assert red.rgb_mse == green.rgb_mse
 assert red.linear_luminance_mse < green.linear_luminance_mse
 ```
 
-该报告只接受线性 RGB；编码 sRGB 必须先线性化。它说明度量依赖颜色空间，不是色彩外观、显示环境或人眼感知模型。
+该报告只接受线性 RGB；编码 sRGB 必须先线性化，且不代表外观或感知。
+
+## 编码 sRGB：错误空间会改变预算
+
+“先线性化”不是格式洁癖。归一化的 sRGB 代码值 $c\in[0,1]$ 通过分段传递函数变成线性分量 $L$：
+
+$$
+L(c)=
+\begin{cases}
+c/12.92,&c\le0.04045,\\
+\left((c+0.055)/1.055\right)^{2.4},&c>0.04045.
+\end{cases}
+$$
+
+同一对编码像素走两条路径：直接做线性算术，或先解码再用 Rec.709 系数。声明预算 $0.005$ 令状态相反：
+
+```python
+from projects.linear_algebra_lab.image_metrics import (
+    srgb_linear_luminance_comparison,
+    srgb_linear_luminance_comparison_certificate,
+)
+
+reference = [[[0.0, 0.0, 0.0]]]
+encoded_red = [[[0.5, 0.0, 0.0]]]
+report = srgb_linear_luminance_comparison(reference, encoded_red, luminance_mse_budget=0.005)
+
+assert report.encoded_budget_status == "exceeds_luminance_mse_budget"
+assert report.decoded_budget_status == "within_luminance_mse_budget"
+assert srgb_linear_luminance_comparison_certificate(reference, encoded_red, report)
+```
+
+编码 $0.5$ 不等于线性光强 $0.5$，故两条路径回答不同数值问题。报告重放传递函数、系数、预算与状态，且固定 `automatic_action="none"`。它不读文件或 ICC，不处理色域、显示条件、感知、色彩 SSIM 或任务质量。
 
 ## 失败案例与工程边界
 
@@ -150,15 +179,15 @@ assert red.linear_luminance_mse < green.linear_luminance_mse
 1. **基础题**：若四个像素误差为 $1,-1,1,-1$，计算 MSE、RMSE 与最大绝对误差。
 2. **推导题**：从 $\|A-\hat A\|_F$ 推导 RMSE 的归一化式，并说明为何面积变成四倍时不能只比较原始范数。
 3. **编码题**：为 `image_quality_report` 增加逐行 MSE 报告，并为篡改的一行结果写一个拒绝测试。
-4. **开放题**：设计一个压缩实验：同时报告 PSNR、最大误差、文件大小、主观评审与检索指标，并说明每一项回答的不同问题。
+4. **开放题**：设计同时报告 PSNR、最大误差、文件大小、主观评审与检索指标的压缩实验。
 
 ## 练习答案提示
 
 1. 平方误差均为 1，故 MSE 为 1、RMSE 为 1、最大绝对误差也为 1；先确认像素数是 4。
 2. Frobenius 平方是误差平方和；面积四倍时，相同像素误差的范数变两倍。
 3. 行报告须重算每行与聚合值，不能只信最终均值。
-4. PSNR、最坏误差、文件大小、主观评审和检索分别回答数值、局部、存储、感知与任务问题。
+4. 它们分别回答数值、局部、存储、感知与任务问题。
 
 ## 延伸
 
-[低秩图像压缩](/linear-algebra/low-rank-image-compression)提供产生重构矩阵的低秩算法；[SVD](/linear-algebra/svd)说明何时 Frobenius 误差具有最优性；[浮点比较、容差与属性测试](/numerical-computing/tolerances-property-testing)解释为何证书比较需要明确容差。下一步可研究 SSIM、感知指标、随机 SVD 与真实文件编码，但应单独说明它们的模型假设与失效模式。
+[低秩图像压缩](/linear-algebra/low-rank-image-compression)产生重构；[SVD](/linear-algebra/svd)讨论 Frobenius 最优性；[浮点比较、容差与属性测试](/numerical-computing/tolerances-property-testing)解释证书容差。感知指标与真实文件编码需另行声明模型。
