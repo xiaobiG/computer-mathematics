@@ -2,6 +2,7 @@ import copy
 import unittest
 
 from projects.floating_point_museum.importance_sampling import (
+    adaptive_importance_sampling_split_certificate, adaptive_importance_sampling_split_report,
     importance_sampling_certificate, importance_sampling_report,
     log_weight_diagnostics, log_weight_diagnostics_certificate,
 )
@@ -35,3 +36,21 @@ class ImportanceSamplingTests(unittest.TestCase):
     def test_log_weight_diagnostics_reject_nonfinite_or_too_short_inputs(self):
         with self.assertRaises(ValueError): log_weight_diagnostics([0.0])
         with self.assertRaises(ValueError): log_weight_diagnostics([0.0, float("inf")])
+
+    def test_adaptive_pilot_reuse_is_upward_selected_but_split_batch_has_target_expectation(self):
+        report = adaptive_importance_sampling_split_report(17)
+        analysis = report["exact_policy_analysis"]
+        self.assertEqual(report["target"]["exact_sum"], 1.0)
+        self.assertEqual(analysis["reused_pilot_expectation"], 1.6)
+        self.assertEqual(analysis["split_estimate_expectation"], 1.0)
+        self.assertTrue(analysis["reused_pilot_is_upward_selected"])
+        self.assertTrue(analysis["split_expectation_matches_target"])
+        self.assertTrue(adaptive_importance_sampling_split_certificate(17, report))
+
+    def test_adaptive_split_certificate_rejects_changed_batch_or_policy_analysis(self):
+        report = adaptive_importance_sampling_split_report(17)
+        altered = copy.deepcopy(report); altered["independent_estimation_batch"]["estimate"] = 0.0
+        self.assertFalse(adaptive_importance_sampling_split_certificate(17, altered))
+        altered = copy.deepcopy(report); altered["exact_policy_analysis"]["reused_pilot_expectation"] = 1.0
+        self.assertFalse(adaptive_importance_sampling_split_certificate(17, altered))
+        with self.assertRaises(ValueError): adaptive_importance_sampling_split_report(-1)

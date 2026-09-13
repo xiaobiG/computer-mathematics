@@ -72,6 +72,8 @@ $$ESS=\frac{(\sum_iw_i)^2}{\sum_iw_i^2}.$$
 
 若少数权重几乎承担全部和，ESS 远小于 $N$，表明“抽了很多样本”实则只有少数有效。此时增样本可能无效，应改进 $q$、分层/混合提议、截断权重或使用序贯蒙特卡洛。
 
+若 pilot 数据还被用来选择 $q$，不能又把被选择的 pilot 直接当作最终估计；[重要性采样诊断](/numerical-computing/importance-sampling-diagnostics)以可枚举的两点反例对照了“复用选中 pilot”的上偏与独立估计批次。
+
 ```text
 从 q 生成 N 个样本
 计算 log_weight = log p(x) - log q(x)  （尽量在对数域）

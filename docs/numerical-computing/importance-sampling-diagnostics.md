@@ -4,14 +4,14 @@ description: 在有真值的一维积分上比较均匀采样与 q(x)=2x，重�
 courseLevel: "3（随机积分与数值诊断）"
 prerequisites: "蒙特卡洛、期望与方差、数值积分"
 estimatedMinutes: 60
-experiment: "importance-sampling-x8/v1：均匀与重要性采样的固定种子报告"
+experiment: "importance-sampling-x8/v1 与 adaptive-importance-sampling-split/v1：固定提议和适配—估计分离报告"
 ---
 
 # 重要性采样诊断：权重、ESS 与方差不是同一件事
 
 ## 学习目标
 
-你将能从提议分布推导重要性权重；在真值已知的积分中比较均匀和重要性采样；解释 ESS 与最大归一化权重；并知道一个固定种子报告不能证明任意提议分布可靠。
+你将推导重要性权重、比较同一积分上的两种提议、解释 ESS，并区分固定提议、数值稳定化与选后自适应的边界。
 
 ## 从一个计算问题开始
 
@@ -19,7 +19,7 @@ experiment: "importance-sampling-x8/v1：均匀与重要性采样的固定种子
 
 $$I=\int_0^1x^8\,dx=\frac19.$$
 
-均匀采样把大部分预算花在接近 0 的低贡献区域。令 $U\sim\mathrm{Unif}(0,1)$、$X=\sqrt U$，则 $X$ 的密度为 $q(x)=2x$，更常访问接近 1 的区域。无偏估计器是
+均匀采样多落在接近 0 的低贡献区域。令 $U\sim\mathrm{Unif}(0,1)$、$X=\sqrt U$，则 $q(x)=2x$，更常访问接近 1。无偏估计器是
 
 $$\hat I_q=\frac1N\sum_{i=1}^N\frac{X_i^8}{2X_i}=\frac1N\sum_{i=1}^N\frac{X_i^7}{2}.$$
 
@@ -29,7 +29,7 @@ $$\hat I_q=\frac1N\sum_{i=1}^N\frac{X_i^8}{2X_i}=\frac1N\sum_{i=1}^N\frac{X_i^7}
 
 $$ESS=\frac{(\sum_iw_i)^2}{\sum_iw_i^2}$$
 
-接近 $N$ 表示权重较均匀，远小于 $N$ 则少数样本主导。ESS 不是误差界，也不能替代重复运行、标准误或提议分布的支撑检查。
+接近 $N$ 表示权重较均匀；远小于 $N$ 表示少数样本主导。ESS 不是误差界或支撑检查。
 
 ## 可运行实验
 
@@ -42,7 +42,7 @@ assert 0 < report["importance"]["effective_sample_size"] <= 200
 assert importance_sampling_certificate(200, 17, report)
 ```
 
-运行 `python -m unittest projects.floating_point_museum.test_importance_sampling`。报告固定样本数和种子，重放两种估计的误差、估计标准误、ESS 与最大归一化权重；篡改任一诊断会使证书失效。生成与累加均为 $O(N)$ 时间和 $O(N)$ 额外空间（为清楚计算诊断而保留权重）。
+运行 `python -m unittest projects.floating_point_museum.test_importance_sampling`。报告重放误差、标准误、ESS 与最大权重；篡改会失败。生成与累加为 $O(N)$ 时间和 $O(N)$ 额外空间。
 
 ## 算法：在对数域归一化权重
 
@@ -66,22 +66,38 @@ assert abs(sum(report["normalized_weights"]) - 1.0) < 1e-12
 assert log_weight_diagnostics_certificate([1000.0, 999.0, 990.0], report)
 ```
 
-这个例子故意使用会令 `exp(1000)` 溢出的输入；实现先平移再指数化，因此仍可重放全部诊断。算法为 $O(N)$ 时间和 $O(N)$ 输出空间。它只接受有限对数权重：`NaN`、无穷值和少于两项的输入都明确拒绝，避免把不可解释的数值状态伪装成 ESS。
+例子令 `exp(1000)` 溢出，但平移后仍可重放诊断。算法为 $O(N)$ 时间和输出空间，并拒绝 `NaN`、无穷和少于两项的输入。
+
+## 自适应 pilot 不能悄悄成为最终估计
+
+两点目标为 $(0.2,0.8)$、总和为 $1$；候选 $q_U=(.5,.5)$、$q_T=(.8,.2)$ 各抽一笔 pilot，并故意选择较大的估计。枚举四种组合：复用选中 pilot 的期望为 $1.6$；pilot 只选 $q$、再独立估计的条件及总体期望均为 $1$：
+
+```python
+from projects.floating_point_museum.importance_sampling import (
+    adaptive_importance_sampling_split_certificate,
+    adaptive_importance_sampling_split_report,
+)
+
+report = adaptive_importance_sampling_split_report(17)
+analysis = report["exact_policy_analysis"]
+assert analysis["reused_pilot_expectation"] == 1.6
+assert analysis["split_estimate_expectation"] == report["target"]["exact_sum"] == 1.0
+assert adaptive_importance_sampling_split_certificate(17, report)
+```
+
+这不是通用自适应 IS，也不说所有自适应有偏；它只表明：pilot 选 $q$ 后，不能无推导地复用作选后证据，须分离批次或给出序贯修正。
 
 ## 正确性与边界
 
-变量替换给出 $q(x)=2x$，因此对 $x>0$ 有 $x^8/q(x)=x^7/2$；零点是零测度，但伪随机数可能精确产生 0，教学实现明确重抽而不进行除零。报告的标准误来自当前有限样本的经验方差，不能保证覆盖真值。
+变量替换给出 $q(x)=2x$，故 $x^8/q(x)=x^7/2$。零点虽为零测度，伪随机数仍可能产生它，故实现重抽。经验标准误不保证覆盖真值。
 
-该提议恰好适合单调 $x^8$ 基准，不代表适合尖峰、厚尾、高维或未知归一化密度。现实高维权重应在对数域计算，并报告尾部诊断与多种种子。对数域只改变数值表示，不会让支撑遗漏、无限方差或低 ESS 神奇消失。
+该提议适合 $x^8$，不代表适合尖峰、厚尾、高维或未知归一化密度。对数域只改变数值表示，不修复支撑、方差或 ESS。
 
 ## 失败案例与工程边界
 
-- **支撑遗漏。** 若目标非零处 $q=0$，权重无定义，不能靠更多样本修复。
-- **权重退化。** ESS 小意味着估计由少数样本决定，点估计不应被过度解释。
-- **固定种子选择偏差。** 种子用于重放，不可挑选“看起来最好”的一次。
-- **高维下溢。** 连乘密度会下溢；生产实现需使用 log-weight 和 log-sum-exp。
-- **无界域或奇异目标。** 目标/提议比值可能没有有限方差，甚至积分本身未定义；先证明可积性、覆盖与尾部条件，不能只把权重改写为对数。
-- **事后自适应提议。** 用同一批样本挑选提议再报告同一批估计会改变推断语义；需要预先规定的适应规则、独立评估或专门的序贯方法。
+- **支撑/尾部。** $q=0$、无限方差或未定义积分不能靠更多样本或对数权重修复。
+- **权重退化。** ESS 小只说明少数样本主导，不能过度解释点估计。
+- **种子与适配。** 种子只为重放；pilot 选提议后须分离最终估计或采用已推导的序贯修正。
 
 ## 常见误区
 
@@ -93,16 +109,16 @@ assert log_weight_diagnostics_certificate([1000.0, 999.0, 990.0], report)
 ## 练习
 
 1. 从 $X=\sqrt U$ 推导 $q(x)=2x$。
-2. 为什么 $q(x)=2x$ 对靠近 0 的目标函数可能是坏提议？
-3. 将 $x^8$ 改为 $x^p$，讨论如何选择更匹配的提议。
-4. 写出需要记录哪些信息，才能独立重放一次重要性采样报告；解释为什么对数权重稳定化不能证明无界域目标可积。
+2. 为什么它对靠近 0 的目标可能很差？
+3. 将 $x^8$ 改为 $x^p$，如何选更匹配的提议？
+4. 重放报告要记录什么？为何对数权重或一个 pilot 不能证明无界域目标可积？
 
 ## 练习答案提示
 
-1. $P(X\le x)=P(U\le x^2)=x^2$，求导得到 $2x$。
-2. 它很少抽到 0 附近，可能产生大的补偿权重。
-3. 应让 $q$ 向主要贡献区域倾斜且不遗漏支撑；仍要检查权重诊断。
-4. 目标函数、域、提议、采样变换、样本数、种子、估计器和所有诊断参数。对数平移只防止有限数的溢出/下溢；可积性、尾部和支撑是独立的数学前提。
+1. $P(X\le x)=P(U\le x^2)=x^2$，求导为 $2x$。
+2. 它少抽 0 附近，补偿权重可能很大。
+3. 向主要贡献区倾斜且不漏支撑，仍检查权重。
+4. 目标、域、提议、变换、样本数、种子、估计器、诊断及 pilot/估计批次边界；对数平移不证明可积性、尾部或支撑。
 
 ## 延伸
 
