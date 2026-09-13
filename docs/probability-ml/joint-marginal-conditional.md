@@ -4,18 +4,18 @@ description: 从有限联合概率表推导边缘化、条件化与独立性，�
 courseLevel: "1–2（概率建模与推导）"
 prerequisites: "集合、概率公理与条件概率"
 estimatedMinutes: 55
-experiment: "枚举有限联合表，验证边缘化、条件分布和独立性残差"
+experiment: "枚举有限联合表，并在同一分层计数表上对照边缘化与条件化结论"
 ---
 
 # 联合、边缘与条件分布：把相关变量拆开再连接
 
 ## 学习目标
 
-读完后，你能用联合分布表示两个随机变量；由求和得到边缘分布；由归一化得到条件分布；以乘积关系判断独立性；并能识别零概率条件、遗漏状态和“相关不等于因果”的边界。
+读完后，你能用联合分布表示两个随机变量；由求和得到边缘分布；由归一化得到条件分布；以乘积关系判断独立性；并能识别零概率条件、遗漏状态、总体与分层结论反转，以及“相关不等于因果”的边界。
 
 ## 从一个建模问题开始
 
-下雨和带伞显然有关。若程序只保存“下雨概率”和“带伞概率”，它无法回答“已经看到下雨时带伞的概率”，更无法检查两个事件是否独立。解决方法不是再加一条经验规则，而是先记录两个变量同时发生的概率。
+只保存“下雨概率”和“带伞概率”，无法回答已知下雨时带伞的概率，也无法检查独立性；必须记录同时发生的概率。
 
 令 $X\in\{\text{rain},\text{sun}\}$ 表示天气，$Y\in\{\text{umbrella},\text{none}\}$ 表示是否带伞。一个有限联合表为
 
@@ -24,7 +24,7 @@ experiment: "枚举有限联合表，验证边缘化、条件分布和独立性�
 | rain | 0.18 | 0.02 |
 | sun | 0.12 | 0.68 |
 
-四格必须非负且总和为 $1$；这是后续所有推导的可验证前提。
+四格非负且和为 $1$，才是有效联合表。
 
 ## 定义与分步推导
 
@@ -32,19 +32,19 @@ experiment: "枚举有限联合表，验证边缘化、条件分布和独立性�
 
 $$P(X=x)=\sum_yP(X=x,Y=y).$$
 
-上表中 $P(X=\text{rain})=0.18+0.02=0.20$，称为 $X$ 的**边缘分布**；同理 $P(Y=\text{umbrella})=0.18+0.12=0.30$。
+例如 $P(X=\text{rain})=0.20$；同理 $P(Y=\text{umbrella})=0.30$。
 
 已知 $X=x$ 后，只在该行内重新归一化：
 
 $$P(Y=y\mid X=x)=\frac{P(X=x,Y=y)}{P(X=x)},\qquad P(X=x)>0.$$
 
-因此 $P(\text{umbrella}\mid\text{rain})=0.18/0.20=0.9$。分母是证据概率；若它为零，条件分布不由这个有限表定义，程序必须拒绝，而不能随意返回全零或均匀分布。
+因此 $P(\text{umbrella}\mid\text{rain})=0.9$。分母为零时，本节的有限表不定义条件分布，程序必须拒绝。
 
 若每一格都满足
 
 $$P(X=x,Y=y)=P(X=x)P(Y=y),$$
 
-则 $X,Y$ 独立。这里 $0.18\ne0.20\times0.30$，所以天气与带伞不独立。独立是一个精确的概率乘积条件，不是“两个变量名称看上去无关”。
+则 $X,Y$ 独立。这里 $0.18\ne0.20\times0.30$，故不独立；变量名称“看上去无关”不是判据。
 
 ## 算法实现：让概率质量可审计
 
@@ -65,9 +65,41 @@ assert conditional_second_given_first(table, "rain") == {"umbrella": 0.9, "none"
 assert independence_residual(table) > 0.0
 ```
 
-运行 `python -m unittest projects.naive_bayes_spam.test_joint_distribution`。实现先检查每格非负、有限且总和为一；再用一次扫描累计边缘概率。条件化只扫描给定行并除以证据概率。对有 $r$ 个非零联合状态的稀疏表，时间为 $O(r)$，额外空间为边缘状态数。
+运行 `python -m unittest projects.naive_bayes_spam.test_joint_distribution`。实现检查概率质量，再单次扫描累计边缘量；对 $r$ 个非零状态，时间为 $O(r)$。
 
-`independence_residual` 返回所有格中 $|P(x,y)-P(x)P(y)|$ 的最大值：它为零时是有限表独立性的证书；非零时给出偏离乘积模型的可量化证据，而不是只输出一个未经解释的布尔值。
+`independence_residual` 是最大 $|P(x,y)-P(x)P(y)|$：零证明此有限表独立，非零量化偏离。
+
+## 同一份计数：边缘化可能和条件化说相反的话
+
+边缘化会把第三个变量 $Z$ 求和掉：
+
+$$P(Y\mid X)=\sum_z P(Y\mid X,Z=z)P(Z=z\mid X).$$
+
+权重 $P(Z=z\mid X)$ 可随 $X$ 改变；故每层较高的成功率可汇总成总体较低。以下是同一份轻症/重症计数表。
+
+```python
+from projects.naive_bayes_spam.stratified_association import (
+    stratified_association_certificate,
+    stratified_association_report,
+)
+
+counts = {
+    "mild": {"exposed_success": 81, "exposed_failure": 6,
+             "unexposed_success": 234, "unexposed_failure": 36},
+    "severe": {"exposed_success": 192, "exposed_failure": 71,
+               "unexposed_success": 55, "unexposed_failure": 25},
+}
+report = stratified_association_report(counts)
+assert report["strata"]["mild"]["direction"] == "exposed_higher"
+assert report["strata"]["severe"]["direction"] == "exposed_higher"
+assert report["pooled"]["direction"] == "exposed_lower"
+assert report["reversal"]["detected"]
+assert stratified_association_certificate(counts, report)
+```
+
+运行 `python -m unittest projects.naive_bayes_spam.test_stratified_association`。报告重算每层与总体成功率；证书拒绝改动方向或反转结论。$s$ 个分层的时间、空间均为 $O(s)$。
+
+这只是描述性关联：分层是否充分、抽样机制与可比性均需独立证据，不能自动行动或推出因果。
 
 ## 正确性、边界与误区
 
@@ -75,24 +107,23 @@ assert independence_residual(table) > 0.0
 
 $$\sum_yP(Y=y\mid X=x)=\frac{\sum_yP(X=x,Y=y)}{P(X=x)}=1.$$
 
-- **零概率条件**：连续分布中还可借密度与极限定义条件分布；本节有限表不假装解决该更深问题。
-- **遗漏状态**：观测表没有列出的组合到底是零概率还是未收集到，属于建模选择；必须在数据契约中写清。
-- **样本频率不是已知真分布**：从计数估计联合表会有抽样误差，稀疏格还要考虑平滑与置信区间。
-- **相关不是因果**：带伞与下雨相关，不证明伞导致雨或雨以外没有共同原因。
+- **零概率与遗漏状态**：本节不定义零概率条件；未列组合是零还是缺失，须写入数据契约。
+- **样本与总体**：计数有抽样误差；总体和每层冲突时不能删去分层变量。
+- **相关不是因果**：相关不排除共同原因或反向关系。
 
 ## 练习
 
 1. **基础**：由表计算 $P(Y=\text{none})$ 与 $P(X=\text{sun}\mid Y=\text{umbrella})$。
 2. **推导**：证明若联合表满足乘积关系，则对任意 $P(X=x)>0$ 有 $P(Y=y\mid X=x)=P(Y=y)$。
-3. **编码**：为联合表加入从整数计数归一化的函数，并拒绝负计数和总数为零。
-4. **开放**：设计一个垃圾邮件“含链接/含附件”联合表实验；说明如何区分数据相关、特征泄漏和可能的因果解释。
+3. **编码**：从整数计数归一化联合表，并拒绝负计数、零总数与分层的零分母。
+4. **开放**：设计垃圾邮件分层表；说明特征泄漏、数据相关和因果解释的区别。
 
 ## 练习答案提示
 
-1. 先按 $Y$ 的值跨行求和得到边缘概率；反向条件概率要用 $P(X=\text{sun},Y=\text{umbrella})/P(Y=\text{umbrella})$，不能沿用另一方向的分母。
-2. 将 $P(x,y)=P(x)P(y)$ 代入条件概率定义并约去正的 $P(x)$；零概率行不在有限表的条件化定义域内。
-3. 先验证所有计数是非负整数且总数正，再除以总数；归一化后还应测试概率和为一与边缘和的一致性。
-4. 划分训练/测试时间段，检查特征是否在标签产生后才出现；联合相关只能提出假设，因果解释还需时间顺序、干预或混杂控制证据。
+1. 跨行求和；反向条件化改用 $P(Y=\text{umbrella})$ 作分母。
+2. 代入乘积关系并约去正的 $P(x)$；零概率行不在本节定义域。
+3. 验证非负整数、正总数与每层正分母，再检查归一化。
+4. 需要时间顺序、干预或混杂控制证据；条件比例本身不提供因果解释。
 
 ## 延伸
 
