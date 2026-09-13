@@ -29,7 +29,8 @@ $$L_{new}[0:|L_{old}|]=L_{old},\qquad |L_{new}|\ge |L_{old}|.$$
 
 ```python
 from projects.crypto_toybox.transparency_log import (
-    append_only_certificate, append_only_report, inclusion_certificate, inclusion_proof,
+    append_only_certificate, append_only_report, checkpoint_from_entries,
+    inclusion_certificate, inclusion_proof, split_view_certificate, split_view_report,
 )
 
 old = ["key:alpha", "key:beta", "key:gamma"]
@@ -40,9 +41,22 @@ report = append_only_report(old, old + ["key:delta"])
 assert report["decision"] == "append_only"
 assert append_only_certificate(report)
 assert report["trust_anchor_update_verified"] is False
+
+checkpoint_a = checkpoint_from_entries("fictional-log", old)
+checkpoint_b = checkpoint_from_entries("fictional-log", ["key:alpha", "key:evil", "key:gamma"])
+fork_check = split_view_report(checkpoint_a, checkpoint_b)
+assert fork_check["candidate_equivocation"]
+assert fork_check["checkpoint_authentication"] == "not_verified"
+assert split_view_certificate(checkpoint_a, checkpoint_b, fork_check)
 ```
 
 运行 `python -m unittest projects.crypto_toybox.test_transparency_log`。`append-only-merkle-log/v1` 会重建两棵树、成员证明和前缀结论；篡改条目或把旧列表中 `key:beta` 重写为另一个值都会被拒绝。
+
+## 分叉视图：什么才算矛盾证据
+
+两个根不同并不自动表示日志作恶。日志从 $n$ 个条目追加到 $n+1$ 个条目时，根必然变化；此时需要一致性证明（本课用完整前缀重放代替）来判断新检查点是否延续旧检查点。反过来，如果两个检查点声称来自**同一日志身份**、树大小相同却根不同，那么同一有序条目序列不可能同时产生这两个根；这是候选分叉证据。
+
+实验中的 `split_view_report` 将这两种情形分开：同大小不同根给出 `candidate_equivocation_requires_authenticated_checkpoints`，不同大小则给出 `inconclusive_requires_append_only_consistency_evidence`。但两者都不触发自动动作，且固定 `checkpoint_authentication="not_verified"`：代码只重放课堂中的完整条目，不能证明 `operator_id` 真对应哪个网络日志或两个检查点真的由它签发。现实客户端还需要协议规定的检查点签名、日志身份绑定、gossip 或独立监督者。
 
 ## 将产物交给下游协议复核
 
@@ -59,6 +73,8 @@ Merkle 根不告诉你谁运营日志、日志是否可用、不同观察者是�
 - **只看新根。** 根改变无法区分“追加新密钥”和“替换旧密钥”。
 - **只接受单个成员证明。** 它不证明日志对其他观察者一致，也不证明后续追加。
 - **分叉视图。** 恶意日志可能向不同客户端给出不同根；需要监督者、gossip 或协议级一致性机制。
+- **把不同大小的根当分叉。** 正常追加也会改变根和树大小；必须验证追加关系，而非只比较根字符串。
+- **把候选冲突当可执行惩罚。** 同大小不同根只有在两个检查点可认证地属于同一日志时才构成矛盾；本课不验证签名或网络身份。
 - **把日志条目当身份。** `key:alpha` 是示例字符串；仍需可信身份绑定与用途约束。
 - **把本代码用于生产。** 禁止。真实系统应使用已审计的透明日志协议、客户端库与运营流程。
 
@@ -75,6 +91,7 @@ Merkle 根不告诉你谁运营日志、日志是否可用、不同观察者是�
 2. 给出一个根改变但不是追加的两列表例子。
 3. 说明透明日志如何帮助发现密钥替换，却为何不能独自认证密钥身份。
 4. 哪些额外机制可降低分叉视图风险？
+5. 为什么“同一身份、同一树大小、不同根”比“两个大小不同的根”更接近分叉证据？还缺少哪项验证？
 
 ## 练习答案提示
 
@@ -82,6 +99,7 @@ Merkle 根不告诉你谁运营日志、日志是否可用、不同观察者是�
 2. 例如把旧列表第二项替换后再添加一项；根会变，前缀条件失败。
 3. 观察者可比较登记历史，但身份仍来自信任锚、证书或带外确认。
 4. 多方监督、gossip、见证者或协议定义的一致性证明；具体选择依赖威胁模型。
+5. 同一有序条目列表在固定树规则下只能对应一个根；大小不同可能只是追加。仍需确认检查点签名与日志身份。
 
 ## 延伸
 

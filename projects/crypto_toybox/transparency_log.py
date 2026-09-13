@@ -5,6 +5,8 @@ import hashlib
 
 
 CONTRACT = "append-only-merkle-log/v1"
+CHECKPOINT_CONTRACT = "append-only-merkle-log-checkpoint/v1"
+SPLIT_VIEW_CONTRACT = "append-only-merkle-log-split-view/v1"
 
 
 def _digest(tag: bytes, payload: bytes) -> str:
@@ -89,4 +91,85 @@ def append_only_certificate(report: object) -> bool:
         rebuilt = append_only_report(report["old_entries"], report["new_entries"])
         return all(report.get(key) == rebuilt[key] for key in rebuilt) and report["trust_anchor_update_verified"] is False
     except (KeyError, ValueError):
+        return False
+
+
+def _operator_id(value: object) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError("日志运营者标识必须是非空字符串")
+    return value
+
+
+def checkpoint_from_entries(operator_id: object, entries: object) -> dict[str, object]:
+    """Create a replayable teaching checkpoint from a complete small log.
+
+    Real clients normally receive a signed checkpoint without all entries.
+    Keeping entries here deliberately trades compactness for a locally
+    checkable classroom artifact; it does not authenticate the operator ID.
+    """
+    operator = _operator_id(operator_id)
+    normalized_entries = list(entries) if isinstance(entries, list) else entries
+    return {
+        "contract": CHECKPOINT_CONTRACT,
+        "operator_id": operator,
+        "tree_size": len(_levels(normalized_entries)[0]),
+        "root": merkle_root(normalized_entries),
+        "entries": normalized_entries,
+        "checkpoint_authentication": "not_verified",
+    }
+
+
+def checkpoint_certificate(checkpoint: object) -> bool:
+    if not isinstance(checkpoint, dict) or checkpoint.get("contract") != CHECKPOINT_CONTRACT:
+        return False
+    try:
+        rebuilt = checkpoint_from_entries(checkpoint["operator_id"], checkpoint["entries"])
+        return checkpoint == rebuilt
+    except (KeyError, TypeError, ValueError):
+        return False
+
+
+def split_view_report(first: object, second: object) -> dict[str, object]:
+    """Compare two replayable checkpoints without claiming operator identity.
+
+    Equal tree sizes and unequal roots are incompatible *if* both checkpoints
+    are authenticated as statements by the same log.  Different sizes alone
+    are not evidence of a fork: an append-only extension naturally changes
+    both size and root, and needs a consistency proof (or this lesson's full
+    prefix replay) for comparison.
+    """
+    if not checkpoint_certificate(first) or not checkpoint_certificate(second):
+        raise ValueError("两个检查点都必须是可重放的教学检查点")
+    same_operator_claim = first["operator_id"] == second["operator_id"]
+    same_tree_size = first["tree_size"] == second["tree_size"]
+    same_root = first["root"] == second["root"]
+    candidate_equivocation = same_operator_claim and same_tree_size and not same_root
+    if candidate_equivocation:
+        decision = "candidate_equivocation_requires_authenticated_checkpoints"
+    elif same_operator_claim and not same_tree_size:
+        decision = "inconclusive_requires_append_only_consistency_evidence"
+    elif not same_operator_claim:
+        decision = "inconclusive_different_operator_claims"
+    else:
+        decision = "no_root_conflict_observed"
+    return {
+        "contract": SPLIT_VIEW_CONTRACT,
+        "first": first,
+        "second": second,
+        "same_operator_claim": same_operator_claim,
+        "same_tree_size": same_tree_size,
+        "same_root": same_root,
+        "candidate_equivocation": candidate_equivocation,
+        "decision": decision,
+        "checkpoint_authentication": "not_verified",
+        "automatic_response": "none",
+    }
+
+
+def split_view_certificate(first: object, second: object, report: object) -> bool:
+    if not isinstance(report, dict):
+        return False
+    try:
+        return report == split_view_report(first, second)
+    except ValueError:
         return False
