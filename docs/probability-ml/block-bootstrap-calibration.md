@@ -50,6 +50,33 @@ assert block_window_calibration_bootstrap_certificate("old", old, "new", new, re
 
 运行 `python -m unittest projects.naive_bayes_spam.test_block_window_calibration_bootstrap`。报告绑定块大小、重复次数、种子、分箱和区间；证书重建整份报告，篡改块大小或端点会被拒绝。
 
+## 块长不等时，原窗口足够大仍不够
+
+完整块重采样会抽取与原块数相同数量的块，但不会保证每次拼接后的**记录数**相同。两块大小为 $19,1$ 时，原窗口有 $20$ 条记录；若每次抽两个块，恰好两次都抽到小块就只得到 $2$ 条记录。于是“原窗口达到 `minimum_window_size=20`”不能推出每个 bootstrap 重复样本也达到 20。
+
+对含 $B$ 个块、最小块大小 $m$ 的本教学合同，最小可能重采样量是
+
+$$n_{\min}=B\,m.$$
+
+实现要求每个窗口都满足 $n_{\min}\ge\texttt{minimum\_window\_size}$；这是在运行前对所有可能完整块抽样的保守保证：
+
+```python
+from projects.naive_bayes_spam.block_window_calibration_bootstrap import block_window_calibration_bootstrap_report
+from projects.naive_bayes_spam.labeled_window_monitoring import LABELED_WINDOW_CONTRACT_VERSION
+
+def block(probabilities, labels):
+    return {"contract_version": LABELED_WINDOW_CONTRACT_VERSION, "probabilities": probabilities, "labels": labels}
+
+unequal_blocks = [block([.5] * 19, [1] * 19), block([.5], [0])]
+try:
+    block_window_calibration_bootstrap_report("old", unequal_blocks, "new", unequal_blocks,
+        minimum_window_size=20, repeats=20)
+except ValueError:
+    print("拒绝：某些完整块重复样本只有 2 条记录")
+```
+
+报告公开 `minimum_possible_resample_sizes`；这不宣称 $B m$ 是统计有效性的充分条件，只保证当前 ECE 最小样本合同不会在某次抽样中失效。若该条件过于保守，应在分析设计阶段选择更合理的块定义、最小样本政策或专门方法，而不是让代码对不足样本悄悄继续。
+
 ## 正确性与边界
 
 固定输入、块边界和种子时，块索引、拼接后的观测和 ECE 差序列均可重放。该证书只证明报告遵守声明的块重采样设计，不证明块间独立、块长足够、总体差异方向或因果解释，`automatic_action` 始终为 `none`。合同要求每个窗口至少两个非空块；一个块无法表达块间抽样变化。

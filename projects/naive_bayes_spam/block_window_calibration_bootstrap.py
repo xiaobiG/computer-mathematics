@@ -28,6 +28,11 @@ def _flatten(blocks):
     return {"contract_version": LABELED_WINDOW_CONTRACT_VERSION, "probabilities": probabilities, "labels": labels}
 
 
+def _minimum_complete_block_resample_size(blocks):
+    """Return the smallest row count attainable when drawing len(blocks) blocks."""
+    return len(blocks) * min(len(block["labels"]) for block in blocks)
+
+
 def block_window_calibration_bootstrap_report(reference_name, reference_blocks, current_name, current_blocks, *, bins=5, minimum_window_size=20, ece_delta_review_threshold=.05, repeats=400, seed=0, confidence_level=.95):
     """Resample complete pre-defined blocks; never infer causality or actions."""
     repeats, seed = require_integer(repeats, "repeats", 20), require_integer(seed, "seed", 0)
@@ -36,6 +41,16 @@ def block_window_calibration_bootstrap_report(reference_name, reference_blocks, 
     reference, current = _normalize_blocks(reference_blocks, "reference_blocks"), _normalize_blocks(current_blocks, "current_blocks")
     reference_window, current_window = _flatten(reference), _flatten(current)
     point = window_calibration_comparison_report(reference_name, reference_window, current_name, current_window, bins=bins, minimum_window_size=minimum_window_size, ece_delta_review_threshold=ece_delta_review_threshold)
+    minimum_resample_sizes = {
+        "reference": _minimum_complete_block_resample_size(reference),
+        "current": _minimum_complete_block_resample_size(current),
+    }
+    for name, size in minimum_resample_sizes.items():
+        if size < minimum_window_size:
+            raise ValueError(
+                f"{name} blocks can produce a complete-block resample of only {size}, "
+                f"below minimum_window_size {minimum_window_size}"
+            )
     generator, deltas = random.Random(seed), []
     for _ in range(repeats):
         ref_sample = _flatten([reference[generator.randrange(len(reference))] for _ in reference])
@@ -44,7 +59,7 @@ def block_window_calibration_bootstrap_report(reference_name, reference_blocks, 
         cur_ece = _calibration_metrics(cur_sample["probabilities"], cur_sample["labels"], bins, 1.96)["expected_calibration_error"]
         deltas.append(cur_ece - ref_ece)
     alpha = (1 - float(confidence_level)) / 2
-    return {"contract": CONTRACT, "point_report": point, "bootstrap_policy": {"repeats": repeats, "seed": seed, "confidence_level": float(confidence_level), "resampling_unit": "predefined_labeled_time_block", "automatic_action": "none"}, "block_sizes": {"reference": [len(block["labels"]) for block in reference], "current": [len(block["labels"]) for block in current]}, "ece_delta_percentile_interval": [percentile(deltas, alpha), percentile(deltas, 1 - alpha)], "causal_interpretation": "not_established", "interpretation": "sampling_uncertainty_under_predefined_block_resampling"}
+    return {"contract": CONTRACT, "point_report": point, "bootstrap_policy": {"repeats": repeats, "seed": seed, "confidence_level": float(confidence_level), "resampling_unit": "predefined_labeled_time_block", "automatic_action": "none"}, "block_sizes": {"reference": [len(block["labels"]) for block in reference], "current": [len(block["labels"]) for block in current]}, "minimum_possible_resample_sizes": minimum_resample_sizes, "ece_delta_percentile_interval": [percentile(deltas, alpha), percentile(deltas, 1 - alpha)], "causal_interpretation": "not_established", "interpretation": "sampling_uncertainty_under_predefined_block_resampling"}
 
 
 def block_window_calibration_bootstrap_certificate(reference_name, reference_blocks, current_name, current_blocks, report):

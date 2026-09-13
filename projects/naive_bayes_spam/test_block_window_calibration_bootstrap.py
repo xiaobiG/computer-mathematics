@@ -18,6 +18,7 @@ class BlockWindowCalibrationBootstrapTests(unittest.TestCase):
         report = block_window_calibration_bootstrap_report("old", self.reference, "new", self.current, minimum_window_size=4, repeats=20, seed=7)
         self.assertEqual(report["bootstrap_policy"]["resampling_unit"], "predefined_labeled_time_block")
         self.assertEqual(report["block_sizes"], {"reference": [2, 2], "current": [2, 2]})
+        self.assertEqual(report["minimum_possible_resample_sizes"], {"reference": 4, "current": 4})
         self.assertTrue(block_window_calibration_bootstrap_certificate("old", self.reference, "new", self.current, report))
 
     def test_certificate_and_policy_reject_tampering_or_one_block_input(self):
@@ -27,6 +28,13 @@ class BlockWindowCalibrationBootstrapTests(unittest.TestCase):
         self.assertFalse(block_window_calibration_bootstrap_certificate("old", self.reference, "new", self.current, tampered))
         with self.assertRaisesRegex(ValueError, "at least two"):
             block_window_calibration_bootstrap_report("old", self.reference[:1], "new", self.current, minimum_window_size=2, repeats=20)
+
+    def test_rejects_unequal_blocks_when_a_complete_block_resample_can_be_too_small(self):
+        sparse_blocks = [block([.5] * 19, [1] * 19), block([.5], [0])]
+        with self.assertRaisesRegex(ValueError, "can produce.*only 2"):
+            block_window_calibration_bootstrap_report(
+                "old", sparse_blocks, "new", sparse_blocks, minimum_window_size=20, repeats=20,
+            )
 
 
 if __name__ == "__main__":

@@ -6,6 +6,12 @@ search: false
 
 # 课程深度升级路线图
 
+## v6.26：块 Bootstrap 的最小重复样本也须满足样本合同
+
+[时间块 Bootstrap](/probability-ml/block-bootstrap-calibration)原来只检查原窗口大小；当块长为 $19,1$ 而阈值为 20 时，抽两次小块会产生仅 2 条记录的重复样本，却仍被拿来计算 ECE。现在预先检查 $n_{\min}=B\min_i|C_i|$，要求每个窗口所有可能的完整块重采样都不低于 `minimum_window_size`，并将该下界写进报告与证书。
+
+这是为当前有限块、最小样本 ECE 合同设置的保守 fail-closed 门槛；它不证明块间可交换、块长恰当或百分位区间具有普适覆盖率。
+
 ## v6.25：一条 Dijkstra 父路径不等于唯一最短路
 
 [Dijkstra](/discrete-math/dijkstra)原先用父指针证明某个最短距离可达，却未显式区分“返回一条路径”与“所有最短路径”。现在对等权菱形图重放严格松弛：$t$ 选择 $a$ 为确定性父节点，但 $a,b$ 都是满足 $dist[u]+w(u,t)=dist[t]$ 的紧前驱。报告证书同时绑定代表路径、所有紧前驱和落定顺序。
