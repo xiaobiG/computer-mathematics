@@ -12,7 +12,7 @@
 | --- | --- | --- | --- |
 | 0 · 预备 | 求和、函数与 Python 索引契约 | 能把符号翻译为循环与数组操作 | [符号、函数、求和与 Python](/foundations/functions-summation-python) |
 | 1 · 核心 | 向量、基、空间与线性变换 | 看懂“方向、冗余与可达性” | [向量与点积](/linear-algebra/vectors-dot-product) → [线性组合、基与维度](/linear-algebra/linear-combinations-basis) |
-| 2 · 推导与算法 | 消元、投影、最小二乘、特征分解 | 推导并实现求解与降维算法 | [高斯消元](/linear-algebra/gaussian-elimination) → [最小二乘](/linear-algebra/least-squares) |
+| 2 · 推导与算法 | 消元、行列式、投影、最小二乘、特征分解 | 推导并实现求解与降维算法 | [高斯消元](/linear-algebra/gaussian-elimination) → [行列式与可逆性](/linear-algebra/determinants-invertibility) → [最小二乘](/linear-algebra/least-squares) |
 | 3 · 工程与前沿 | SVD、低秩、自动微分 | 用误差证书处理真实数据与优化 | [SVD](/linear-algebra/svd) → [低秩图像压缩](/linear-algebra/low-rank-image-compression) → [线性代数实验室](/projects/linear-algebra-lab) |
 
 若已具备某层前置知识，可从该层入口开始；每篇顶部的课程信息卡会说明具体前置、时长与实验。
@@ -26,6 +26,7 @@
 | 3 | [矩阵的四个基本子空间](/linear-algebra/four-fundamental-subspaces) | 哪些输出可达、哪些信息丢失？ | 深度正文 · 70 分钟 |
 | 4 | [矩阵乘法与线性变换](/linear-algebra/matrix-multiplication) | 多个变换如何合成为一步？ | 深度正文 · 45 分钟 |
 | 5 | [高斯消元](/linear-algebra/gaussian-elimination) | 方程组有哪一种解？ | 深度正文 · 50 分钟 |
+| 5.1 | [行列式与可逆性](/linear-algebra/determinants-invertibility) | 变换何时压扁空间、方程何时唯一？ | 深度正文 · 60 分钟 |
 | 6 | [正交投影、Gram–Schmidt 与 QR](/linear-algebra/orthogonal-projection-qr) | 如何稳定地求最近解？ | 深度正文 · 70 分钟 |
 | 7 | [最小二乘](/linear-algebra/least-squares) | 如何从任务建模并判断能否精确拟合？ | 深度正文 · 75 分钟 |
 | 8 | [特征值与 PCA](/linear-algebra/eigenvalues-pca) | 如何从协方差谱保留数据变化最大的子空间？ | 深度正文 · 90 分钟 |
