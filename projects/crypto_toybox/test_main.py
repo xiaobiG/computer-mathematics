@@ -15,6 +15,8 @@ from projects.crypto_toybox.main import (
     rsa_keypair_certificate,
     rsa_round_trip_certificate,
     rsa_round_trip_report,
+    toy_rsa_sign,
+    toy_rsa_verify,
     toy_rsa_keypair,
 )
 
@@ -117,6 +119,16 @@ class CryptoToyboxTests(unittest.TestCase):
         key = toy_rsa_keypair(61, 53, 17)
         with self.assertRaises(ValueError):
             encrypt(key.modulus, key)
+        with self.assertRaises(ValueError):
+            encrypt(True, key)
+        with self.assertRaises(ValueError):
+            decrypt(True, key)
+        with self.assertRaises(ValueError):
+            toy_rsa_sign(True, key)
+        self.assertFalse(toy_rsa_verify(True, 1, key))
+        self.assertFalse(toy_rsa_verify(1, True, key))
+        with self.assertRaises(ValueError):
+            encrypt(1, RsaKeyPair(1, 3, 3))
         with self.assertRaises(ValueError):
             mod_pow(2, -1, 7)
 

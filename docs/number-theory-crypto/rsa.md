@@ -75,6 +75,8 @@ assert rsa_round_trip_certificate(5, 11, key, report)["valid"]
 
 运行 `python -m unittest projects.crypto_toybox.test_main`。`toy_rsa_keypair` 会先拒绝非质数因子和不满足 $1<e<\varphi(n)$、互素条件的指数，避免把证明前提静默留给调用者。`rsa_keypair_certificate(5, 11, key)` 则独立重算这些教学前提，并审计 $ed\bmod\varphi(n)=1$；篡改私钥指数会使证书失效。它要求传入 $p,q$，正是为了强调这不是可以安全暴露给真实系统的密钥检查方式。`rsa_round_trip_report` 还明确包含 $m=5,11,50$ 等与 $n$ 不互素的代表元；`rsa_round_trip_certificate` 会重新计算每条密文与解密值，并分别检查结果在模 $p$、模 $q$ 下与原消息相同。它把 CRT 覆盖的那部分正确性变成可篡改检测的有限样例审计。`raw_rsa_properties` 不产生攻击载荷或自制填充，它只核对同一明文总产生同一密文，以及 $E(m_1m_2\bmod n)=E(m_1)E(m_2)\bmod n$。这些为真的断言正是“数学可解密”并不足以构成安全加密的可执行证据。
 
+这里的“整数消息”是严格的代表元合同：加密、解密和教学签名只接受非布尔整数 $0\le m,c,s<n$，并先检查教学密钥的模数与指数结构。`True` 虽是 Python 的 `int` 子类，却绝不能悄悄代表消息 1；同样，模数不大于 1 或负指数会在模幂之前拒绝。因子是否真为素数、$ed\equiv1\pmod{\varphi(n)}$ 仍由显式带入 $p,q$ 的密钥证书审计，不能从一个结构上像密钥的对象自动推断。
+
 重复平方需要 $O(\log e)$ 次模乘；大整数模乘本身有成本。真实 RSA 使用经过审计的库和 CRT 等优化，但优化也需要防止故障攻击与计时泄漏。
 
 ## 失败案例与工程边界

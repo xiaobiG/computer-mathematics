@@ -190,6 +190,29 @@ class RsaKeyPair:
     private_exponent: int
 
 
+def _validate_toy_rsa_key(key: object) -> RsaKeyPair:
+    """Validate the structural domain shared by the toy RSA operations.
+
+    Factorization and exponent-inverse claims are intentionally checked only by
+    ``rsa_keypair_certificate``, which receives the teaching factors.  Every
+    public operation can still reject malformed keys and avoid treating Python
+    booleans as integer representatives.
+    """
+    if not isinstance(key, RsaKeyPair):
+        raise ValueError("key must be a teaching RSA key pair")
+    if (any(not isinstance(value, int) or isinstance(value, bool)
+            for value in (key.modulus, key.public_exponent, key.private_exponent))
+            or key.modulus <= 1 or key.public_exponent < 0 or key.private_exponent < 0):
+        raise ValueError("teaching RSA key must have modulus > 1 and non-negative integer exponents")
+    return key
+
+
+def _validate_rsa_representative(value: object, key: RsaKeyPair, label: str) -> int:
+    if not isinstance(value, int) or isinstance(value, bool) or not 0 <= value < key.modulus:
+        raise ValueError(f"teaching {label} must be a non-boolean integer in [0, n)")
+    return value
+
+
 def toy_rsa_keypair(p: int, q: int, public_exponent: int) -> RsaKeyPair:
     """Construct a tiny RSA key after checking the mathematical preconditions.
 
@@ -242,15 +265,13 @@ def rsa_keypair_certificate(p: int, q: int, key: RsaKeyPair) -> dict[str, bool]:
 
 
 def encrypt(message: int, key: RsaKeyPair) -> int:
-    if not 0 <= message < key.modulus:
-        raise ValueError("教学明文必须位于 [0, n) 内")
-    return mod_pow(message, key.public_exponent, key.modulus)
+    key = _validate_toy_rsa_key(key)
+    return mod_pow(_validate_rsa_representative(message, key, "plaintext"), key.public_exponent, key.modulus)
 
 
 def decrypt(ciphertext: int, key: RsaKeyPair) -> int:
-    if not 0 <= ciphertext < key.modulus:
-        raise ValueError("教学密文必须位于 [0, n) 内")
-    return mod_pow(ciphertext, key.private_exponent, key.modulus)
+    key = _validate_toy_rsa_key(key)
+    return mod_pow(_validate_rsa_representative(ciphertext, key, "ciphertext"), key.private_exponent, key.modulus)
 
 
 def raw_rsa_properties(left: int, right: int, key: RsaKeyPair) -> dict[str, bool]:
@@ -275,7 +296,8 @@ def rsa_round_trip_report(messages: list[int], key: RsaKeyPair) -> dict[str, obj
     ``n`` so the CRT part of the correctness argument is checked in code too.
     It is a finite example audit, not a proof or a security test.
     """
-    if not messages:
+    key = _validate_toy_rsa_key(key)
+    if not isinstance(messages, list) or not messages:
         raise ValueError("至少提供一个教学明文")
     checks = [
         (message, encrypt(message, key), decrypt(encrypt(message, key), key))
@@ -351,14 +373,17 @@ def toy_rsa_sign(representative: int, key: RsaKeyPair) -> int:
     signature scheme: it has no hash-to-signature encoding, padding, key-size
     requirements, or side-channel protection.
     """
-    if not 0 <= representative < key.modulus:
-        raise ValueError("teaching representative must be in [0, n)")
-    return mod_pow(representative, key.private_exponent, key.modulus)
+    key = _validate_toy_rsa_key(key)
+    return mod_pow(_validate_rsa_representative(representative, key, "representative"), key.private_exponent, key.modulus)
 
 
 def toy_rsa_verify(representative: int, signature: int, key: RsaKeyPair) -> bool:
     """Verify s**e == representative mod n for the teaching key pair."""
-    if not 0 <= representative < key.modulus or not 0 <= signature < key.modulus:
+    try:
+        key = _validate_toy_rsa_key(key)
+        representative = _validate_rsa_representative(representative, key, "representative")
+        signature = _validate_rsa_representative(signature, key, "signature")
+    except ValueError:
         return False
     return mod_pow(signature, key.public_exponent, key.modulus) == representative
 
