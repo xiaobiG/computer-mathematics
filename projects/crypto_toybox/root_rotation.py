@@ -5,7 +5,7 @@ from __future__ import annotations
 from projects.crypto_toybox.transparency_log import append_only_certificate
 
 
-CONTRACT = "trust-root-rotation-audit/v1"
+CONTRACT = "trust-root-rotation-audit/v2"
 
 
 def _nonnegative_int(value: object, name: str) -> int:
@@ -31,21 +31,38 @@ def _threshold(value: object, root_ids: list[str], name: str) -> int:
     return value
 
 
+def _operator_ids(value: object, root_ids: list[str]) -> list[str]:
+    if (not isinstance(value, list) or len(value) != len(root_ids)
+            or any(not isinstance(operator, str) or not operator.strip() for operator in value)):
+        raise ValueError("root_operator_ids 必须与 root_ids 等长且包含非空字符串")
+    return list(value)
+
+
 def _state(value: object) -> dict[str, object]:
-    if not isinstance(value, dict) or set(value) != {"epoch", "root_ids", "threshold"}:
-        raise ValueError("trust_state 字段必须是 epoch、root_ids、threshold")
+    required = {"epoch", "root_ids", "threshold", "root_operator_ids", "minimum_distinct_approval_operators"}
+    if not isinstance(value, dict) or set(value) != required:
+        raise ValueError("trust_state 字段必须包含纪元、根、阈值、根运营者与独立运营者门槛")
     roots = _root_ids(value["root_ids"], "root_ids")
+    threshold = _threshold(value["threshold"], roots, "threshold")
+    operator_ids = _operator_ids(value["root_operator_ids"], roots)
+    independent_threshold = _nonnegative_int(
+        value["minimum_distinct_approval_operators"], "minimum_distinct_approval_operators",
+    )
+    if not 1 <= independent_threshold <= threshold:
+        raise ValueError("minimum_distinct_approval_operators 必须在 1 到 threshold 之间")
     return {
         "epoch": _nonnegative_int(value["epoch"], "epoch"),
         "root_ids": roots,
-        "threshold": _threshold(value["threshold"], roots, "threshold"),
+        "threshold": threshold,
+        "root_operator_ids": operator_ids,
+        "minimum_distinct_approval_operators": independent_threshold,
     }
 
 
 def _proposal(value: object) -> dict[str, object]:
     required = {"new_epoch", "new_root_ids", "new_threshold", "approval_claims", "witness_evidence_available"}
     if not isinstance(value, dict) or set(value) != required:
-        raise ValueError("proposal 字段必须与 trust-root-rotation-audit/v1 完全一致")
+        raise ValueError("proposal 字段必须与 trust-root-rotation-audit/v2 完全一致")
     roots = _root_ids(value["new_root_ids"], "new_root_ids")
     evidence = value["witness_evidence_available"]
     if not isinstance(evidence, bool):
@@ -71,11 +88,16 @@ def trust_root_rotation_report(trust_state: object, proposal: object) -> dict[st
     proposed = _proposal(proposal)
     old_roots = set(old["root_ids"])
     approvals = proposed["approval_claims"]
+    operator_for_root = dict(zip(old["root_ids"], old["root_operator_ids"]))
+    approval_operators = sorted({operator_for_root[root] for root in approvals if root in operator_for_root})
     checks = {
         "epoch_advances": proposed["new_epoch"] > old["epoch"],
         "root_set_changes": set(proposed["new_root_ids"]) != old_roots,
         "approval_claims_belong_to_current_roots": set(approvals).issubset(old_roots),
         "current_threshold_claimed": len(approvals) >= old["threshold"],
+        "approval_claims_meet_independent_operator_threshold": (
+            len(approval_operators) >= old["minimum_distinct_approval_operators"]
+        ),
         "witness_evidence_available": proposed["witness_evidence_available"],
     }
     failed_checks = [name for name, passed in checks.items() if not passed]
@@ -90,6 +112,7 @@ def trust_root_rotation_report(trust_state: object, proposal: object) -> dict[st
         "trust_state": old,
         "proposal": proposed,
         "checks": checks,
+        "approval_operator_ids": approval_operators,
         "failed_checks": failed_checks,
         "decision": decision,
         "automatic_apply": False,
@@ -111,7 +134,10 @@ def trust_root_rotation_certificate(report: object) -> dict[str, bool]:
         rebuilt = trust_root_rotation_report(report["trust_state"], report["proposal"])
     except (KeyError, ValueError):
         return empty
-    report_replays = all(report.get(field) == rebuilt[field] for field in ("checks", "failed_checks", "decision"))
+    report_replays = all(
+        report.get(field) == rebuilt[field]
+        for field in ("checks", "approval_operator_ids", "failed_checks", "decision")
+    )
     safety_boundary_preserved = (
         report.get("automatic_apply") is False
         and report.get("cryptographic_verification") == "not_performed"

@@ -11,7 +11,7 @@ experiment: "将追加日志产物传入根轮换人工复核，检查根集合�
 
 ## 学习目标
 
-你将能区分“候选发布被当前根认可”与“当前根集合本身可以被替换”；用纪元、根集合和阈值写出轮换接受条件；解释独立见证为何不同于多签授权；并能重放一份**虚构元数据**策略报告。本文不生成密钥、不验真实签名、不联网、不修改任何信任库。
+你将能区分根 ID 阈值与独立运营者阈值；用纪元、根集合和门槛写出轮换条件；并能重放一份**虚构元数据**策略报告。本文不生成密钥、不验真实签名、不联网、不修改任何信任库。
 
 ## 从“根密钥泄露后怎么办”开始
 
@@ -21,20 +21,20 @@ experiment: "将追加日志产物传入根轮换人工复核，检查根集合�
 
 ## 定义：根集合、阈值与纪元
 
-令当前信任状态为
+令当前状态为
 
 $$T_e=(e,R_e,t_e),$$
 
-其中 $e$ 是单调纪元，$R_e$ 是当前根标识集合，$t_e$ 是所需授权阈值。一个候选迁移提议为
+其中 $e$ 是单调纪元，$R_e$ 是根 ID 集合，$t_e$ 是根数阈值。另声明每个根的虚构运营者映射 $o:R_e\to O$ 与独立运营者门槛 $d_e\le t_e$。候选提议为
 
 $$U=(e',R',t',A,W).$$
 
 这里 $A$ 是声称已由当前根验证的授权标识集合，$W$ 表示监督/见证证据是否可用。教学策略的核心条件是
 
-$$e'>e,\qquad A\subseteq R_e,\qquad |A|\ge t_e,\qquad 1\le t'\le |R'|.
+$$e'>e,\quad A\subseteq R_e,\quad |A|\ge t_e,\quad |o(A)|\ge d_e,\quad 1\le t'\le |R'|.
 $$
 
-注意阈值检查使用的是**旧**集合的 $t_e$：新集合不能先把自己的阈值降到 1，再以此给自己授权。纪元阻止把旧的、曾有效的轮换提议重新播放。根集合变化本身也必须显式出现，避免把无意义的同一状态重复包装成一次“轮换”。
+根数和运营者数都按**旧**状态检查；两把根若同属一个运营者，不能假装成两方批准。纪元阻止旧提议重放，根集合也必须真实改变。
 
 ## 算法：先验证旧规则，再描述新规则
 
@@ -42,7 +42,7 @@ $$
 
 1. 解析当前 $T_e$ 和候选 $U$ 的字段、唯一根标识和阈值范围；
 2. 检查 $e'>e$，并确认新根集合确实改变；
-3. 确认每个授权声明都属于旧根集合，且声明数达到旧阈值；
+3. 确认授权属于旧根、数目达到旧阈值，且映射后覆盖足够多的声明运营者；
 4. 检查新集合的阈值 $t'$ 本身可用；
 5. 若见证证据缺失，停在人工复核；否则最多作出“仅策略接受”的结论。
 
@@ -56,7 +56,11 @@ from projects.crypto_toybox.root_rotation import (
     trust_root_rotation_report,
 )
 
-state = {"epoch": 4, "root_ids": ["root-a", "root-b", "root-c"], "threshold": 2}
+state = {
+    "epoch": 4, "root_ids": ["root-a", "root-b", "root-c"], "threshold": 2,
+    "root_operator_ids": ["operator-a", "operator-b", "operator-c"],
+    "minimum_distinct_approval_operators": 2,
+}
 proposal = {
     "new_epoch": 5,
     "new_root_ids": ["root-b", "root-d", "root-e"],
@@ -70,7 +74,7 @@ assert report["automatic_apply"] is False
 assert trust_root_rotation_certificate(report)["valid"]
 ```
 
-运行 `python -m unittest projects.crypto_toybox.test_root_rotation`。合同 `trust-root-rotation-audit/v1` 会重放状态、提议、失败项和结论；一份根的授权、来自集合外的授权、重复声明或被篡改的结论都会被拒绝。报告刻意固定 `automatic_apply=False` 和 `cryptographic_verification="not_performed"`，让可重放策略不被包装成真正的根管理器。
+运行 `python -m unittest projects.crypto_toybox.test_root_rotation`。合同 `trust-root-rotation-audit/v2` 重放状态、提议、运营者覆盖、失败项和结论；同一运营者控制的两把根不能满足独立性门槛。报告固定 `automatic_apply=False` 和 `cryptographic_verification="not_performed"`。
 
 ## 跨课实验：把追加日志产物接到轮换复核
 
@@ -99,7 +103,7 @@ assert review["identity_binding"] == "not_established_by_log_entries"
 
 ## 正确性与工程边界
 
-在这个固定的教学合同里，$|A|\ge t_e$ 保证一份报告不会把“单个当前根同意”误记为多数/阈值同意；$A\subseteq R_e$ 排除让新根或陌生标识先授权自己的循环；$e'>e$ 排除旧纪元重放。证书会从报告声明的输入独立重算这些条件，因而不能只相信报告里写的 `accept_for_policy_only`。
+在本合同中，$|A|\ge t_e$ 排除单根授权，$|o(A)|\ge d_e$ 排除同一运营者的重复根冒充独立批准，$A\subseteq R_e$ 排除新根自授权，$e'>e$ 排除旧纪元重放。证书会重算这些条件。
 
 见证证据回答的是另一类问题：多个根的授权可能仍来自同一组织、同一控制面或一次被协调的攻击；独立日志观察者、gossip、不同运营域的见证者可帮助发现分叉视图或未被广泛观察到的轮换。它们不自动证明“新根值得信任”，也不取代阈值授权。证据不可用时，本合同给出 `manual_review`，不 silent fail-open。
 
@@ -108,7 +112,7 @@ assert review["identity_binding"] == "not_established_by_log_entries"
 ## 失败案例与工程边界
 
 - **用新根授权新根。** 若先相信 $R'$，攻击者可以直接提出只含自己密钥的新集合；授权必须相对于旧状态检查。
-- **一把根足以轮换。** 单点泄露可变为持续接管；阈值降低单点风险，却也可能在成员不可用时阻断恢复。
+- **同一运营者的多把根冒充多方。** 根 ID 阈值不等于组织、人员、设备或网络路径独立；运营者映射也只是需外部核验的治理声明。
 - **只要阈值就不需要见证。** 多份批准可能来自同一被攻陷控制面；见证和 gossip 处理的是可观察性与分叉风险。
 - **见证不可用就自动继续。** 这会把未知状态当安全；可用性优先还是完整性优先必须是明确、可审计的组织决策。
 - **把本代码接进信任库。** 禁止。真实系统应采用经过审计的更新框架、密钥管理、阈值签名/审批协议与事件响应流程。

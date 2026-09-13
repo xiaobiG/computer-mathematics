@@ -9,7 +9,11 @@ from projects.crypto_toybox.transparency_log import append_only_report
 
 
 def state():
-    return {"epoch": 4, "root_ids": ["root-a", "root-b", "root-c"], "threshold": 2}
+    return {
+        "epoch": 4, "root_ids": ["root-a", "root-b", "root-c"], "threshold": 2,
+        "root_operator_ids": ["operator-a", "operator-b", "operator-c"],
+        "minimum_distinct_approval_operators": 2,
+    }
 
 
 def proposal(**overrides):
@@ -75,6 +79,13 @@ class TrustRootRotationTests(unittest.TestCase):
         self.assertEqual(outsider["decision"], "reject")
         self.assertIn("approval_claims_belong_to_current_roots", outsider["failed_checks"])
 
+    def test_multiple_root_ids_from_one_operator_do_not_satisfy_independence_policy(self):
+        concentrated = state() | {"root_operator_ids": ["operator-a", "operator-a", "operator-c"]}
+        report = trust_root_rotation_report(concentrated, proposal())
+        self.assertEqual(report["approval_operator_ids"], ["operator-a"])
+        self.assertEqual(report["decision"], "reject")
+        self.assertIn("approval_claims_meet_independent_operator_threshold", report["failed_checks"])
+
     def test_missing_witness_evidence_requires_review_not_acceptance(self):
         report = trust_root_rotation_report(state(), proposal(witness_evidence_available=False))
         self.assertEqual(report["decision"], "manual_review")
@@ -86,6 +97,8 @@ class TrustRootRotationTests(unittest.TestCase):
         self.assertFalse(trust_root_rotation_certificate(report)["valid"])
         with self.assertRaises(ValueError):
             trust_root_rotation_report(state(), proposal(approval_claims=["root-a", "root-a"]))
+        with self.assertRaises(ValueError):
+            trust_root_rotation_report(state() | {"root_operator_ids": ["operator-a"]}, proposal())
 
 
 if __name__ == "__main__":
