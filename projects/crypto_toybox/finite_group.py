@@ -68,12 +68,17 @@ def finite_group_report(generator: int, prime: int) -> dict[str, object]:
     elements = tuple(subgroup_elements(generator, prime))
     element_set = set(elements)
     powers = tuple((exponent, pow(generator, exponent, prime)) for exponent in range(order))
+    period_witnesses = tuple(
+        (exponent, exponent + order, pow(generator, exponent, prime))
+        for exponent in range(order)
+    )
     inverses = tuple((element, pow(element, prime - 2, prime)) for element in elements)
     return {
         "generator": generator % prime,
         "prime": prime,
         "order": order,
         "powers": powers,
+        "period_witnesses": period_witnesses,
         "elements": elements,
         "order_divides_group_size": (prime - 1) % order == 0,
         "elements_are_distinct": len(element_set) == order,
@@ -81,6 +86,10 @@ def finite_group_report(generator: int, prime: int) -> dict[str, object]:
                                              for left in elements for right in elements),
         "inverses_stay_in_subgroup": all((element * inverse) % prime == 1
                                            and inverse in element_set for element, inverse in inverses),
+        "exponents_reduce_modulo_order": all(
+            pow(generator, reduced_exponent + order, prime) == value
+            for reduced_exponent, _, value in period_witnesses
+        ),
         "generator_spans_full_group": order == prime - 1,
     }
 
@@ -93,6 +102,7 @@ def finite_group_certificate(generator: int, prime: int, report: dict[str, objec
         "elements_are_distinct": False,
         "closed_under_multiplication": False,
         "inverses_stay_in_subgroup": False,
+        "exponents_reduce_modulo_order": False,
         "valid": False,
     }
     try:
@@ -108,9 +118,11 @@ def finite_group_certificate(generator: int, prime: int, report: dict[str, objec
             "elements_are_distinct": fields_match and expected["elements_are_distinct"],
             "closed_under_multiplication": fields_match and expected["closed_under_multiplication"],
             "inverses_stay_in_subgroup": fields_match and expected["inverses_stay_in_subgroup"],
+            "exponents_reduce_modulo_order": fields_match and expected["exponents_reduce_modulo_order"],
             "valid": fields_match and all((
                 expected["order_divides_group_size"], expected["elements_are_distinct"],
                 expected["closed_under_multiplication"], expected["inverses_stay_in_subgroup"],
+                expected["exponents_reduce_modulo_order"],
             )),
         }
     except (TypeError, ValueError):

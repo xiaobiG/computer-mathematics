@@ -43,6 +43,8 @@ class FiniteGroupTests(unittest.TestCase):
     def test_group_report_certifies_subgroup_closure_inverses_and_generator_scope(self):
         subgroup = finite_group_report(2, 23)
         self.assertEqual(subgroup["order"], 11)
+        self.assertTrue(subgroup["exponents_reduce_modulo_order"])
+        self.assertEqual(subgroup["period_witnesses"][7], (7, 18, pow(2, 7, 23)))
         self.assertFalse(subgroup["generator_spans_full_group"])
         self.assertTrue(finite_group_certificate(2, 23, subgroup)["valid"])
 
@@ -54,4 +56,10 @@ class FiniteGroupTests(unittest.TestCase):
         tampered["elements"] = subgroup["elements"][:-1] + (5,)
         certificate = finite_group_certificate(2, 23, tampered)
         self.assertFalse(certificate["fields_match_recomputed_group"])
+        self.assertFalse(certificate["valid"])
+
+        tampered = dict(subgroup)
+        tampered["period_witnesses"] = subgroup["period_witnesses"][:-1]
+        certificate = finite_group_certificate(2, 23, tampered)
+        self.assertFalse(certificate["exponents_reduce_modulo_order"])
         self.assertFalse(certificate["valid"])

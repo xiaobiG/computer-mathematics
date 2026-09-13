@@ -4,7 +4,7 @@ prerequisites: "模运算、最大公约数与快速幂"
 estimatedMinutes: 60
 experiment: "枚举小素数模下的乘法群，验证元素阶、生成元与模逆元"
 title: 有限域、群与离散对数直觉
-description: 从模素数运算建立有限域与循环群直觉，解释生成元、元素阶和密码学离散对数假设。
+description: 从模素数运算建立有限域与循环群直觉，解释生成元、元素阶、指数按阶归约和密码学离散对数假设。
 ---
 
 # 有限域、群与离散对数直觉
@@ -16,6 +16,7 @@ description: 从模素数运算建立有限域与循环群直觉，解释生成�
 - 区分环、域、群以及 $\mathbb Z_n$ 与 $\mathbb F_p$；
 - 证明模素数下每个非零元素都有乘法逆元；
 - 计算元素阶、识别生成元，并解释循环群；
+- 证明并检查指数只在生成子群的阶模意义下不同；
 - 用快速幂实现小规模枚举实验；
 - 明确小群、小子群与不验证公钥为何破坏密码协议。
 
@@ -51,6 +52,14 @@ $$
 
 密码协议通常选择一个大素数阶子群 $G=\langle g\rangle$，而非随意使用全部元素。将秘密指数按子群阶 $q$ 取值，能避免小子群把私钥信息逐位泄露。
 
+## 指数按元素阶归约
+
+若 $r=\operatorname{ord}(g)$，任意指数可写作 $a=qr+t$，其中 $0\le t<r$。因而
+
+$$g^a=g^{qr+t}=(g^r)^qg^t=g^t.$$
+
+公开值 $g^a$ 只依赖 $a\bmod r$。模 23 中元素 2 的阶为 11，所以 $2^7\equiv2^{18}\pmod{23}$。这说明私钥标量必须按声明子群阶解释；也说明攻击者若让你对低阶元素幂运算，输出最多泄露私钥模这个小阶的同余信息。仅做指数归约并不安全：协议还必须验证对方公钥属于预期的大素数阶子群。
+
 ## 离散对数：易算与难反算的不对称
 
 给定 $g$、$a$、模数 $p$，计算 $g^a\bmod p$ 可用重复平方在 $O(\log a)$ 次模乘内完成。反向问题是：给定 $g$ 与 $h=g^a$，求 $a$，称为离散对数问题（DLP）。
@@ -81,10 +90,12 @@ assert discrete_log_toy(generator, pow(generator, 7, p), p) == 7
 subgroup_report = finite_group_report(2, p)
 assert subgroup_report["order"] == 11
 assert not subgroup_report["generator_spans_full_group"]
+assert subgroup_report["exponents_reduce_modulo_order"]
+assert subgroup_report["period_witnesses"][7] == (7, 18, pow(2, 7, p))
 assert finite_group_certificate(2, p, subgroup_report)["valid"]
 ```
 
-该程序在教学规模枚举阶、生成元与离散对数，且拒绝复合模数和超过 1000 的枚举请求：它的作用正是让读者观察小群为何不安全，而不是生成参数或实现密钥交换。`finite_group_report` 显式列出 $g^0$ 到 $g^{\mathrm{ord}(g)-1}$，并检查元素互异、阶整除 $p-1$、乘法封闭与逆元仍在子群中；`finite_group_certificate` 不信任显示出的列表，而是从 $g,p$ 重新枚举全部有限证据。它还区分“阶为 11 的真子群”与“阶为 22 的生成元覆盖全群”，正是小子群边界的可执行版本。真实参数应由成熟协议/库固定选择，并使用密码学安全随机数。
+该程序在教学规模枚举阶、生成元与离散对数，且拒绝复合模数和超过 1000 的枚举请求：它的作用正是让读者观察小群为何不安全，而不是生成参数或实现密钥交换。`finite_group_report` 显式列出 $g^0$ 到 $g^{\mathrm{ord}(g)-1}$，并为每个代表指数保存 $(e,e+r,g^e)$ 周期见证；它检查元素互异、阶整除 $p-1$、乘法封闭与逆元仍在子群中。`finite_group_certificate` 不信任显示出的列表，而是从 $g,p$ 重新枚举全部有限证据。它还区分“阶为 11 的真子群”与“阶为 22 的生成元覆盖全群”，正是小子群边界的可执行版本。真实参数应由成熟协议/库固定选择，并使用密码学安全随机数。
 
 ## Diffie–Hellman 如何使用这些结构
 
